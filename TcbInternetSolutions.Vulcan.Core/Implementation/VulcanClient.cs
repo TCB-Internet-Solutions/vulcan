@@ -51,11 +51,13 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             {
                 try
                 {
-                    var response = base.Index(content, c => c.Id(content.ContentLink.ToString()).Type(GetTypeName(content)));
+                    var response = base.Index(content, c => c.Id(GetId(content.ContentLink)).Type(GetTypeName(content)));
+
+                    Logger.Debug("Vulcan indexed " + GetId(content.ContentLink) + ": " + response.DebugInformation);
                 }
                 catch (Exception e)
                 {
-                    Logger.Warning("Vulcan could not index content with content link: " + content.ContentLink.ToString(), e);
+                    Logger.Warning("Vulcan could not index content with content link: " + GetId(content.ContentLink), e);
                 }
             }
         }
@@ -64,17 +66,24 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         {
             try
             {
-                var response = base.Delete(new DeleteRequest(VulcanHelper.Index, GetTypeName(content), content.ContentLink.ToString()));
+                var response = base.Delete(new DeleteRequest(VulcanHelper.Index, GetTypeName(content), GetId(content.ContentLink)));
+
+                Logger.Debug("Vulcan deleted " + GetId(content.ContentLink) + ": " + response.DebugInformation);
             }
             catch (Exception e)
             {
-                Logger.Warning("Vulcan could not delete content with content link: " + content.ContentLink.ToString(), e);
+                Logger.Warning("Vulcan could not delete content with content link: " + GetId(content.ContentLink), e);
             }
         }
 
         private string GetTypeName(IContent content)
         {
             return content.GetType().Name.EndsWith("Proxy") ? content.GetType().BaseType.FullName : content.GetType().FullName;
+        }
+
+        private string GetId(ContentReference contentLink)
+        {
+            return contentLink.ToReferenceWithoutVersion().ToString();
         }
     }
 }

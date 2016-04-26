@@ -46,6 +46,9 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         public void Uninitialize(InitializationEngine context)
         {
+            ContentEvents.Service.PublishedContent -= Service_PublishedContent;
+            ContentEvents.Service.MovedContent -= Service_MovedContent;
+            ContentEvents.Service.DeletedContent -= Service_DeletedContent;
         }
     }
 }
