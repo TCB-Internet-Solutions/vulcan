@@ -18,7 +18,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         {
         }
 
-        public ISearchResponse<IContent> SearchContent<T>(Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null) where T : class, EPiServer.Core.IContent
+        public ISearchResponse<IContent> SearchContent<T>(Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null, string language = null) where T : class, EPiServer.Core.IContent
         {
             SearchDescriptor<T> resolvedDescriptor;
 
@@ -39,6 +39,8 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             }
 
             resolvedDescriptor = resolvedDescriptor.Type(string.Join(",", types)).ConcreteTypeSelector((d, docType) => typeof(VulcanContentHit));
+            
+            if(!string.IsNullOrWhiteSpace(language)) resolvedDescriptor = resolvedDescriptor.PostFilter(f => f.Term("language", language));
 
             Func<SearchDescriptor<T>, ISearchRequest> selector = ts => resolvedDescriptor;
 
@@ -51,13 +53,27 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             {
                 try
                 {
-                    var response = base.Index(content, c => c.Id(GetId(content.ContentLink)).Type(GetTypeName(content)));
+                    if (content is ILocalizable)
+                    {
+                        foreach (var language in (content as ILocalizable).ExistingLanguages)
+                        {
+                            var id = GetId(content.ContentLink, language.Name);
 
-                    Logger.Debug("Vulcan indexed " + GetId(content.ContentLink) + ": " + response.DebugInformation);
+                            var response = base.Index(content, c => c.Id(id).Type(GetTypeName(content)));
+
+                            Logger.Debug("Vulcan indexed " + id + ": " + response.DebugInformation);
+                        }
+                    }
+                    else
+                    {
+                        var response = base.Index(content, c => c.Id(GetId(content.ContentLink, null)).Type(GetTypeName(content)));
+
+                        Logger.Debug("Vulcan indexed " + GetId(content.ContentLink, null) + ": " + response.DebugInformation);
+                    }
                 }
                 catch (Exception e)
                 {
-                    Logger.Warning("Vulcan could not index content with content link: " + GetId(content.ContentLink), e);
+                    Logger.Warning("Vulcan could not index content with content link: " + content.ContentLink.ToString(), e);
                 }
             }
         }
@@ -66,13 +82,27 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         {
             try
             {
-                var response = base.Delete(new DeleteRequest(VulcanHelper.Index, GetTypeName(content), GetId(content.ContentLink)));
+                if (content is ILocalizable)
+                {
+                    foreach (var language in (content as ILocalizable).ExistingLanguages)
+                    {
+                        var id = GetId(content.ContentLink, language.Name);
 
-                Logger.Debug("Vulcan deleted " + GetId(content.ContentLink) + ": " + response.DebugInformation);
+                        var response = base.Delete(new DeleteRequest(VulcanHelper.Index, GetTypeName(content), id));
+
+                        Logger.Debug("Vulcan deleted " + id + ": " + response.DebugInformation);
+                    }
+                }
+                else
+                {
+                    var response = base.Delete(new DeleteRequest(VulcanHelper.Index, GetTypeName(content), GetId(content.ContentLink, null)));
+
+                    Logger.Debug("Vulcan deleted " + GetId(content.ContentLink, null) + ": " + response.DebugInformation);
+                }
             }
             catch (Exception e)
             {
-                Logger.Warning("Vulcan could not delete content with content link: " + GetId(content.ContentLink), e);
+                Logger.Warning("Vulcan could not delete content with content link: " + content.ContentLink.ToString(), e);
             }
         }
 
@@ -81,9 +111,9 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             return content.GetType().Name.EndsWith("Proxy") ? content.GetType().BaseType.FullName : content.GetType().FullName;
         }
 
-        private string GetId(ContentReference contentLink)
+        private string GetId(ContentReference contentLink, string language)
         {
-            return contentLink.ToReferenceWithoutVersion().ToString();
+            return contentLink.ToReferenceWithoutVersion().ToString() + (language == null ? "" : "~" + language);
         }
     }
 }

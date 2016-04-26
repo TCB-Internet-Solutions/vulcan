@@ -39,5 +39,12 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             client.DeleteIndex(Index);
         }
+
+        public static KeyValuePair<ContentReference, string> GetLocalizedReference(string Id)
+        {
+            var split = Id.Split(new string[] { "~" }, StringSplitOptions.RemoveEmptyEntries);
+
+            return new KeyValuePair<ContentReference, string>(new ContentReference(split[0]), split.Length == 1 ? null : split[1]);
+        }
     }
 }

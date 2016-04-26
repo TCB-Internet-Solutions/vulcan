@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TcbInternetSolutions.Vulcan.Core.Implementation;
 
 namespace TcbInternetSolutions.Vulcan.Core.Extensions
 {
@@ -89,7 +90,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
                         {
                             // we have content!
 
-                            var content = contentLoader.Get<T>(new ContentReference(hit.Id));
+                            var content = contentLoader.Get<T>(VulcanHelper.GetLocalizedReference(hit.Id).Key);
 
                             if (content != null)
                             {
