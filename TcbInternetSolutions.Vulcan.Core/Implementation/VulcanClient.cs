@@ -1,5 +1,7 @@
-﻿using EPiServer.Core;
+﻿using EPiServer;
+using EPiServer.Core;
 using EPiServer.Logging;
+using EPiServer.ServiceLocation;
 using Nest;
 using System;
 using System.Collections.Generic;
@@ -13,6 +15,8 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     public class VulcanClient : ElasticClient, IVulcanClient
     {
         private static ILogger Logger = LogManager.GetLogger();
+
+        public Injected<IContentLoader> ContentLoader { get; set; }
 
         public VulcanClient(ConnectionSettings settings) : base(settings)
         {
@@ -39,8 +43,19 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             }
 
             resolvedDescriptor = resolvedDescriptor.Type(string.Join(",", types)).ConcreteTypeSelector((d, docType) => typeof(VulcanContentHit));
-            
-            if(!string.IsNullOrWhiteSpace(language)) resolvedDescriptor = resolvedDescriptor.PostFilter(f => f.Term("language", language));
+
+            Func<QueryContainerDescriptor<T>, QueryContainer> queryFunc = q => q.Bool(b => b.Must(f => f.Term("language", "en")));
+
+            var queryContainer = queryFunc.Invoke(new QueryContainerDescriptor<T>());
+
+            var existingQueryContainer = resolvedDescriptor.GetType().GetProperty("Nest.ISearchRequest.Query", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(resolvedDescriptor, null) as QueryContainer;
+
+            if(existingQueryContainer != null)
+            {
+                queryContainer = queryContainer & existingQueryContainer;
+            }
+
+            resolvedDescriptor.GetType().InvokeMember("Nest.ISearchRequest.Query", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.SetProperty, Type.DefaultBinder, resolvedDescriptor, new object[] { queryContainer });
 
             Func<SearchDescriptor<T>, ISearchRequest> selector = ts => resolvedDescriptor;
 
@@ -59,9 +74,14 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                         {
                             var id = GetId(content.ContentLink, language.Name);
 
-                            var response = base.Index(content, c => c.Id(id).Type(GetTypeName(content)));
+                            var localizedContent = (content as ILocalizable).Language == language ? content : ContentLoader.Service.Get<IContent>(content.ContentLink.ToReferenceWithoutVersion(), language);
 
-                            Logger.Debug("Vulcan indexed " + id + ": " + response.DebugInformation);
+                            if ((localizedContent as IVersionable).Status == VersionStatus.Published) // need to recheck for other languages
+                            {
+                                var response = base.Index(localizedContent, c => c.Id(id).Type(GetTypeName(content)));
+
+                                Logger.Debug("Vulcan indexed " + id + ": " + response.DebugInformation);
+                            }
                         }
                     }
                     else
