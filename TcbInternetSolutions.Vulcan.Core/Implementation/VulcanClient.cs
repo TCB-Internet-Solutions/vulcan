@@ -44,18 +44,21 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             resolvedDescriptor = resolvedDescriptor.Type(string.Join(",", types)).ConcreteTypeSelector((d, docType) => typeof(VulcanContentHit));
 
-            Func<QueryContainerDescriptor<T>, QueryContainer> queryFunc = q => q.Bool(b => b.Must(f => f.Term("language", "en")));
-
-            var queryContainer = queryFunc.Invoke(new QueryContainerDescriptor<T>());
-
-            var existingQueryContainer = resolvedDescriptor.GetType().GetProperty("Nest.ISearchRequest.Query", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(resolvedDescriptor, null) as QueryContainer;
-
-            if(existingQueryContainer != null)
+            if (!string.IsNullOrWhiteSpace(language))
             {
-                queryContainer = queryContainer & existingQueryContainer;
-            }
+                Func<QueryContainerDescriptor<T>, QueryContainer> queryFunc = q => q.Bool(b => b.Must(f => f.Term("language", language)));
 
-            resolvedDescriptor.GetType().InvokeMember("Nest.ISearchRequest.Query", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.SetProperty, Type.DefaultBinder, resolvedDescriptor, new object[] { queryContainer });
+                var queryContainer = queryFunc.Invoke(new QueryContainerDescriptor<T>());
+
+                var existingQueryContainer = resolvedDescriptor.GetType().GetProperty("Nest.ISearchRequest.Query", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(resolvedDescriptor, null) as QueryContainer;
+
+                if (existingQueryContainer != null)
+                {
+                    queryContainer = queryContainer & existingQueryContainer;
+                }
+
+                resolvedDescriptor.GetType().InvokeMember("Nest.ISearchRequest.Query", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.SetProperty, Type.DefaultBinder, resolvedDescriptor, new object[] { queryContainer });
+            }
 
             Func<SearchDescriptor<T>, ISearchRequest> selector = ts => resolvedDescriptor;
 
