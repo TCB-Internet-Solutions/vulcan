@@ -16,6 +16,8 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
     {
         private static ILogger Logger = LogManager.GetLogger();
 
+        public static Injected<IVulcanHandler> VulcanHandler { get; set; }
+        
         public static IEnumerable<T> GetContents<T>(this ISearchResponse<T> searchResponse) where T : class, IContent
         {
             var list = new List<T>();
@@ -90,7 +92,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
                         {
                             // we have content!
 
-                            var content = contentLoader.Get<T>(VulcanHelper.GetLocalizedReference(hit.Id).Key);
+                            var content = contentLoader.Get<T>(new ContentReference(hit.Id));
 
                             if (content != null)
                             {

@@ -112,12 +112,12 @@
     <Compile Include="Extensions\VulcanExtensions.cs" />
     <Compile Include="Implementation\VulcanCmsIndexer.cs" />
     <Compile Include="Implementation\VulcanCustomJsonSerializer.cs" />
+    <Compile Include="Implementation\VulcanHelper.cs" />
     <Compile Include="Implementation\VulcanIndexContent.cs">
       <ExcludeFromStyleCop>True</ExcludeFromStyleCop>
     </Compile>
     <Compile Include="Implementation\VulcanClient.cs" />
     <Compile Include="Implementation\VulcanContentHit.cs" />
-    <Compile Include="Implementation\VulcanHelper.cs" />
     <Compile Include="Implementation\VulcanHandler.cs" />
     <Compile Include="Implementation\VulcanIndexSynchronization.cs" />
     <Compile Include="IVulcanClient.cs" />

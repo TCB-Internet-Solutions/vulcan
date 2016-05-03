@@ -5,6 +5,7 @@ using EPiServer.ServiceLocation;
 using Nest;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -17,12 +18,22 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         private static ILogger Logger = LogManager.GetLogger();
 
         public Injected<IContentLoader> ContentLoader { get; set; }
+        public Injected<IVulcanHandler> VulcanHandler { get; set; }
 
-        public VulcanClient(ConnectionSettings settings) : base(settings)
+        private CultureInfo cultureInfo { get; set; }
+
+        public VulcanClient(ConnectionSettings settings, CultureInfo language)
+            : base(settings)
         {
+            if(language == null)
+            {
+                throw new Exception("Vulcan client requires a language (you may use CultureInfo.InvariantCulture if needed for non-language specific data)");
+            }
+
+            cultureInfo = language;
         }
 
-        public ISearchResponse<IContent> SearchContent<T>(Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null, string language = null) where T : class, EPiServer.Core.IContent
+        public ISearchResponse<IContent> SearchContent<T>(Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null, bool includeNeutralLanguage = false) where T : class, EPiServer.Core.IContent
         {
             SearchDescriptor<T> resolvedDescriptor;
 
@@ -44,21 +55,30 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             resolvedDescriptor = resolvedDescriptor.Type(string.Join(",", types)).ConcreteTypeSelector((d, docType) => typeof(VulcanContentHit));
 
-            if (!string.IsNullOrWhiteSpace(language))
+            var indexName = VulcanHandler.Service.GetIndexName(cultureInfo);
+            if(cultureInfo != CultureInfo.InvariantCulture && includeNeutralLanguage)
             {
-                Func<QueryContainerDescriptor<T>, QueryContainer> queryFunc = q => q.Bool(b => b.Must(f => f.Term("language", language)));
-
-                var queryContainer = queryFunc.Invoke(new QueryContainerDescriptor<T>());
-
-                var existingQueryContainer = resolvedDescriptor.GetType().GetProperty("Nest.ISearchRequest.Query", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(resolvedDescriptor, null) as QueryContainer;
-
-                if (existingQueryContainer != null)
-                {
-                    queryContainer = queryContainer & existingQueryContainer;
-                }
-
-                resolvedDescriptor.GetType().InvokeMember("Nest.ISearchRequest.Query", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.SetProperty, Type.DefaultBinder, resolvedDescriptor, new object[] { queryContainer });
+                indexName += "," + VulcanHandler.Service.GetIndexName(CultureInfo.InvariantCulture);
             }
+
+            var queryContainer = resolvedDescriptor.GetType().GetProperty("Nest.ISearchRequest.Query", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(resolvedDescriptor) as QueryContainer;
+
+            if(queryContainer != null)
+            {
+                var containedQuery = queryContainer.GetType().GetProperty("ContainedQuery", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(queryContainer);
+
+                if(containedQuery != null)
+                {
+                    var analyzerProp = containedQuery.GetType().GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Where(p => p.Name.EndsWith("Analyzer") && p.PropertyType == typeof(string)).FirstOrDefault();
+
+                    if(analyzerProp != null)
+                    {
+                        analyzerProp.SetValue(containedQuery, VulcanHelper.GetAnalyzer(cultureInfo));
+                    }
+                }
+            }
+
+            resolvedDescriptor = resolvedDescriptor.Index(indexName);
 
             Func<SearchDescriptor<T>, ISearchRequest> selector = ts => resolvedDescriptor;
 
@@ -67,65 +87,59 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         public void IndexContent(IContent content)
         {
+            if(content is ILocalizable && (content as ILocalizable).Language != cultureInfo)
+            {
+                throw new Exception("Cannot index content '" + GetId(content) + "' with language " + (content as ILocalizable).Language.Name + " with Vulcan client for language " + (cultureInfo == CultureInfo.InvariantCulture ? "invariant" : cultureInfo.Name));
+            }
+
+            if(!(content is ILocalizable) && cultureInfo != CultureInfo.InvariantCulture)
+            {
+                throw new Exception("Cannot index content '" + GetId(content) + "' with no language with Vulcan client for language " + cultureInfo.Name);
+            }
+
             if (!(content is IVersionable) || (content as IVersionable).Status == VersionStatus.Published)
             {
                 try
                 {
-                    if (content is ILocalizable)
+                    var response = base.Index(content, c => c.Id(GetId(content)).Type(GetTypeName(content)));
+
+                    if (response.IsValid)
                     {
-                        foreach (var language in (content as ILocalizable).ExistingLanguages)
-                        {
-                            var id = GetId(content.ContentLink, language.Name);
-
-                            var localizedContent = (content as ILocalizable).Language == language ? content : ContentLoader.Service.Get<IContent>(content.ContentLink.ToReferenceWithoutVersion(), language);
-
-                            if ((localizedContent as IVersionable).Status == VersionStatus.Published) // need to recheck for other languages
-                            {
-                                var response = base.Index(localizedContent, c => c.Id(id).Type(GetTypeName(content)));
-
-                                Logger.Debug("Vulcan indexed " + id + ": " + response.DebugInformation);
-                            }
-                        }
+                        Logger.Debug("Vulcan indexed " + GetId(content) + " for language " + (cultureInfo == CultureInfo.InvariantCulture ? "invariant" : cultureInfo.Name) + ": " + response.DebugInformation);
                     }
                     else
                     {
-                        var response = base.Index(content, c => c.Id(GetId(content.ContentLink, null)).Type(GetTypeName(content)));
-
-                        Logger.Debug("Vulcan indexed " + GetId(content.ContentLink, null) + ": " + response.DebugInformation);
+                        throw new Exception(response.DebugInformation);
                     }
                 }
                 catch (Exception e)
                 {
-                    Logger.Warning("Vulcan could not index content with content link: " + content.ContentLink.ToString(), e);
+                    Logger.Warning("Vulcan could not index content with content link " + GetId(content) + " for language " + (cultureInfo == CultureInfo.InvariantCulture ? "invariant" : cultureInfo.Name) + ": ", e);
                 }
             }
         }
 
         public void DeleteContent(IContent content)
         {
+            if (content is ILocalizable && (content as ILocalizable).Language != cultureInfo)
+            {
+                throw new Exception("Cannot delete content '" + GetId(content) + "' with language " + (content as ILocalizable).Language.Name + " with Vulcan client for language " + (cultureInfo == CultureInfo.InvariantCulture ? "invariant" : cultureInfo.Name));
+            }
+
+            if (!(content is ILocalizable) && cultureInfo != CultureInfo.InvariantCulture)
+            {
+                throw new Exception("Cannot delete content '" + GetId(content) + "' with no language with Vulcan client for language " + cultureInfo.Name);
+            }
+
             try
             {
-                if (content is ILocalizable)
-                {
-                    foreach (var language in (content as ILocalizable).ExistingLanguages)
-                    {
-                        var id = GetId(content.ContentLink, language.Name);
+                var response = base.Delete(new DeleteRequest(VulcanHandler.Service.GetIndexName(cultureInfo), GetTypeName(content), GetId(content)));
 
-                        var response = base.Delete(new DeleteRequest(VulcanHelper.Index, GetTypeName(content), id));
-
-                        Logger.Debug("Vulcan deleted " + id + ": " + response.DebugInformation);
-                    }
-                }
-                else
-                {
-                    var response = base.Delete(new DeleteRequest(VulcanHelper.Index, GetTypeName(content), GetId(content.ContentLink, null)));
-
-                    Logger.Debug("Vulcan deleted " + GetId(content.ContentLink, null) + ": " + response.DebugInformation);
-                }
+                Logger.Debug("Vulcan deleted " + GetId(content) + " for language " + (cultureInfo == CultureInfo.InvariantCulture ? "invariant" : cultureInfo.Name) + ": " + response.DebugInformation);
             }
             catch (Exception e)
             {
-                Logger.Warning("Vulcan could not delete content with content link: " + content.ContentLink.ToString(), e);
+                Logger.Warning("Vulcan could not delete content with content link " + GetId(content) + " for language " + (cultureInfo == CultureInfo.InvariantCulture ? "invariant" : cultureInfo.Name) + ":", e);
             }
         }
 
@@ -134,9 +148,9 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             return content.GetType().Name.EndsWith("Proxy") ? content.GetType().BaseType.FullName : content.GetType().FullName;
         }
 
-        private string GetId(ContentReference contentLink, string language)
+        private string GetId(IContent content)
         {
-            return contentLink.ToReferenceWithoutVersion().ToString() + (language == null ? "" : "~" + language);
+            return content.ContentLink.ToReferenceWithoutVersion().ToString();
         }
     }
 }

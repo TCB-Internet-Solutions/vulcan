@@ -20,28 +20,34 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             ContentEvents.Service.PublishedContent += Service_PublishedContent;
             ContentEvents.Service.MovedContent += Service_MovedContent;
             ContentEvents.Service.DeletedContent += Service_DeletedContent;
+            ContentEvents.Service.DeletedContentLanguage += Service_DeletedContentLanguage;
+        }
+
+        void Service_DeletedContentLanguage(object sender, EPiServer.ContentEventArgs e)
+        {
+            VulcanHandler.Service.DeleteContentByLanguage(e.Content);
         }
 
         void Service_DeletedContent(object sender, EPiServer.DeleteContentEventArgs e)
         {
-            VulcanHandler.Service.Client.DeleteContent(e.Content);
+            VulcanHandler.Service.DeleteContentEveryLanguage(e.Content);
         }
 
         void Service_MovedContent(object sender, EPiServer.ContentEventArgs e)
         {
             if (e.TargetLink.CompareToIgnoreWorkID(SiteDefinition.Current.WasteBasket))
             {
-                VulcanHandler.Service.Client.DeleteContent(e.Content);
+                VulcanHandler.Service.DeleteContentEveryLanguage(e.Content);
             }
             else
             {
-                VulcanHandler.Service.Client.IndexContent(e.Content);
+                VulcanHandler.Service.IndexContentEveryLanguage(e.Content);
             }
         }
 
         void Service_PublishedContent(object sender, EPiServer.ContentEventArgs e)
         {
-            VulcanHandler.Service.Client.IndexContent(e.Content);
+            VulcanHandler.Service.IndexContentByLanguage(e.Content);
         }
 
         public void Uninitialize(InitializationEngine context)
@@ -49,6 +55,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             ContentEvents.Service.PublishedContent -= Service_PublishedContent;
             ContentEvents.Service.MovedContent -= Service_MovedContent;
             ContentEvents.Service.DeletedContent -= Service_DeletedContent;
+            ContentEvents.Service.DeletedContentLanguage -= Service_DeletedContentLanguage;
         }
     }
 }

@@ -11,6 +11,7 @@ using EPiServer.DataAbstraction.RuntimeModel;
 using EPiServer.Logging;
 using System.Linq;
 using System.Collections.Generic;
+using EPiServer.DataAbstraction;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
@@ -38,9 +39,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         {
             OnStatusChanged(String.Format("Starting execution of {0}", this.GetType()));
 
-            VulcanHelper.DeleteIndex();
-
-            var client = VulcanHelper.GetClient();
+            VulcanHandler.Service.DeleteIndex(); // delete all language indexes
 
             var indexers = new List<Type>();
             
@@ -48,43 +47,31 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             {
                 indexers.AddRange(assembly.GetTypes().Where(t => typeof(IVulcanIndexer).IsAssignableFrom(t) && t.IsClass));
             }
+
+            var count = 0;
             
-            foreach(var indexer in indexers)
+            for (int i = 0; i < indexers.Count; i++)
             {
-                var indexerObject = (IVulcanIndexer)Activator.CreateInstance(indexer);
+                var indexer = (IVulcanIndexer)Activator.CreateInstance(indexers[i]);
 
-                var root = ContentLoader.Service.Get<IContent>(indexerObject.GetRoot().Key);
+                var contentReferences = ContentLoader.Service.GetDescendents(indexer.GetRoot().Key);
 
-                OnStatusChanged("Indexing " + indexerObject.GetRoot().Value + " content...");
-
-                var complete = IndexIncremental(client, root);
-
-                if(!complete)
+                for(int cr = 0; cr < contentReferences.Count(); cr++)
                 {
-                    return "Stop of job was called";
+                    OnStatusChanged("Indexing item " + (cr + 1).ToString() + " of " + contentReferences.Count() + " items of " + indexer.GetRoot().Value + " content (indexer " + (i + 1).ToString() + " of " + indexers.Count.ToString() + ")...");
+
+                    VulcanHandler.Service.IndexContentEveryLanguage(ContentLoader.Service.Get<IContent>(contentReferences.ElementAt(cr)));
+
+                    if (_stopSignaled)
+                    {
+                        return "Stop of job was called";
+                    }
+
+                    count++;
                 }
             }
 
-            return "Vulcan successfully completed.";
-        }
-
-        private bool IndexIncremental(ElasticClient client, IContent content)
-        {
-            if (_stopSignaled)
-            {
-                return false;
-            }
-
-            VulcanHandler.Service.Client.IndexContent(content);
-
-            foreach(var child in ContentLoader.Service.GetChildren<IContent>(content.ContentLink))
-            {
-                var complete = IndexIncremental(client, child);
-
-                if (!complete) return false;
-            }
-
-            return true;
+            return "Vulcan successfully indexed " + count.ToString() + " item(s)";
         }
     }
 }

@@ -1,50 +1,120 @@
-﻿using Elasticsearch.Net;
-using EPiServer.Core;
-using EPiServer.DataAbstraction.RuntimeModel;
-using Nest;
+﻿using EPiServer.Core;
+using EPiServer.DataAbstraction;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
-    internal static class VulcanHelper
+    public static class VulcanHelper
     {
-        public static VulcanClient GetClient()
-        {
-            var connectionPool = new SingleNodeConnectionPool(new Uri(ConfigurationManager.AppSettings["VulcanUrl"]));
-            var settings = new ConnectionSettings(connectionPool, s => new VulcanCustomJsonSerializer(s));
-            settings.InferMappingFor<ContentData>(pd => pd.Ignore(p => p.Property));
-            settings.InferMappingFor<ContentMixin>(pd => pd.Ignore(p => p.MixinInstance));
-            settings.InferMappingFor<PageData>(pd => pd.Ignore(p => p.PageName));
-            settings.DefaultIndex(Index);
-
-            return new VulcanClient(settings);
-        }
-
-        public static string Index
+        public static Type [] IgnoredTypes
         {
             get
             {
-                return ConfigurationManager.AppSettings["VulcanIndex"];
+                return new Type[] {
+                    typeof(PropertyDataCollection),
+                    typeof(ContentArea),
+                    typeof(CultureInfo),
+                    typeof(IEnumerable<CultureInfo>),
+                    typeof(PageType)
+                };
             }
         }
 
-        public static void DeleteIndex()
+        public static string GetAnalyzer(CultureInfo cultureInfo)
         {
-            var client = GetClient();
+            if (cultureInfo != CultureInfo.InvariantCulture) // check if we have non-language data
+            {
+                if (!cultureInfo.IsNeutralCulture)
+                {
+                    // try something specific first
 
-            client.DeleteIndex(Index);
-        }
+                    switch (cultureInfo.Name.ToUpper())
+                    {
+                        case "PT-BR":
+                            return "brazilian";
+                    }
+                }
 
-        public static KeyValuePair<ContentReference, string> GetLocalizedReference(string Id)
-        {
-            var split = Id.Split(new string[] { "~" }, StringSplitOptions.RemoveEmptyEntries);
+                // nothing specific matched, go with generic
 
-            return new KeyValuePair<ContentReference, string>(new ContentReference(split[0]), split.Length == 1 ? null : split[1]);
+                switch (cultureInfo.TwoLetterISOLanguageName.ToUpper())
+                {
+                    case "AR":
+                        return "arabic";                            
+                    case "HY":
+                        return "armenian";                            
+                    case "EU":
+                        return "basque";                            
+                    case "BG":
+                        return "bulgarian";                            
+                    case "CA":
+                        return "catalan";                            
+                    case "ZH":
+                        return "chinese";                            
+                    case "KO":
+                        return "cjk"; // generic chinese-japanese-korean                            
+                    case "JP":
+                        return "cjk"; // generic chinese-japanese-korean                            
+                    case "CS":
+                        return "czech";                            
+                    case "DA":
+                        return "danish";                            
+                    case "NL":
+                        return "dutch";                            
+                    case "EN":
+                        return "english";                            
+                    case "FI":
+                        return "finnish";                            
+                    case "FR":
+                        return "french";                            
+                    case "GL":
+                        return "galician";                            
+                    case "DE":
+                        return "german";                            
+                    case "GR":
+                        return "greek";                            
+                    case "HI":
+                        return "hindi";                            
+                    case "HU":
+                        return "hungarian";                            
+                    case "ID":
+                        return "indonesian";                            
+                    case "GA":
+                        return "irish";                            
+                    case "IT":
+                        return "italian";                            
+                    case "LV":
+                        return "latvian";                            
+                    case "NO":
+                        return "norwegian";                            
+                    case "FA":
+                        return "persian";                            
+                    case "PT":
+                        return "portuguese";                            
+                    case "RO":
+                        return "romanian";                            
+                    case "RU":
+                        return "russian";                            
+                    case "KU":
+                        return "sorani"; // Kurdish                            
+                    case "ES":
+                        return "spanish";                            
+                    case "SV":
+                        return "swedish";
+                    case "TR":
+                        return "turkish";
+                    case "TH":
+                        return "thai";
+                }
+            }
+
+            // couldn't find a match (or invariant culture)
+            return "standard";
         }
     }
 }
