@@ -12,9 +12,7 @@ namespace TcbInternetSolutions.Vulcan.Core
     {
         IVulcanClient GetClient(CultureInfo language = null);
 
-        void DeleteIndex(CultureInfo culture = null);
-
-        string GetIndexName(CultureInfo language);
+        void DeleteIndex();
 
         void DeleteContentByLanguage(IContent content);
 

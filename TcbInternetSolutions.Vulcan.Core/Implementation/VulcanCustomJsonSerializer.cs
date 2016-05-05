@@ -19,10 +19,11 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         public override Elasticsearch.Net.IPropertyMapping CreatePropertyMapping(System.Reflection.MemberInfo memberInfo)
         {
-            if (memberInfo.MemberType == System.Reflection.MemberTypes.Property && 
-                (IsSubclassOfRawGeneric(typeof(Injected<>), (memberInfo as System.Reflection.PropertyInfo).PropertyType)
-                || VulcanHelper.IgnoredTypes.Contains((memberInfo as System.Reflection.PropertyInfo).PropertyType)
-                || memberInfo.Name.Equals("DefaultMvcController", StringComparison.InvariantCultureIgnoreCase)))
+            if (memberInfo.Name.Equals("PageName", StringComparison.InvariantCultureIgnoreCase) || (
+                    memberInfo.MemberType == System.Reflection.MemberTypes.Property && 
+                    (IsSubclassOfRawGeneric(typeof(Injected<>), (memberInfo as System.Reflection.PropertyInfo).PropertyType)
+                    || VulcanHelper.IgnoredTypes.Contains((memberInfo as System.Reflection.PropertyInfo).PropertyType)
+                    || memberInfo.Name.Equals("DefaultMvcController", StringComparison.InvariantCultureIgnoreCase))))
             {
                 return new PropertyMapping() { Ignore = true };
             }

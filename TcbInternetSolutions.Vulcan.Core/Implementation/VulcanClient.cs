@@ -21,8 +21,9 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         public Injected<IVulcanHandler> VulcanHandler { get; set; }
 
         private CultureInfo cultureInfo { get; set; }
+        private string index { get; set; }
 
-        public VulcanClient(ConnectionSettings settings, CultureInfo language)
+        public VulcanClient(string index, ConnectionSettings settings, CultureInfo language)
             : base(settings)
         {
             if(language == null)
@@ -31,6 +32,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             }
 
             cultureInfo = language;
+            this.index = index;
         }
 
         public ISearchResponse<IContent> SearchContent<T>(Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null, bool includeNeutralLanguage = false) where T : class, EPiServer.Core.IContent
@@ -50,32 +52,15 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
-                types.AddRange(assembly.GetTypes().Where(t => typeof(T).IsAssignableFrom(t)).Select(t => t.FullName));
+                types.AddRange(assembly.GetTypes().Where(t => typeof(T).IsAssignableFrom(t) && !t.FullName.EndsWith("Proxy")).Select(t => t.FullName));
             }
 
             resolvedDescriptor = resolvedDescriptor.Type(string.Join(",", types)).ConcreteTypeSelector((d, docType) => typeof(VulcanContentHit));
 
-            var indexName = VulcanHandler.Service.GetIndexName(cultureInfo);
+            var indexName = VulcanHelper.GetIndexName(index, cultureInfo);
             if(cultureInfo != CultureInfo.InvariantCulture && includeNeutralLanguage)
             {
-                indexName += "," + VulcanHandler.Service.GetIndexName(CultureInfo.InvariantCulture);
-            }
-
-            var queryContainer = resolvedDescriptor.GetType().GetProperty("Nest.ISearchRequest.Query", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(resolvedDescriptor) as QueryContainer;
-
-            if(queryContainer != null)
-            {
-                var containedQuery = queryContainer.GetType().GetProperty("ContainedQuery", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(queryContainer);
-
-                if(containedQuery != null)
-                {
-                    var analyzerProp = containedQuery.GetType().GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Where(p => p.Name.EndsWith("Analyzer") && p.PropertyType == typeof(string)).FirstOrDefault();
-
-                    if(analyzerProp != null)
-                    {
-                        analyzerProp.SetValue(containedQuery, VulcanHelper.GetAnalyzer(cultureInfo));
-                    }
-                }
+                indexName += "," + VulcanHelper.GetIndexName(index, CultureInfo.InvariantCulture);
             }
 
             resolvedDescriptor = resolvedDescriptor.Index(indexName);
@@ -133,7 +118,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             try
             {
-                var response = base.Delete(new DeleteRequest(VulcanHandler.Service.GetIndexName(cultureInfo), GetTypeName(content), GetId(content)));
+                var response = base.Delete(new DeleteRequest(VulcanHelper.GetIndexName(index, cultureInfo), GetTypeName(content), GetId(content)));
 
                 Logger.Debug("Vulcan deleted " + GetId(content) + " for language " + (cultureInfo == CultureInfo.InvariantCulture ? "invariant" : cultureInfo.Name) + ": " + response.DebugInformation);
             }

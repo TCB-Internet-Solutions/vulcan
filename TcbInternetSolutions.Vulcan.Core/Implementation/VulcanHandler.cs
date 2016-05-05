@@ -26,50 +26,6 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         private Dictionary<CultureInfo, VulcanClient> clients = new Dictionary<CultureInfo, VulcanClient>();
 
-        private MethodCallExpression AddPropertyToIgnore(Type type, Expression exp, string PropertyName)
-        {
-            var propertyParameter = Expression.Parameter(type, "p");
-            var propertyName = Expression.Property(propertyParameter, PropertyName);
-
-            var innerDelegateType = typeof(Func<,>).MakeGenericType(type, typeof(object));
-            var innerLambda = Expression.Lambda(innerDelegateType, propertyName, propertyParameter);
-
-            return Expression.Call(exp, "Ignore", null, new Expression[] { innerLambda });
-        }
-
-        private IEnumerable<string> WalkProperties(PropertyInfo[] properties, string path, List<Type> seenTypes) // seenTypes used to prevent recursion... passes the seen types up a path
-        {
-            var seenTypesCopy = new List<Type>(seenTypes); // we need to copy as otherwise caller would get our changes too (it's by reference)
-
-            var ignore = new List<string>();
-
-            if (properties == null) return ignore;
-
-            foreach(var property in properties)
-            {
-                seenTypesCopy.Add(property.PropertyType);                
-
-                var prop = path == "" ? property.Name : path + "." + property.Name;
-
-                if (VulcanHelper.IgnoredTypes.Contains(property.PropertyType)
-                    || property.Name == "PageName")
-                {
-                    ignore.Add(prop);
-                }
-                else
-                {
-                    var childProperties = property.PropertyType.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-
-                    if(childProperties != null)
-                    {
-                        //ignore.AddRange(WalkProperties(childProperties.Where(p => !seenTypesCopy.Contains(p.PropertyType)).ToArray(), prop, seenTypesCopy)); right now infer mapping only supports direct properties
-                    }
-                }
-            }
-
-            return ignore;
-        }
-
         private object lockObject = new object();
 
         /// <summary>
@@ -92,76 +48,46 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 var connectionPool = new SingleNodeConnectionPool(new Uri(ConfigurationManager.AppSettings["VulcanUrl"]));
                 var settings = new ConnectionSettings(connectionPool, s => new VulcanCustomJsonSerializer(s));
                 settings.InferMappingFor<ContentMixin>(pd => pd.Ignore(p => p.MixinInstance));
-                settings.DefaultIndex(GetIndexName(cultureInfo));
+                settings.DefaultIndex(VulcanHelper.GetIndexName(Index, cultureInfo));
 
-                var client = new VulcanClient(settings, cultureInfo);
-
-                if (!client.IndexExists(GetIndexName(cultureInfo)).Exists)
+                var username = ConfigurationManager.AppSettings["VulcanUsername"];
+                var password = ConfigurationManager.AppSettings["VulcanPassword"];
+                if(!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
                 {
-                    client.CreateIndex(GetIndexName(cultureInfo));
+                    settings.BasicAuthentication(username, password);
                 }
 
-                foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+                var client = new VulcanClient(Index, settings, cultureInfo);
+
+                client.PutIndexTemplate("analyzer_disabling", ad => ad
+                        .Template("*") //match on all created indices
+                        .Mappings(mappings => mappings.Map("_default_", map => map.DynamicTemplates(
+                            dyn => dyn.DynamicTemplate("analyzer_template", dt => dt
+                                .Match("*") //matches all fields
+                                .MatchMappingType("string") //that are a string
+                                .Mapping(dynmap => dynmap.String(s => s.NotAnalyzed().IncludeInAll(false).Fields(f => f.String(ana => ana.Name("analyzed").Analyzer(languageAnalyzer).IncludeInAll(false).Store(true)
+                                    )))))))));
+
+                if (!client.IndexExists(VulcanHelper.GetIndexName(Index, cultureInfo)).Exists)
                 {
-                    foreach (var type in assembly.GetTypes().Where(t => typeof(IContent).IsAssignableFrom(t) && t.IsClass && !t.IsAbstract && !t.FullName.EndsWith("Proxy")))
+                    var nestLanguage = VulcanHelper.GetLanguage(cultureInfo);
+
+                    ICreateIndexResponse response;
+
+                    if(nestLanguage == null || !nestLanguage.HasValue)
                     {
-                        var propertyMappingDescriptorType = typeof(PropertyMappingDescriptor<>).MakeGenericType(new Type[] { type });
-                        var objectParameter = Expression.Parameter(propertyMappingDescriptorType, "o");
-                        MethodCallExpression exp = null;
+                        response = client.CreateIndex(VulcanHelper.GetIndexName(Index, cultureInfo));
+                    }
+                    else
+                    {
+                        response = client.CreateIndex(VulcanHelper.GetIndexName(Index, cultureInfo), i => i.Settings(s => s.Analysis(a => a.Analyzers(analyzers => analyzers.Language("default", sel => sel.Language(nestLanguage.Value)).Language("default_search", sel => sel.Language(nestLanguage.Value))))));
+                    }
 
-                        var ignore = WalkProperties(type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance), "", new List<Type> { type });
-
-                        if (ignore != null && ignore.Any())
-                        {
-                            foreach (var property in ignore)
-                            {
-                                exp = AddPropertyToIgnore(type, exp == null ? objectParameter as Expression : exp, property);
-                            }
-
-                            var outerDelegateType = typeof(Action<>).MakeGenericType(propertyMappingDescriptorType);
-                            var outerLambda = Expression.Lambda(outerDelegateType, exp, objectParameter);
-
-                            var mapPropertiesForMethod = settings.GetType().GetMethod("MapPropertiesFor").MakeGenericMethod(new Type[] { type });
-
-                            mapPropertiesForMethod.Invoke(settings, new object[] { outerLambda.Compile() });
-                        }
+                    if(!response.IsValid)
+                    {
+                        Logger.Error("Could not create index " + VulcanHelper.GetIndexName(Index, cultureInfo) + ": " + response.DebugInformation);
                     }
                 }
-
-                var tasks = new List<Task>();
-
-                foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-                {
-                    foreach (var type in assembly.GetTypes().Where(t => typeof(IContent).IsAssignableFrom(t) && t.IsClass && !t.IsAbstract && !t.FullName.EndsWith("Proxy")))
-                    {
-                        tasks.Add(Task.Factory.StartNew(() =>
-                        {
-                            var typeName = new TypeName() { Name = type.FullName, Type = type };
-
-                            var putMappingDescriptorType = typeof(PutMappingDescriptor<>).MakeGenericType(new Type[] { type });
-
-                            var contentExpression = Expression.Parameter(putMappingDescriptorType, "o");
-                            var methodCall = Expression.Call(contentExpression, "Type", null, Expression.Constant(typeName));
-                            methodCall = Expression.Call(methodCall, "Dynamic", null, Expression.Constant(DynamicMapping.Allow));
-                            methodCall = Expression.Call(methodCall, "Analyzer", null, Expression.Constant(languageAnalyzer));
-                             //methodCall = Expression.Call(methodCall, "AutoMap", null, Expression.Constant(new VulcanPropertyVisitor(languageAnalyzer)), Expression.Constant(0)); // this causes all sorts of trouble. avoiding for now
-
-                            var del = typeof(Func<,>).MakeGenericType(putMappingDescriptorType, typeof(IPutMappingRequest));
-                            var lambda = Expression.Lambda(del, methodCall, contentExpression);
-
-                            var mapMethod = client.GetType().GetMethods().Where(m => m.Name == "Map" && m.IsGenericMethod).FirstOrDefault().MakeGenericMethod(type);
-
-                            IPutMappingResponse response = mapMethod.Invoke(client, new object[] { lambda.Compile() }) as IPutMappingResponse;
-
-                            if(!response.IsValid)
-                            {
-                                Logger.Error("Could not map type: " + type.FullName + ": " + response.DebugInformation);
-                            }
-                        }));
-                    }
-                }
-                
-                Task.WaitAll(tasks.ToArray());
 
                 clients.Add(cultureInfo, client);
 
@@ -177,33 +103,40 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             }
         }
 
-        public void DeleteIndex(CultureInfo language = null)
+        public void DeleteIndex()
         {
-            var client = new ElasticClient(new Uri(ConfigurationManager.AppSettings["VulcanUrl"])); // use a raw elasticclient because we just need this to be quick
+            lock (lockObject)
+            {
+                var connectionPool = new SingleNodeConnectionPool(new Uri(ConfigurationManager.AppSettings["VulcanUrl"]));
+                var settings = new ConnectionSettings(connectionPool, s => new VulcanCustomJsonSerializer(s));
 
-            client.DeleteIndex(GetIndexName(language));
+                var username = ConfigurationManager.AppSettings["VulcanUsername"];
+                var password = ConfigurationManager.AppSettings["VulcanPassword"];
+                if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
+                {
+                    settings.BasicAuthentication(username, password);
+                }
+
+                var client = new ElasticClient(settings); // use a raw elasticclient because we just need this to be quick
+
+                var indices = client.CatIndices();
+
+                if (indices != null && indices.Records != null && indices.Records.Any())
+                {
+                    foreach (var index in indices.Records.Where(i => i.Index.StartsWith(Index + "_")).Select(i => i.Index))
+                    {
+                        var response = client.DeleteIndex(index);
+
+                        if (!response.IsValid)
+                        {
+                            Logger.Error("Could not run a delete index: " + response.DebugInformation);
+                        }
+                    }
+                }
+
+                clients = new Dictionary<CultureInfo,VulcanClient>(); // need to force a re-creation
+            }
         }
-
-        public string GetIndexName(CultureInfo language)
-        {
-            var suffix = "_";
-
-            if (language == null)
-            {
-                suffix += "*";
-            }
-            else if (language == CultureInfo.InvariantCulture)
-            {
-                suffix += "invariant";
-            }
-            else
-            {
-                suffix += language.Name;
-            }
-
-            return Index + suffix;
-        }
-
 
         public void DeleteContentByLanguage(IContent content)
         {
