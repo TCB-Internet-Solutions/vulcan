@@ -10,7 +10,11 @@ namespace TcbInternetSolutions.Vulcan.Core
 {
     public interface IVulcanHandler
     {
+        string Index { get; }
+
         IVulcanClient GetClient(CultureInfo language = null);
+
+        IVulcanClient[] GetClients();
 
         void DeleteIndex();
 

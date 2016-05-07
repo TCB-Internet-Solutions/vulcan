@@ -16,5 +16,15 @@ namespace TcbInternetSolutions.Vulcan.Core
         void IndexContent(IContent content);
 
         void DeleteContent(IContent content);
+
+        string Index { get; }
+
+        CultureInfo Language { get; }
+
+        void AddSynonym(string term, string [] synonyms, bool biDirectional);
+
+        void RemoveSynonym(string term);
+
+        Dictionary<string, KeyValuePair<string[], bool>> GetSynonyms();
     }
 }

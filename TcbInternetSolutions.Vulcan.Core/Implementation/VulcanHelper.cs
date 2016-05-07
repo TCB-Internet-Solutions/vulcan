@@ -1,4 +1,5 @@
 ﻿using EPiServer.Core;
+using EPiServer.Data.Dynamic;
 using EPiServer.DataAbstraction;
 using System;
 using System.Collections.Generic;
@@ -133,7 +134,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             return "standard";
         }
 
-        public static Nest.Language? GetLanguage(CultureInfo cultureInfo)
+        internal static Nest.Language? GetLanguage(CultureInfo cultureInfo)
         {
             if (cultureInfo != CultureInfo.InvariantCulture) // check if we have non-language data
             {
@@ -223,6 +224,63 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             // couldn't find a match (or invariant culture)
             return null;
+        }
+
+        internal static void AddSynonym(string language, string term, string[] synonyms, bool biDirectional)
+        {
+            if(string.IsNullOrWhiteSpace(term))
+            {
+                throw new Exception("Cannot add a blank synonym term");
+            }
+
+            if(synonyms == null || synonyms.Length == 0)
+            {
+                throw new Exception("Cannot add a synonym term with no synonyms");
+            }
+
+            term = term.ToLower().Trim();
+
+            var store = DynamicDataStoreFactory.Instance.CreateStore(typeof(VulcanSynonym));
+
+            var synonym = store.LoadAll<VulcanSynonym>().Where(s => s.Term == term && s.Language == language).FirstOrDefault();
+
+            if(synonym == null)
+            {
+                synonym = new VulcanSynonym();
+            }
+
+            synonym.Language = language;
+            synonym.Term = term;
+            synonym.Synonyms = synonyms.Select(s => s.ToLower().Trim()).ToArray();
+            synonym.BiDirectional = biDirectional;
+
+            store.Save(synonym);
+        }
+
+        internal static void DeleteSynonym(string language, string term)
+        {
+            if (string.IsNullOrWhiteSpace(term))
+            {
+                throw new Exception("Cannot delete a blank synonym term");
+            }
+
+            term = term.ToLower().Trim();
+
+            var store = DynamicDataStoreFactory.Instance.CreateStore(typeof(VulcanSynonym));
+
+            var synonym = store.LoadAll<VulcanSynonym>().Where(s => s.Term == term && s.Language == language).FirstOrDefault();
+
+            if (synonym != null)
+            {
+                store.Delete(synonym);
+            }
+        }
+
+        internal static Dictionary<string, KeyValuePair<string[], bool>> GetSynonyms(string language)
+        {
+            var store = DynamicDataStoreFactory.Instance.CreateStore(typeof(VulcanSynonym));
+
+            return store.LoadAll<VulcanSynonym>().Where(s => s.Language == language).ToDictionary(s => s.Term, s => new KeyValuePair<string[], bool>(s.Synonyms, s.BiDirectional));
         }
     }
 }

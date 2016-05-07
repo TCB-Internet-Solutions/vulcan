@@ -123,6 +123,7 @@
     <Compile Include="Implementation\VulcanContentHit.cs" />
     <Compile Include="Implementation\VulcanHandler.cs" />
     <Compile Include="Implementation\VulcanIndexSynchronization.cs" />
+    <Compile Include="Implementation\VulcanSynonym.cs" />
     <Compile Include="IVulcanClient.cs" />
     <Compile Include="IVulcanContentHit.cs" />
     <Compile Include="IVulcanHandler.cs" />
