@@ -1,0 +1,36 @@
+﻿@using EPiServer.Framework.Web.Resources
+@using EPiServer.Shell
+@using EPiServer.Shell.Navigation
+@using EPiServer.Shell.Web.Mvc.Html
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <title>@ViewBag.Title</title>
+
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+
+    @Html.Raw(ClientResources.RenderResources("ShellCore", new[] { ClientResourceType.Style } ))
+    @Html.Raw(ClientResources.RenderResources("epi.shell.ui", new[] { ClientResourceType.Style }))
+    @Html.Raw(ClientResources.RenderResources("DojoDashboardCompatibility", new[] { ClientResourceType.Style }))
+
+    <link rel="stylesheet" type="text/css" href="@Paths.ToShellClientResource("ClientResources/lib/dgrid/css/dgrid.css")" />
+
+</head>
+<body class="Sleek epi-mouse-focus">
+    <script type="text/javascript" src="@Paths.ToShellClientResource("ClientResources/dojo/dojo.js")" data-dojo-config="parseOnLoad: true"></script>
+    <script type="text/javascript" src="@Paths.ToShellClientResource("ClientResources/epi/epi.js")"></script>
+    <script type="text/javascript" src="@Paths.ToShellClientResource("ClientResources/EPiJQuery.js")"></script>
+
+    @Html.Raw(Html.GlobalMenu())
+    <div>
+        @RenderBody()
+    </div>
+
+    @Html.Raw(ClientResources.RenderResources("DojoDashboardCompatibility", new[] { ClientResourceType.Script }))
+    @Html.Raw(ClientResources.RenderResources("epi.shell.ui", new[] { ClientResourceType.Script }))
+
+    @Html.Raw(Html.ShellInitializationScript())
+</body>
+</html>

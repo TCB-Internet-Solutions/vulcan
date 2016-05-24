@@ -2,3 +2,4 @@ bin
 
 obj
 /TcbInternetSolutions.Vulcan.Core/*.user
+*.user

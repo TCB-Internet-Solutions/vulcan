@@ -1,0 +1,165 @@
+﻿@using System.Web.Mvc.Html
+@using EPiServer.Shell
+
+@model TcbInternetSolutions.Vulcan.UI.Models.ViewModels.HomeViewModel
+
+@{
+    Layout = "../Shared/Layouts/_epi.cshtml";
+}
+
+<div style="margin:10px;" class="clientContainer" style="overflow:scroll;">
+    <h2>Vulcan Configuration for @Model.VulcanHandler.Index</h2>
+
+    @{
+        var clients = Model.VulcanHandler.GetClients();
+    }
+
+    @if (clients == null || !clients.Any())
+    {
+        <h3>No clients found (is your Elasticsearch started and accessible?)</h3>
+    }
+    else
+    {
+        <div data-dojo-type="dijit/layout/TabContainer" style="width: 100%;" id="tabContainer" dolayout="true">
+            @foreach (var client in clients)
+            {
+                <div data-dojo-type="dijit/layout/ContentPane" title="@(client.Language == System.Globalization.CultureInfo.InvariantCulture ? "non-specific" : client.Language.EnglishName + " (" + client.Language.Name + ")")" data-dojo-props="selected:true" style="">
+                    <h3 style="float:left;">Synonyms</h3>
+                    <button data-dojo-type="dijit/form/Button" type="button" class="epi-danger" style="float:right;padding-top:10px;">
+                        Remove selected Synonyms
+                        <script type="dojo/on" data-dojo-event="click" data-dojo-args="evt">
+                            removeSynonyms('@client.Language.Name');
+                        </script>
+                    </button>
+                    @{
+                var synonyms = client.GetSynonyms();
+                    }
+                    <div id="@("grid" + client.Language.Name)" style="height:300px;clear:both;"></div>
+
+
+                    <br />
+                    @using (Html.BeginForm("AddSynonym", null, new { Language = client.Language.Name }, FormMethod.Post, null))
+                    {
+                        <div style="width:33%;float:left;">
+                            <span>Term </span>@Html.TextBox("AddTerm-" + client.Language.Name)
+                        </div>
+                        <div style="width:33%;float:left;">
+                            <span>Synonyms </span>@Html.TextBox("Synonyms-" + client.Language.Name)
+                        </div>
+                        <div style="width:33%;float:left;">
+                            <span>Bidirectional? </span><input type="checkbox" id="BiDirectional-@client.Language.Name" name="BiDirectional-@client.Language.Name" />
+                            <button data-dojo-type="dijit/form/Button" type="button" class="epi-danger" style="float:right;">
+                                Add Synonym
+                                <script type="dojo/on" data-dojo-event="click" data-dojo-args="evt">
+                                    addSynonym('@client.Language.Name');
+                                </script>
+                            </button>
+                        </div>
+                    }
+                </div>
+
+            }
+        </div>
+
+    }
+</div>
+
+
+
+@if (clients != null && clients.Any())
+{
+    <script language="javascript">
+
+        require(["dojo/parser", "dijit/layout/TabContainer", "dijit/layout/ContentPane", "dojo/domReady!", "dijit/form/Button"], function () {
+            @foreach(var client in clients)
+            {
+                <text>populateSynonyms('@client.Language.Name');</text>
+            }
+
+            setHeight();
+        });
+
+        function setHeight() {
+            var windowHeight = $(window).height();
+            $('#tabContainer').css('height', windowHeight - 120);
+        };
+
+        $(window).resize(function () {
+            setHeight();
+        });
+
+        function addSynonym(language)
+        {
+            dojo.xhrPost({
+                url: "/Vulcan-Api/Synonym/Add/" + encodeURI($('#AddTerm-' + language).val()) + "/" + encodeURI($('#Synonyms-' + language).val()) + "/" + encodeURI($('#BiDirectional-' + language).val() == 'on' ? 'true' : 'false') + "/" + language,
+                load: function (data) {
+                    populateSynonyms(language);
+                },
+                error: function () {
+                    alert('Sorry, could not remove synonym: ' + grid.row(value).data.Term);
+                }
+            });
+        }
+
+        function removeSynonyms(language) {
+            require(["dijit/registry"], function (registry) {
+                var grid = registry.byId("grid" + language);
+
+                $.each(grid.selection, function (value) {
+                    dojo.xhrPost({
+                        url: "/Vulcan-Api/Synonym/Remove/" + encodeURI(grid.row(value).data.Term) + "/" + language,
+                        load: function (data) {
+                            populateSynonyms(language);
+                        },
+                        error: function () {
+                            alert('Sorry, could not remove synonym: ' + grid.row(value).data.Term);
+                        }
+                    });
+                });
+            });
+
+        }
+
+        function populateSynonyms(language) {
+
+            require(["dojo/store/JsonRest"],
+            function (JsonRest) {
+                var synonymStore = new JsonRest({ target: "/Vulcan-Api/Synonym/List/" });
+                synonymStore.get(language).then(function (synonynms) {
+
+                    var data = [];
+
+                    $.each(synonynms, function (key, value) {
+                        data.push({ Term: key, Synonyms: value.Key, BiDirectional: value.Value });
+                    });
+                    //data.push({ Term: 'test1', Synonyms: 'a,b,c', BiDirectional: false });
+                    //data.push({ Term: 'test2', Synonyms: 'e,f,g', BiDirectional: true });
+
+                    var grid;
+
+                    require(["dijit/registry"], function (registry) {
+                        grid = registry.byId("grid" + language);
+                    });
+
+                    if(!grid)
+                    {
+                        require(["dojo/_base/declare", "dgrid/Grid", "dgrid/Selection", "@(Paths.ProtectedRootPath)TcbInternetSolutions.Vulcan.UI/Scripts/DijitRegistry.js"], function (declare, Grid, Selection, DijitRegistry) {
+                            grid = new (declare([Grid, Selection, DijitRegistry]))({
+                                selectionMode: 'toggle',
+                                columns: {
+                                    Term: 'Term',
+                                    Synonyms: 'Synonyms',
+                                    BiDirectional: 'Bi-directional?'
+                                }
+                            }, 'grid' + language);
+                        });
+                    }
+
+                    grid.refresh();
+                    grid.renderArray(data);
+                });
+            });
+        }
+
+    </script>
+}

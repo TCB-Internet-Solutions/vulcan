@@ -31,9 +31,21 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         public IVulcanClient[] GetClients()
         {
+            var url = ConfigurationManager.AppSettings["VulcanUrl"];
+
+            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(url) || url == "SET THIS")
+            {
+                throw new Exception("You need to specify the Vulcan Url in AppSettings");
+            }
+
+            if (string.IsNullOrWhiteSpace(Index) || string.IsNullOrWhiteSpace(Index) || Index == "SET THIS")
+            {
+                throw new Exception("You need to specify the Vulcan Index in AppSettings");
+            }
+
             var clients = new List<IVulcanClient>();
 
-            var connectionPool = new SingleNodeConnectionPool(new Uri(ConfigurationManager.AppSettings["VulcanUrl"]));
+            var connectionPool = new SingleNodeConnectionPool(new Uri(url));
             var settings = new ConnectionSettings(connectionPool, s => new VulcanCustomJsonSerializer(s));
 
             var username = ConfigurationManager.AppSettings["VulcanUsername"];
