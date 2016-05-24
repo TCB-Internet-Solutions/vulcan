@@ -34,7 +34,7 @@
                     @{
                 var synonyms = client.GetSynonyms();
                     }
-                    <div id="@("grid" + client.Language.Name)" style="height:300px;clear:both;"></div>
+                    <div id="@("grid" + client.Language.Name)" style="height:200px;clear:both;"></div>
 
 
                     <br />
@@ -56,6 +56,10 @@
                             </button>
                         </div>
                     }
+
+                    <h3>Contents</h3>
+
+                    @(client.Search<object>(m => m.SearchType(Elasticsearch.Net.SearchType.Count).Aggregations(aggs => aggs.Terms("typeCount", t => t.Field("_type")))).Aggregations.Count)
                 </div>
 
             }
