@@ -11,11 +11,11 @@ namespace TcbInternetSolutions.Vulcan.UI.Support
     {
         public static string ResolveView(string View)
         {
-            var hostingEnvironment = EPiServer.ServiceLocation.ServiceLocator.Current.GetInstance<EPiServer.Web.Hosting.IHostingEnvironment>();
+            var protectedModulesVpp = EPiServer.ServiceLocation.ServiceLocator.Current.GetInstance<EPiServer.Web.Hosting.VirtualPathRegistrationHandler>().RegisteredVirtualPathProviders.Where(p => (p.Key is EPiServer.Web.Hosting.VirtualPathNonUnifiedProvider) && ((p.Key as EPiServer.Web.Hosting.VirtualPathNonUnifiedProvider).ProviderName == "ProtectedModules"));
 
-            if(hostingEnvironment != null && hostingEnvironment.VirtualPathProvider != null && hostingEnvironment.VirtualPathProvider is EPiServer.Web.Hosting.VirtualPathNonUnifiedProvider && (hostingEnvironment.VirtualPathProvider as EPiServer.Web.Hosting.VirtualPathNonUnifiedProvider).ProviderName == "ProtectedModules")
+            if(protectedModulesVpp.Count() > 0)
             {
-                var path = (hostingEnvironment.VirtualPathProvider as EPiServer.Web.Hosting.VirtualPathNonUnifiedProvider).ConfigurationParameters["physicalPath"].Replace(@"\", "/");
+                var path = (protectedModulesVpp.First().Key as EPiServer.Web.Hosting.VirtualPathNonUnifiedProvider).ConfigurationParameters["physicalPath"].Replace(@"\", "/");
 
                 if(!path.StartsWith("~"))
                 {
