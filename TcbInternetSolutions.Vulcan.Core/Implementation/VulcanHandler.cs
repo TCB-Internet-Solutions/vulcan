@@ -103,6 +103,45 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                 var client = new VulcanClient(Index, settings, cultureInfo);
 
+                // first let's check our version
+
+                var nodesInfo = client.NodesInfo();
+
+                if (nodesInfo == null)
+                {
+                    throw new Exception("Could not get Nodes info to check Elasticsearch Version. Check that you are correctly connected to Elasticsearch?");
+                }
+                else
+                {
+                    if (nodesInfo.Nodes == null)
+                    {
+                        throw new Exception("Could not find valid nodes to check Elasticsearch Version. Check that you are correctly connected to Elasticsearch?");
+                    }
+                    else
+                    {
+                        if (nodesInfo.Nodes.Count == 0)
+                        {
+                            throw new Exception("Could not find any valid nodes to check Elasticsearch Version. Check that you are correctly connected to Elasticsearch?");
+                        }
+                        else
+                        {
+                            var node = nodesInfo.Nodes.First(); // just use first
+
+                            if(string.IsNullOrWhiteSpace(node.Value.Version)) // just use first
+                            {
+                                throw new Exception("Could not find a version on node to check Elasticsearch Version. Check that you are correctly connected to Elasticsearch?");
+                            }
+                            else
+                            {
+                                if(node.Value.Version.StartsWith("1."))
+                                {
+                                    throw new Exception("Sorry, Vulcan only works with Elasticsearch version 2.x or higher. The Elasticsearch node you are currently connected to is version " + node.Value.Version);
+                                }
+                            }
+                        }
+                    }
+                }
+
                 client.PutIndexTemplate("analyzer_disabling", ad => ad
                         .Template("*") //match on all created indices
                         .Mappings(mappings => mappings.Map("_default_", map => map.DynamicTemplates(
@@ -406,7 +445,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             {
                 // first, stop words
 
-                response = client.UpdateIndexSettings(client.Index, uix => uix
+                response = client.UpdateIndexSettings(client.IndexName, uix => uix
                     .IndexSettings(ixs => ixs
                         .Analysis(ana => ana
                             .TokenFilters(tf => tf
@@ -415,14 +454,14 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                 if (!response.IsValid)
                 {
-                    Logger.Error("Could not set up stop words for " + client.Index + ": " + response.DebugInformation);
+                    Logger.Error("Could not set up stop words for " + client.IndexName + ": " + response.DebugInformation);
                 }
 
                 // next, stemmer
 
                 if (!(new string[] { "cjk", "persian", "thai" }.Contains(language)))
                 {
-                    response = client.UpdateIndexSettings(client.Index, uix => uix
+                    response = client.UpdateIndexSettings(client.IndexName, uix => uix
                         .IndexSettings(ixs => ixs
                             .Analysis(ana => ana
                                 .TokenFilters(tf => tf
@@ -431,7 +470,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                     if (!response.IsValid)
                     {
-                        Logger.Error("Could not set up stemmers for " + client.Index + ": " + response.DebugInformation);
+                        Logger.Error("Could not set up stemmers for " + client.IndexName + ": " + response.DebugInformation);
                     }
                 }
 
@@ -439,7 +478,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                 if (language == "dutch")
                 {
-                    response = client.UpdateIndexSettings(client.Index, uix => uix
+                    response = client.UpdateIndexSettings(client.IndexName, uix => uix
                         .IndexSettings(ixs => ixs
                             .Analysis(ana => ana
                                 .TokenFilters(tf => tf
@@ -451,7 +490,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                     if (!response.IsValid)
                     {
-                        Logger.Error("Could not set up stemmer overrides for " + client.Index + ": " + response.DebugInformation);
+                        Logger.Error("Could not set up stemmer overrides for " + client.IndexName + ": " + response.DebugInformation);
                     }
                 }
 
@@ -459,7 +498,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                 if (new string[] { "catalan", "french", "irish", "italian" }.Contains(language))
                 {
-                    response = client.UpdateIndexSettings(client.Index, uix => uix
+                    response = client.UpdateIndexSettings(client.IndexName, uix => uix
                         .IndexSettings(ixs => ixs
                             .Analysis(ana => ana
                                 .TokenFilters(tf => tf
@@ -468,7 +507,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                     if (!response.IsValid)
                     {
-                        Logger.Error("Could not set up elisions for " + client.Index + ": " + response.DebugInformation);
+                        Logger.Error("Could not set up elisions for " + client.IndexName + ": " + response.DebugInformation);
                     }
                 }
 
@@ -476,7 +515,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                 if (language == "english")
                 {
-                    response = client.UpdateIndexSettings(client.Index, uix => uix
+                    response = client.UpdateIndexSettings(client.IndexName, uix => uix
                         .IndexSettings(ixs => ixs
                             .Analysis(ana => ana
                                 .TokenFilters(tf => tf
@@ -485,7 +524,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                     if (!response.IsValid)
                     {
-                        Logger.Error("Could not set up possessives for " + client.Index + ": " + response.DebugInformation);
+                        Logger.Error("Could not set up possessives for " + client.IndexName + ": " + response.DebugInformation);
                     }
                 }
 
@@ -493,7 +532,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                 if (new string[] { "greek", "irish", "turkish" }.Contains(language))
                 {
-                    response = client.UpdateIndexSettings(client.Index, uix => uix
+                    response = client.UpdateIndexSettings(client.IndexName, uix => uix
                         .IndexSettings(ixs => ixs
                             .Analysis(ana => ana
                                 .TokenFilters(tf => tf
@@ -502,12 +541,12 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                     if (!response.IsValid)
                     {
-                        Logger.Error("Could not set up lowercases for " + client.Index + ": " + response.DebugInformation);
+                        Logger.Error("Could not set up lowercases for " + client.IndexName + ": " + response.DebugInformation);
                     }
                 }
             }
 
-            response = client.UpdateIndexSettings(client.Index, uix => uix
+            response = client.UpdateIndexSettings(client.IndexName, uix => uix
                 .IndexSettings(ixs => ixs
                     .Analysis(ana => ana
                         .TokenFilters(tf => tf
@@ -520,12 +559,12 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             if (!response.IsValid)
             {
-                Logger.Error("Could not set up custom analyzers for " + client.Index + ": " + response.DebugInformation);
+                Logger.Error("Could not set up custom analyzers for " + client.IndexName + ": " + response.DebugInformation);
             }
 
             if (language == "persian")
             {
-                response = client.UpdateIndexSettings(client.Index, uix => uix
+                response = client.UpdateIndexSettings(client.IndexName, uix => uix
                     .IndexSettings(ixs => ixs
                         .Analysis(ana => ana
                             .CharFilters(cf => cf
@@ -537,7 +576,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                 if (!response.IsValid)
                 {
-                    Logger.Error("Could not set up char filters for " + client.Index + ": " + response.DebugInformation);
+                    Logger.Error("Could not set up char filters for " + client.IndexName + ": " + response.DebugInformation);
                 }
             }
         }

@@ -21,7 +21,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         public Injected<IVulcanHandler> VulcanHandler { get; set; }
 
         public CultureInfo Language { get; private set; }
-        public string Index { get; private set; }
+        public string IndexName { get; private set; }
 
         public VulcanClient(string index, ConnectionSettings settings, CultureInfo language)
             : base(settings)
@@ -32,10 +32,10 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             }
 
             Language = language;
-            Index = VulcanHelper.GetIndexName(index, Language);
+            IndexName = VulcanHelper.GetIndexName(index, Language);
         }
 
-        public ISearchResponse<IContent> SearchContent<T>(Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null, bool includeNeutralLanguage = false) where T : class, EPiServer.Core.IContent
+        public ISearchResponse<IContent> SearchContent<T>(Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null, bool includeNeutralLanguage = false, ContentReference rootReference = null) where T : class, EPiServer.Core.IContent
         {
             SearchDescriptor<T> resolvedDescriptor;
 
@@ -57,17 +57,41 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             resolvedDescriptor = resolvedDescriptor.Type(string.Join(",", types)).ConcreteTypeSelector((d, docType) => typeof(VulcanContentHit));
 
-            var indexName = Index;
+            var indexName = IndexName;
             if (Language != CultureInfo.InvariantCulture && includeNeutralLanguage)
             {
-                indexName += "," + VulcanHelper.GetIndexName(Index, CultureInfo.InvariantCulture);
+                indexName += "," + VulcanHelper.GetIndexName(VulcanHandler.Service.Index, CultureInfo.InvariantCulture);
             }
 
             resolvedDescriptor = resolvedDescriptor.Index(indexName);
 
-            Func<SearchDescriptor<T>, ISearchRequest> selector = ts => resolvedDescriptor;
+            if (!ContentReference.IsNullOrEmpty(rootReference))
+            {
+                Func<SearchDescriptor<T>, ISearchRequest> selector = ts => resolvedDescriptor;
 
-            return base.Search<T, IContent>(selector);
+                var container = selector.Invoke(new SearchDescriptor<T>());
+
+                var blendDescriptor = new QueryContainerDescriptor<T>();
+
+                blendDescriptor = blendDescriptor.Term(t => t
+                    .Field("__ancestors")
+                        .Value(rootReference.ToReferenceWithoutVersion().ToString())) as QueryContainerDescriptor<T>;
+
+                if (container.Query != null)
+                {
+                    resolvedDescriptor = resolvedDescriptor.Query(q => q
+                        .Bool(b => b
+                            .Must(new QueryContainer[] { container.Query, blendDescriptor })));
+                }
+                else
+                {
+                    resolvedDescriptor = resolvedDescriptor.Query(q => q
+                        .Bool(b => b
+                            .Must(new QueryContainer[] { blendDescriptor })));
+                }
+            }
+
+            return base.Search<T, IContent>(resolvedDescriptor);
         }
 
         public void IndexContent(IContent content)
@@ -99,7 +123,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 }
                 catch (Exception e)
                 {
-                    Logger.Warning("Vulcan could not index content with content link " + GetId(content) + " for language " + (Language == CultureInfo.InvariantCulture ? "invariant" : Language.Name) + ": ", e);
+                    Logger.Error("Vulcan could not index content with content link " + GetId(content) + " for language " + (Language == CultureInfo.InvariantCulture ? "invariant" : Language.Name) + ": ", e);
                 }
             }
         }
@@ -118,7 +142,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             try
             {
-                var response = base.Delete(new DeleteRequest(Index, GetTypeName(content), GetId(content)));
+                var response = base.Delete(new DeleteRequest(IndexName, GetTypeName(content), GetId(content)));
 
                 Logger.Debug("Vulcan deleted " + GetId(content) + " for language " + (Language == CultureInfo.InvariantCulture ? "invariant" : Language.Name) + ": " + response.DebugInformation);
             }

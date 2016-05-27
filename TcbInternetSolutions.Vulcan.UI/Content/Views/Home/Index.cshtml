@@ -47,7 +47,7 @@
                             <span>Synonyms </span>@Html.TextBox("Synonyms-" + client.Language.Name)
                         </div>
                         <div style="width:33%;float:left;">
-                            <span>Bidirectional? </span><input type="checkbox" id="BiDirectional-@client.Language.Name" name="BiDirectional-@client.Language.Name" />
+                            <span>Bi-Directional? </span><input type="checkbox" id="BiDirectional-@client.Language.Name" name="BiDirectional-@client.Language.Name" />
                             <button data-dojo-type="dijit/form/Button" type="button" class="epi-danger" style="float:right;">
                                 Add Synonym
                                 <script type="dojo/on" data-dojo-event="click" data-dojo-args="evt">
@@ -56,10 +56,21 @@
                             </button>
                         </div>
                     }
+                    <div style="clear:both;"></div>
+                    <hr />
 
-                    <h3>Contents</h3>
+                    @{
+                        var typeCount = client.Search<object>(m => m.AllTypes().SearchType(Elasticsearch.Net.SearchType.Count).Aggregations(aggs => aggs.Terms("typeCount", t => t.Field("_type")))).Aggregations["typeCount"] as Nest.BucketAggregate;
+                    }
 
-                    @(client.Search<object>(m => m.SearchType(Elasticsearch.Net.SearchType.Count).Aggregations(aggs => aggs.Terms("typeCount", t => t.Field("_type")))).Aggregations.Count)
+                    <h3>Contents (@typeCount.Items.Sum(i => (i as Nest.KeyedBucket).DocCount))</h3>
+
+                    <ul>
+                        @foreach (Nest.KeyedBucket type in typeCount.Items)
+                        {
+                            <li>&gt; @type.Key (@type.DocCount)</li>
+                        }
+                    </ul>
                 </div>
 
             }
@@ -92,8 +103,7 @@
             setHeight();
         });
 
-        function addSynonym(language)
-        {
+        function addSynonym(language) {
             dojo.xhrPost({
                 url: "/Vulcan-Api/Synonym/Add/" + encodeURI($('#AddTerm-' + language).val()) + "/" + encodeURI($('#Synonyms-' + language).val()) + "/" + encodeURI($('#BiDirectional-' + language).val() == 'on' ? 'true' : 'false') + "/" + language,
                 load: function (data) {
@@ -145,8 +155,7 @@
                         grid = registry.byId("grid" + language);
                     });
 
-                    if(!grid)
-                    {
+                    if (!grid) {
                         require(["dojo/_base/declare", "dgrid/Grid", "dgrid/Selection", "@(Paths.ProtectedRootPath)TcbInternetSolutions.Vulcan.UI/Scripts/DijitRegistry.js"], function (declare, Grid, Selection, DijitRegistry) {
                             grid = new (declare([Grid, Selection, DijitRegistry]))({
                                 selectionMode: 'toggle',

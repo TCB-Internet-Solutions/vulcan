@@ -11,13 +11,13 @@ namespace TcbInternetSolutions.Vulcan.Core
 {
     public interface IVulcanClient : IElasticClient
     {
-        ISearchResponse<IContent> SearchContent<T>(Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null, bool includeNeutralLanguage = false) where T : class, IContent;
+        ISearchResponse<IContent> SearchContent<T>(Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null, bool includeNeutralLanguage = false, ContentReference rootReference = null) where T : class, IContent;
 
         void IndexContent(IContent content);
 
         void DeleteContent(IContent content);
 
-        string Index { get; }
+        string IndexName { get; }
 
         CultureInfo Language { get; }
 

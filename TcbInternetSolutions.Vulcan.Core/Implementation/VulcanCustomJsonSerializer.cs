@@ -1,4 +1,5 @@
 ﻿using Elasticsearch.Net;
+using EPiServer;
 using EPiServer.Core;
 using EPiServer.Core.Html.StringParsing;
 using EPiServer.ServiceLocation;
@@ -6,13 +7,17 @@ using Nest;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Web;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
     public class VulcanCustomJsonSerializer : JsonNetSerializer
     {
+        public Injected<IContentLoader> ContentLoader { get; set; }
+
         public VulcanCustomJsonSerializer(IConnectionSettingsValues settings)
             : base(settings)
         {}
@@ -30,6 +35,57 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             else
             {
                 return base.CreatePropertyMapping(memberInfo);
+            }
+        }
+
+        public override void Serialize(object data, System.IO.Stream writableStream, SerializationFormatting formatting = SerializationFormatting.Indented)
+        {
+            if (data is Nest.IndexDescriptor<IContent>)
+            {
+                var stream = new MemoryStream();
+
+                base.Serialize(data, stream, formatting);
+
+                stream.Seek(0, SeekOrigin.Begin);
+
+                var bytes = Convert.ToInt32(stream.Length) - 1; // trim the closing brace
+
+                var buffer = new byte[32768];
+                int read;
+                while (bytes > 0 &&
+                       (read = stream.Read(buffer, 0, Math.Min(buffer.Length, bytes))) > 0)
+                {
+                    writableStream.Write(buffer, 0, read);
+                    bytes -= read;
+                }
+
+                stream.Flush();
+
+                var streamWriter = new StreamWriter(writableStream);
+                streamWriter.Write(",\"__ancestors\":[");
+
+                var first = true;
+
+                foreach (var ancestor in ContentLoader.Service.GetAncestors((data.GetType().GetProperty("Nest.IIndexRequest.UntypedDocument",BindingFlags.Instance | BindingFlags.NonPublic).GetValue(data) as IContent).ContentLink))
+                {
+                    if(first)
+                    {
+                        first = false;
+                    }
+                    else
+                    {
+                        streamWriter.Write(",");
+                    }
+                    streamWriter.Write("\"" + ancestor.ContentLink.ToReferenceWithoutVersion().ToString() + "\"");
+                }
+                
+                streamWriter.Write("]}");
+
+                streamWriter.Flush();
+            }
+            else
+            {
+                base.Serialize(data, writableStream, formatting);
             }
         }
 
