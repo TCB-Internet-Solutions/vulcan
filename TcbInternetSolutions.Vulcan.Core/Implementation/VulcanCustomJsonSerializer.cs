@@ -16,7 +16,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
     public class VulcanCustomJsonSerializer : JsonNetSerializer
     {
-        public Injected<IContentLoader> ContentLoader { get; set; }
+        public Injected<IVulcanHandler> VulcanHandler { get; set; }
 
         public VulcanCustomJsonSerializer(IConnectionSettingsValues settings)
             : base(settings)
@@ -61,25 +61,18 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                 stream.Flush();
 
-                var streamWriter = new StreamWriter(writableStream);
-                streamWriter.Write(",\"__ancestors\":[");
+                var content = data.GetType().GetProperty("Nest.IIndexRequest.UntypedDocument",BindingFlags.Instance | BindingFlags.NonPublic).GetValue(data) as IContent;
 
-                var first = true;
-
-                foreach (var ancestor in ContentLoader.Service.GetAncestors((data.GetType().GetProperty("Nest.IIndexRequest.UntypedDocument",BindingFlags.Instance | BindingFlags.NonPublic).GetValue(data) as IContent).ContentLink))
+                if (VulcanHandler.Service.IndexingModifers != null)
                 {
-                    if(first)
+                    foreach(var indexingModifier in VulcanHandler.Service.IndexingModifers)
                     {
-                        first = false;
+                        indexingModifier.ProcessContent(content, writableStream);
                     }
-                    else
-                    {
-                        streamWriter.Write(",");
-                    }
-                    streamWriter.Write("\"" + ancestor.ContentLink.ToReferenceWithoutVersion().ToString() + "\"");
                 }
-                
-                streamWriter.Write("]}");
+
+                var streamWriter = new StreamWriter(writableStream);
+                streamWriter.Write("}");
 
                 streamWriter.Flush();
             }

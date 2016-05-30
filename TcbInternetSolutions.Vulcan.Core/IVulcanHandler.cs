@@ -25,5 +25,7 @@ namespace TcbInternetSolutions.Vulcan.Core
         void IndexContentByLanguage(IContent content);
 
         void IndexContentEveryLanguage(IContent content);
+
+        IEnumerable<IVulcanIndexingModifier> IndexingModifers { get; }
     }
 }

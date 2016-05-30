@@ -74,7 +74,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 var blendDescriptor = new QueryContainerDescriptor<T>();
 
                 blendDescriptor = blendDescriptor.Term(t => t
-                    .Field("__ancestors")
+                    .Field(VulcanFieldConstants.Ancestors)
                         .Value(rootReference.ToReferenceWithoutVersion().ToString())) as QueryContainerDescriptor<T>;
 
                 if (container.Query != null)

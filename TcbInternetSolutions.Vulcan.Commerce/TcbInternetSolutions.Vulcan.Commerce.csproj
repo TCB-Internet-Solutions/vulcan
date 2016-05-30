@@ -242,8 +242,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="VulcanFieldHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="VulcanCommerceIndexer.cs" />
+    <Compile Include="VulcanCommerceIndexingModifier.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

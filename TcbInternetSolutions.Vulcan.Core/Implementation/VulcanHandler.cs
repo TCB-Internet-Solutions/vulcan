@@ -580,5 +580,20 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 }
             }
         }
+
+        private IEnumerable<IVulcanIndexingModifier> indexingModifiers = null;
+        
+        public IEnumerable<IVulcanIndexingModifier> IndexingModifers
+        {
+            get
+            {
+                if(indexingModifiers == null)
+                {
+                    indexingModifiers = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes().Where(t => typeof(IVulcanIndexingModifier).IsAssignableFrom(t) && t.IsClass).Select(t => (IVulcanIndexingModifier)Activator.CreateInstance(t)));
+                }
+
+                return indexingModifiers;
+            }
+        }
     }
 }
