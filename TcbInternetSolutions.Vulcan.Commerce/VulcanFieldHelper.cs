@@ -12,10 +12,25 @@ namespace TcbInternetSolutions.Vulcan.Commerce
     {
         public static string GetPriceField(string marketId = null, string currencyCode = null)
         {
+            return GetPriceField("prices", marketId, currencyCode);
+        }
+
+        public static string GetPriceLowField(string marketId = null, string currencyCode = null)
+        {
+            return GetPriceField("pricesLow", marketId, currencyCode);
+        }
+
+        public static string GetPriceHighField(string marketId = null, string currencyCode = null)
+        {
+            return GetPriceField("pricesHigh", marketId, currencyCode);
+        }
+
+        private static string GetPriceField(string propertyName, string marketId, string currencyCode)
+        {
             if (marketId == null) marketId = ServiceLocator.Current.GetInstance<ICurrentMarket>().GetCurrentMarket().MarketId.Value;
             if (currencyCode == null) currencyCode = ServiceLocator.Current.GetInstance<ICurrentMarket>().GetCurrentMarket().DefaultCurrency.CurrencyCode;
-            
-            return "__prices." + marketId + "_" + currencyCode;
+
+            return "__" + propertyName + "." + marketId + "_" + currencyCode;
         }
     }
 }
