@@ -1,4 +1,5 @@
-﻿using EPiServer.Commerce.Catalog.ContentTypes;
+﻿using EPiServer;
+using EPiServer.Commerce.Catalog.ContentTypes;
 using EPiServer.ServiceLocation;
 using Mediachase.Commerce.Markets;
 using System;
@@ -17,72 +18,165 @@ namespace TcbInternetSolutions.Vulcan.Commerce
         {
             if (content is VariationContent)
             {
-                var variation = content as VariationContent;
-
                 var streamWriter = new StreamWriter(writableStream);
 
                 streamWriter.Write(",\"__prices\":{");
 
-                var first = true;
+                WritePrices(streamWriter, GetDefaultPrices(content as VariationContent));
 
-                foreach (var market in ServiceLocator.Current.GetInstance<IMarketService>().GetAllMarkets())
+                streamWriter.Write("}");
+
+                streamWriter.Flush();
+            }
+            else if(content is ProductContent)
+            {
+                var pricesLow = new Dictionary<string, Dictionary<string, decimal>>();
+                var pricesHigh = new Dictionary<string, Dictionary<string, decimal>>();
+
+                var variants = ServiceLocator.Current.GetInstance<IContentLoader>().GetItems((content as ProductContent).GetVariants(), (content as ProductContent).Language);
+
+                if (variants != null)
                 {
-                    if(variation.IsAvailableInMarket(market.MarketId)) // no point adding price if not available in that market
+                    foreach (VariationContent variant in variants)
                     {
-                        var prices = new Dictionary<string, decimal>();
+                        var markets = GetDefaultPrices(variant);
 
-                        var variantPrices = variation.GetPrices(market.MarketId, Mediachase.Commerce.Pricing.CustomerPricing.AllCustomers);
-
-                        if (variantPrices != null)
+                        if(markets != null)
                         {
-                            foreach (var price in variantPrices)
+                            foreach(var market in markets)
                             {
-                                if (price.MinQuantity == 0 && price.CustomerPricing == Mediachase.Commerce.Pricing.CustomerPricing.AllCustomers) // this is a default price
+                                if(!pricesLow.ContainsKey(market.Key))
                                 {
-                                    if(!prices.ContainsKey(price.UnitPrice.Currency.CurrencyCode))
-                                    {
-                                        prices.Add(price.UnitPrice.Currency.CurrencyCode, 0);
-                                    }
+                                    pricesLow.Add(market.Key, new Dictionary<string, decimal>());
+                                }
 
-                                    prices[price.UnitPrice.Currency.CurrencyCode] = price.UnitPrice.Amount;
+                                if (!pricesHigh.ContainsKey(market.Key))
+                                {
+                                    pricesHigh.Add(market.Key, new Dictionary<string, decimal>());
+                                }
+
+                                if(market.Value.Any())
+                                {
+                                    foreach(var price in market.Value)
+                                    {
+                                        if(!pricesLow[market.Key].ContainsKey(price.Key))
+                                        {
+                                            pricesLow[market.Key].Add(price.Key, price.Value);
+                                        }
+                                        else
+                                        {
+                                            if(price.Value < pricesLow[market.Key][price.Key])
+                                            {
+                                                pricesLow[market.Key][price.Key] = price.Value;
+                                            }
+                                        }
+
+                                        if (!pricesHigh[market.Key].ContainsKey(price.Key))
+                                        {
+                                            pricesHigh[market.Key].Add(price.Key, price.Value);
+                                        }
+                                        else
+                                        {
+                                            if (price.Value > pricesHigh[market.Key][price.Key])
+                                            {
+                                                pricesHigh[market.Key][price.Key] = price.Value;
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
+                    }
+                }
 
-                        if(prices.Count > 0)
+                var streamWriter = new StreamWriter(writableStream);
+
+                streamWriter.Write(",\"__pricesLow\":{");
+
+                WritePrices(streamWriter, pricesLow);
+
+                streamWriter.Write("}");
+
+                streamWriter.Write(",\"__pricesHigh\":{");
+
+                WritePrices(streamWriter, pricesHigh);
+
+                streamWriter.Write("}");
+
+                streamWriter.Flush();
+            }
+        }
+
+        private void WritePrices(StreamWriter streamWriter, Dictionary<string, Dictionary<string, decimal>> markets)
+        {
+            if (markets != null)
+            {
+                var first = true;
+
+                foreach (var market in markets)
+                {
+                    if (market.Value.Any())
+                    {
+                        if (first)
                         {
-                            if(first)
+                            first = false;
+                        }
+                        else
+                        {
+                            streamWriter.Write(",");
+                        }
+
+                        var firstPrice = true;
+
+                        foreach (var price in market.Value)
+                        {
+                            if (firstPrice)
                             {
-                                first = false;
+                                firstPrice = false;
                             }
                             else
                             {
                                 streamWriter.Write(",");
                             }
 
-                            var firstPrice = true;
+                            streamWriter.Write("\"" + market.Key + "_" + price.Key + "\":" + price.Value.ToString());
+                        }
+                    }
+                }
+            }
+        }
 
-                            foreach(var price in prices)
+        private Dictionary<string, Dictionary<string, decimal>> GetDefaultPrices(VariationContent variation)
+        {
+            var prices = new Dictionary<string, Dictionary<string, decimal>>();
+
+            foreach (var market in ServiceLocator.Current.GetInstance<IMarketService>().GetAllMarkets())
+            {
+                if (variation.IsAvailableInMarket(market.MarketId)) // no point adding price if not available in that market
+                {
+                    prices.Add(market.MarketId.Value, new Dictionary<string, decimal>());
+
+                    var variantPrices = variation.GetPrices(market.MarketId, Mediachase.Commerce.Pricing.CustomerPricing.AllCustomers);
+
+                    if (variantPrices != null)
+                    {
+                        foreach (var price in variantPrices)
+                        {
+                            if (price.MinQuantity == 0 && price.CustomerPricing == Mediachase.Commerce.Pricing.CustomerPricing.AllCustomers) // this is a default price
                             {
-                                if(firstPrice)
+                                if (!prices.ContainsKey(price.UnitPrice.Currency.CurrencyCode))
                                 {
-                                    firstPrice = false;
-                                }
-                                else
-                                {
-                                    streamWriter.Write(",");
+                                    prices[market.MarketId.Value].Add(price.UnitPrice.Currency.CurrencyCode, 0);
                                 }
 
-                                streamWriter.Write("\"" + market.MarketId.Value + "_" + price.Key + "\":" + price.Value.ToString());
+                                prices[market.MarketId.Value][price.UnitPrice.Currency.CurrencyCode] = price.UnitPrice.Amount;
                             }
                         }
                     }
                 }
-
-                streamWriter.Write("}");
-
-                streamWriter.Flush();
             }
+
+            return prices;
         }
     }
 }

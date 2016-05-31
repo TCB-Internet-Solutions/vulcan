@@ -17,8 +17,18 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
         private static ILogger Logger = LogManager.GetLogger();
 
         public static Injected<IVulcanHandler> VulcanHandler { get; set; }
+
+        public static IEnumerable<IContent> GetContents(this ISearchResponse<IContent> searchResponse)
+        {
+            return GetContentsWorker<IContent>(searchResponse);
+        }
+
+        public static IEnumerable<T> GetContents<T>(this ISearchResponse<IContent> searchResponse) where T : class, IContent
+        {
+            return GetContentsWorker<T>(searchResponse);
+        }
         
-        public static IEnumerable<T> GetContents<T>(this ISearchResponse<T> searchResponse) where T : class, IContent
+        private static IEnumerable<T> GetContentsWorker<T>(ISearchResponse<IContent> searchResponse) where T : class, IContent
         {
             var list = new List<T>();
 
