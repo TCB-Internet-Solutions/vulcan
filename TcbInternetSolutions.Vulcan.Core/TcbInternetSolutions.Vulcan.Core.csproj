@@ -160,6 +160,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Extensions\SearchProviderExtensions.cs" />
     <Compile Include="Extensions\VulcanExtensions.cs" />
     <Compile Include="Implementation\VulcanCmsIndexer.cs" />
     <Compile Include="Implementation\VulcanCmsIndexingModifier.cs" />
@@ -179,6 +180,9 @@
     <Compile Include="IVulcanIndexer.cs" />
     <Compile Include="IVulcanIndexingModifier.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SearchProviders\VulcanMediaSearchProvider.cs" />
+    <Compile Include="SearchProviders\VulcanPageSearchProvider.cs" />
+    <Compile Include="SearchProviders\VulcanSearchProviderBase.cs" />
     <Compile Include="VulcanFieldConstants.cs" />
   </ItemGroup>
   <ItemGroup>
