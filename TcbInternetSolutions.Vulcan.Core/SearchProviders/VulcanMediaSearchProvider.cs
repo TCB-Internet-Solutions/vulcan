@@ -7,6 +7,7 @@
     using EPiServer.ServiceLocation;
     using EPiServer.Shell;
     using EPiServer.Shell.Search;
+    using EPiServer.Web;
     using TcbInternetSolutions.Vulcan.Core;
 
     [SearchProvider]
@@ -16,7 +17,7 @@
               : this(
                     ServiceLocator.Current.GetInstance<IVulcanHandler>(),
                     ServiceLocator.Current.GetInstance<LocalizationService>(),
-                    ServiceLocator.Current.GetInstance<IEnterpriseSettings>(),
+                    ServiceLocator.Current.GetInstance<SiteDefinitionResolver>(),
                     ServiceLocator.Current.GetInstance<IContentRepository>(),
                     ServiceLocator.Current.GetInstance<IContentTypeRepository>(),
                     ServiceLocator.Current.GetInstance<UIDescriptorRegistry>()
@@ -26,12 +27,12 @@
         public VulcanMediaSearchProvider(
             IVulcanHandler vulcanHandler,
             LocalizationService localizationService,
-            IEnterpriseSettings enterpriseSettings,
+            SiteDefinitionResolver siteDefinitionResolver,
             IContentRepository contentRepository,
             IContentTypeRepository contentTypeRepository,
             UIDescriptorRegistry uiDescriptorRegistry
         )
-          : base(vulcanHandler, contentRepository, contentTypeRepository, localizationService, uiDescriptorRegistry, enterpriseSettings)
+          : base(vulcanHandler, contentRepository, contentTypeRepository, localizationService, uiDescriptorRegistry, siteDefinitionResolver)
         {
 
         }

@@ -184,12 +184,16 @@
     <Compile Include="SearchProviders\VulcanPageSearchProvider.cs" />
     <Compile Include="SearchProviders\VulcanSearchProviderBase.cs" />
     <Compile Include="VulcanFieldConstants.cs" />
+    <Compile Include="_TODOs.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config">
       <SubType>Designer</SubType>
     </None>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\LanguageFiles\Vulcan_en.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!--<Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

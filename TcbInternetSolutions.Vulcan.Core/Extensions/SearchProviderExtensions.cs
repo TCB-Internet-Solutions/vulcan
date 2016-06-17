@@ -18,7 +18,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
         /// </summary>
         /// <param name="settings">The settings.</param>
         /// <param name="moduleTable">The module table.</param>
-        internal static string GetFullUrlToEditView(this Settings settings, ModuleTable moduleTable)
+        internal static string GetFullUrlToEditView(this SiteDefinition settings, ModuleTable moduleTable)
         {
             string relativeUri = UriSupport.AbsolutePathForSite(VirtualPathUtilityEx.ToAppRelative(moduleTable != null ? moduleTable.ResolvePath("CMS", string.Empty) : Paths.ToResource("CMS", string.Empty)), settings);
 

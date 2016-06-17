@@ -1,7 +1,6 @@
 ﻿namespace TcbInternetSolutions.Vulcan.Core.SearchProviders
 {
     using EPiServer;
-    using EPiServer.Configuration;
     using EPiServer.Core;
     using EPiServer.Core.Html;
     using EPiServer.DataAbstraction;
@@ -32,7 +31,7 @@
 
         protected IContentTypeRepository _ContentTypeRepository;
 
-        protected IEnterpriseSettings _EnterpriseSettings;
+        protected SiteDefinitionResolver _SiteDefinitionResolver;
 
         protected LocalizationService _LocalizationService;
 
@@ -40,18 +39,18 @@
 
         protected IVulcanHandler _VulcanHandler;
 
-        public VulcanSearchProviderBase(IVulcanHandler vulcanHandler, IContentRepository contentRepository, IContentTypeRepository contentTypeRepository, LocalizationService localizationService, UIDescriptorRegistry uiDescriptorRegistry, IEnterpriseSettings enterpriseSettings)
+        public VulcanSearchProviderBase(IVulcanHandler vulcanHandler, IContentRepository contentRepository, IContentTypeRepository contentTypeRepository, LocalizationService localizationService, UIDescriptorRegistry uiDescriptorRegistry, SiteDefinitionResolver enterpriseSettings)
         {
             _VulcanHandler = vulcanHandler;
             _ContentRepository = contentRepository;
             _ContentTypeRepository = contentTypeRepository;
             _LocalizationService = localizationService;
             _UIDescriptorRegistry = uiDescriptorRegistry;
-            _EnterpriseSettings = enterpriseSettings;
+            _SiteDefinitionResolver = enterpriseSettings;
 
             EditPath = (contentData, contentLink, languageName) =>
             {
-                string fullUrlToEditView = SearchProviderExtensions.GetFullUrlToEditView(enterpriseSettings.GetSettingsFromContent(contentLink, true), null);
+                string fullUrlToEditView = SearchProviderExtensions.GetFullUrlToEditView(_SiteDefinitionResolver.GetDefinitionForContent(contentLink, false,false), null);
                 Uri uri = SearchProviderExtensions.GetUri(contentData);
 
                 if (!string.IsNullOrWhiteSpace(languageName))
@@ -86,6 +85,8 @@
         /// <returns></returns>
         public virtual IEnumerable<SearchResult> Search(Query query)
         {
+            //TODO: add in search roots, need to see if Vulcan can multiple search roots.
+
             var searchText = query.SearchQuery;
 
             var hits = _VulcanHandler.GetClient().SearchContent<TContent>(d => d
@@ -168,13 +169,13 @@
             string language = localizable != null ? localizable.Language.Name : ContentLanguage.PreferredCulture.Name;
             string editUrl = EditPath(contentData, contentLink, language);
             onCurrentHost = true;
-            Settings settingsFromContent = _EnterpriseSettings.GetSettingsFromContent(contentLink, true);
+            SiteDefinition definitionForContent = _SiteDefinitionResolver.GetDefinitionForContent(contentData.ContentLink, false, false);            
 
-            if (settingsFromContent.SiteUrl != SiteDefinition.Current.SiteUrl)
+            if (definitionForContent.SiteUrl != SiteDefinition.Current.SiteUrl)
                 onCurrentHost = false;
 
-            if (Settings.Instance.UseLegacyEditMode && typeof(PageData).IsAssignableFrom(typeof(TContent)))
-                return UriSupport.Combine(UriSupport.Combine(settingsFromContent.SiteUrl, settingsFromContent.UIUrl).AbsoluteUri, editUrl);
+            //if (Settings.Instance.UseLegacyEditMode && typeof(PageData).IsAssignableFrom(typeof(TContent)))
+            //    return UriSupport.Combine(UriSupport.Combine(definitionForContent.SiteUrl, settingsFromContent.UIUrl).AbsoluteUri, editUrl);
 
             return editUrl;
         }
