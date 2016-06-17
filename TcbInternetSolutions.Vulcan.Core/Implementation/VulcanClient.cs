@@ -26,7 +26,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         public VulcanClient(string index, ConnectionSettings settings, CultureInfo language)
             : base(settings)
         {
-            if(language == null)
+            if (language == null)
             {
                 throw new Exception("Vulcan client requires a language (you may use CultureInfo.InvariantCulture if needed for non-language specific data)");
             }
