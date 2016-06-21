@@ -1,23 +1,23 @@
-﻿using EPiServer.Core;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace TcbInternetSolutions.Vulcan.Core.Extensions
+﻿namespace TcbInternetSolutions.Vulcan.Core.Extensions
 {
+    using EPiServer.Core;
+    using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Linq;
+
     public static class TypeExtensions
     {
-        private static ConcurrentDictionary<Type, List<Type>> ResolvedTypes = new ConcurrentDictionary<Type, List<Type>>();
+        private static ConcurrentDictionary<Type, List<Type>> resolvedTypes = new ConcurrentDictionary<Type, List<Type>>();
 
-        public static IEnumerable<Type> GetSearchTypesFor<T>(bool removeAbstractClasses = true) where T : class, IContent =>
+        public static List<Type> GetSearchTypesFor<T>(bool removeAbstractClasses = true) where T : class, IContent =>
             GetSearchTypesFor(typeof(T), removeAbstractClasses);
 
-        public static IEnumerable<Type> GetSearchTypesFor(this Type type, bool removeAbstractClasses = true)
+        public static List<Type> GetSearchTypesFor(this Type type, bool classesOnly = true, bool removeAbstractClasses = true)
         {
             List<Type> allTypesForGiven;
 
-            if (!ResolvedTypes.TryGetValue(type, out allTypesForGiven))
+            if (!resolvedTypes.TryGetValue(type, out allTypesForGiven))
             {
                 allTypesForGiven = new List<Type>();
 
@@ -27,11 +27,14 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
                         .Where(t => type.IsAssignableFrom(t) && !t.FullName.EndsWith("Proxy")));
                 }
 
-                ResolvedTypes.TryAdd(type, allTypesForGiven);
+                resolvedTypes.TryAdd(type, allTypesForGiven);
             }
 
             if (removeAbstractClasses)
-                return allTypesForGiven.Where(x => !x.IsAbstract);
+                allTypesForGiven = allTypesForGiven.Where(x => !x.IsAbstract).ToList();
+
+            if (classesOnly)
+                allTypesForGiven = allTypesForGiven.Where(x => x.IsClass).ToList();
 
             return allTypesForGiven;
         }

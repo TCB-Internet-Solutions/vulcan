@@ -1,15 +1,15 @@
-﻿using EPiServer;
-using EPiServer.Core;
-using EPiServer.Logging;
-using EPiServer.PlugIn;
-using EPiServer.Scheduler;
-using EPiServer.ServiceLocation;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace TcbInternetSolutions.Vulcan.Core.Implementation
+﻿namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
+    using EPiServer;
+    using EPiServer.Core;
+    using EPiServer.Logging;
+    using EPiServer.PlugIn;
+    using EPiServer.Scheduler;
+    using EPiServer.ServiceLocation;
+    using Extensions;
+    using System;
+    using System.Linq;
+
     [ScheduledPlugIn(DisplayName = "Vulcan Index Content")]
     public class VulcanIndexContent : ScheduledJobBase
     {
@@ -33,23 +33,15 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         public override string Execute()
         {
-            OnStatusChanged(String.Format("Starting execution of {0}", this.GetType()));
+            OnStatusChanged(string.Format("Starting execution of {0}", GetType()));
 
             VulcanHandler.Service.DeleteIndex(); // delete all language indexes
-
-            var indexers = new List<Type>();
-            
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                indexers.AddRange(assembly.GetTypes().Where(t => typeof(IVulcanIndexer).IsAssignableFrom(t) && t.IsClass));
-            }
-
+            var indexers = typeof(IVulcanIndexer).GetSearchTypesFor(classesOnly: true, removeAbstractClasses: true);
             var count = 0;
             
             for (int i = 0; i < indexers.Count; i++)
             {
                 var indexer = (IVulcanIndexer)Activator.CreateInstance(indexers[i]);
-
                 var contentReferences = ContentLoader.Service.GetDescendents(indexer.GetRoot().Key);
 
                 for(int cr = 0; cr < contentReferences.Count(); cr++)

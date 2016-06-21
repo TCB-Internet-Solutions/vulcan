@@ -9,8 +9,10 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
     [ServiceConfiguration(typeof(IVulcanClientConnectionSettings), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanClientConnectionSettings : IVulcanClientConnectionSettings
-    {
+    { 
         public virtual ConnectionSettings ConnectionSettings => CommonSettings();
+
+        public virtual string Index => ConfigurationManager.AppSettings["VulcanIndex"];
 
         protected virtual ConnectionSettings CommonSettings()
         {

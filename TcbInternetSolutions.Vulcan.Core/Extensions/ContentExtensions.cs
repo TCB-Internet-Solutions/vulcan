@@ -55,10 +55,9 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
         public static IDictionary<IHit<T>, T> GetHitContents<T>(this ISearchResponse<T> searchResponse) where T : class, IContent
         {
             var resolved = new Dictionary<string, Type>();
-
             var dic = new Dictionary<IHit<T>, T>();
 
-            if(searchResponse != null && searchResponse.Hits != null)
+            if (searchResponse != null && searchResponse.Hits != null)
             {
                 var contentLoader = ServiceLocator.Current.GetInstance<IContentLoader>();
 
@@ -68,17 +67,17 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
                     {
                         Type contentType = null;
 
-                        if(resolved.ContainsKey(hit.Type))
+                        if (resolved.ContainsKey(hit.Type))
                         {
                             contentType = resolved[hit.Type];
                         }
                         else
                         {
-                            foreach(var assembly in AppDomain.CurrentDomain.GetAssemblies())
+                            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
                             {
                                 var type = assembly.GetType(hit.Type, false);
 
-                                if(type != null)
+                                if (type != null)
                                 {
                                     contentType = type;
                                     resolved.Add(hit.Type, type);
@@ -102,7 +101,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
                             }
                         }
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         Logger.Information("Vulcan observed a non-content type: " + hit.Type, e);
                     }

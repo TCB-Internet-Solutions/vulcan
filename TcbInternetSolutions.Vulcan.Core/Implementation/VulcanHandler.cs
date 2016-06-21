@@ -1,29 +1,29 @@
-﻿using EPiServer;
-using EPiServer.Core;
-using EPiServer.DataAbstraction.RuntimeModel;
-using EPiServer.Logging;
-using EPiServer.ServiceLocation;
-using Nest;
-using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Globalization;
-using System.Linq;
-
-namespace TcbInternetSolutions.Vulcan.Core.Implementation
+﻿namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
+    using EPiServer;
+    using EPiServer.Core;
+    using EPiServer.DataAbstraction.RuntimeModel;
+    using EPiServer.Logging;
+    using EPiServer.ServiceLocation;
+    using Extensions;
+    using Nest;
+    using System;
+    using System.Collections.Generic;
+    using System.Globalization;
+    using System.Linq;
+
     [ServiceConfiguration(typeof(IVulcanHandler), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanHandler : IVulcanHandler
     {
         protected static ILogger Logger = LogManager.GetLogger();
 
-        protected Dictionary<CultureInfo, VulcanClient> clients = new Dictionary<CultureInfo, VulcanClient>();
+        protected Dictionary<CultureInfo, IVulcanClient> clients = new Dictionary<CultureInfo, IVulcanClient>();
 
         private IEnumerable<IVulcanIndexingModifier> indexingModifiers = null;
 
         private object lockObject = new object();
 
-        public virtual string Index => ConfigurationManager.AppSettings["VulcanIndex"];
+        public virtual string Index => CommonConnectionSettings.Service.Index;
 
         public virtual IEnumerable<IVulcanIndexingModifier> IndexingModifers
         {
@@ -31,17 +31,16 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             {
                 if (indexingModifiers == null)
                 {
-                    indexingModifiers = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes().Where(t => typeof(IVulcanIndexingModifier).IsAssignableFrom(t) && t.IsClass).Select(t => (IVulcanIndexingModifier)Activator.CreateInstance(t)));
+                    var typeModifiers = typeof(IVulcanIndexingModifier).GetSearchTypesFor(classesOnly: true, removeAbstractClasses: true);
+                    indexingModifiers = typeModifiers.Select(t => (IVulcanIndexingModifier)Activator.CreateInstance(t));
                 }
 
                 return indexingModifiers;
             }
         }
 
-        protected Injected<IContentLoader> ContentLoader { get; set; }
-
         protected Injected<IVulcanClientConnectionSettings> CommonConnectionSettings { get; set; }
-
+        protected Injected<IContentLoader> ContentLoader { get; set; }
         public virtual void DeleteContentByLanguage(IContent content)
         {
             IVulcanClient client;
@@ -82,7 +81,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         {
             lock (lockObject)
             {                
-                var client = new ElasticClient(CommonConnectionSettings.Service.ConnectionSettings); // use a raw elasticclient because we just need this to be quick
+                var client = CreateElasticClient(CommonConnectionSettings.Service.ConnectionSettings); // use a raw elasticclient because we just need this to be quick
                 var indices = client.CatIndices();
 
                 if (indices != null && indices.Records != null && indices.Records.Any())
@@ -98,7 +97,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                     }
                 }
 
-                clients = new Dictionary<CultureInfo, VulcanClient>(); // need to force a re-creation
+                clients = new Dictionary<CultureInfo, IVulcanClient>(); // need to force a re-creation
             }
         }
 
@@ -122,7 +121,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 settings.InferMappingFor<ContentMixin>(pd => pd.Ignore(p => p.MixinInstance));
                 settings.DefaultIndex(VulcanHelper.GetIndexName(Index, cultureInfo));
 
-                var client = new VulcanClient(Index, settings, cultureInfo);
+                var client = CreateVulcanClient(Index, settings, cultureInfo);
 
                 // first let's check our version
 
@@ -204,7 +203,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         public virtual IVulcanClient[] GetClients()
         {            
             var clients = new List<IVulcanClient>();
-            var client = new ElasticClient(CommonConnectionSettings.Service.ConnectionSettings);
+            var client = CreateElasticClient(CommonConnectionSettings.Service.ConnectionSettings);
             var indices = client.CatIndices();
 
             if (indices != null && indices.Records != null && indices.Records.Any())
@@ -254,7 +253,12 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                     client.IndexContent(ContentLoader.Service.Get<IContent>(content.ContentLink.ToReferenceWithoutVersion(), language));
                 }
             }
-        }        
+        }
+
+        protected virtual IElasticClient CreateElasticClient(IConnectionSettingsValues settings) => new ElasticClient(settings);
+
+        protected virtual IVulcanClient CreateVulcanClient(string index, ConnectionSettings settings, CultureInfo culture) =>
+            new VulcanClient(index, settings, culture);
 
         protected virtual string[] GetElisionArticles(string language)
         {
@@ -366,7 +370,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             }
         }
 
-        protected virtual string[] GetSynonyms(VulcanClient client)
+        protected virtual string[] GetSynonyms(IVulcanClient client)
         {
             var resolved = new List<string>();
 
@@ -395,7 +399,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             return resolved.ToArray();
         }
 
-        protected virtual void InitializeAnalyzer(VulcanClient client)
+        protected virtual void InitializeAnalyzer(IVulcanClient client)
         {
             var language = VulcanHelper.GetAnalyzer(client.Language);
             IUpdateIndexSettingsResponse response;
