@@ -104,17 +104,16 @@
 
             // TODO: Add in permission filtering
             
-
             ISearchResponse<IContent> hits;
 
             // Special condition for BlockData since it doesn't derive from BlockData
             if (typeof(TContent) == typeof(VulcanContentHit))
             {
-                var typeRestriction = typeof(BlockData).GetAllTypesFor(filterAbstracts: true);
+                var typeRestriction = typeof(BlockData).GetSearchTypesFor(removeAbstractClasses: true);
 
                 hits = _VulcanHandler.GetClient().SearchContent<IContent>(d => d
                         .Take(query.MaxResults)
-                        .Query(q => q.QueryString(sq => sq.Query(searchText))),                        
+                        .Query(q => q.SimpleQueryString(sq => sq.Fields(fields => fields.Field("*.analyzed")).Query(searchText))),
                         includeNeutralLanguage: IncludeInvariant,
                         rootReferences: searchRoots,
                         typeFilter: typeRestriction
@@ -124,8 +123,8 @@
             {
                 hits = _VulcanHandler.GetClient().SearchContent<TContent>(d => d
                         .Take(query.MaxResults)
-                        .Query(q => q.QueryString(sq => sq.Query(searchText))),
-                        //.Query(q => q.SimpleQueryString(sq => sq.Fields(fields => fields.Field("*.analyzed")).Query(searchText))),
+                        //.Query(q => q.QueryString(sq => sq.Query(searchText))),
+                        .Query(q => q.SimpleQueryString(sq => sq.Fields(fields => fields.Field("*.analyzed")).Query(searchText))),
                         includeNeutralLanguage: IncludeInvariant,
                         rootReferences: searchRoots
                 );

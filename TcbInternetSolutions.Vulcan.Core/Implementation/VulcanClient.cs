@@ -118,7 +118,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 resolvedDescriptor = searchDescriptor.Invoke(new SearchDescriptor<T>());
             }
             
-            typeFilter = typeFilter ?? typeof(T).GetAllTypesFor(filterAbstracts: true);
+            typeFilter = typeFilter ?? typeof(T).GetSearchTypesFor(removeAbstractClasses: true);
             resolvedDescriptor = resolvedDescriptor.Type(string.Join(",", typeFilter.Select(t => t.FullName)))
                 .ConcreteTypeSelector((d, docType) => typeof(VulcanContentHit));
 
@@ -132,7 +132,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             resolvedDescriptor = resolvedDescriptor.Index(indexName);
             var validRootReferences = rootReferences?.Where(x => !ContentReference.IsNullOrEmpty(x)).ToList();
 
-            if (validRootReferences.Count > 0)
+            if (validRootReferences?.Count > 0)
             {
                 Func<SearchDescriptor<T>, ISearchRequest> selector = ts => resolvedDescriptor;
                 var container = selector.Invoke(new SearchDescriptor<T>());

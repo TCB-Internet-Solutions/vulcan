@@ -6,31 +6,31 @@ using System.Linq;
 
 namespace TcbInternetSolutions.Vulcan.Core.Extensions
 {
-    internal static class TypeExtensions
+    public static class TypeExtensions
     {
         private static ConcurrentDictionary<Type, List<Type>> ResolvedTypes = new ConcurrentDictionary<Type, List<Type>>();
 
-        internal static IEnumerable<Type> GetAllTypesFor<T>(bool filterAbstracts = true) where T : class, IContent =>
-            GetAllTypesFor(typeof(T), filterAbstracts);
+        public static IEnumerable<Type> GetSearchTypesFor<T>(bool removeAbstractClasses = true) where T : class, IContent =>
+            GetSearchTypesFor(typeof(T), removeAbstractClasses);
 
-        internal static IEnumerable<Type> GetAllTypesFor(this Type type, bool filterAbstracts = true)
+        public static IEnumerable<Type> GetSearchTypesFor(this Type type, bool removeAbstractClasses = true)
         {
             List<Type> allTypesForGiven;
 
             if (!ResolvedTypes.TryGetValue(type, out allTypesForGiven))
             {
-                List<Type> resolvedTypes = new List<Type>();
+                allTypesForGiven = new List<Type>();
 
                 foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
                 {
-                    resolvedTypes.AddRange(assembly.GetTypes()
+                    allTypesForGiven.AddRange(assembly.GetTypes()
                         .Where(t => type.IsAssignableFrom(t) && !t.FullName.EndsWith("Proxy")));
                 }
 
-                ResolvedTypes.TryAdd(type, resolvedTypes);
+                ResolvedTypes.TryAdd(type, allTypesForGiven);
             }
 
-            if (filterAbstracts)
+            if (removeAbstractClasses)
                 return allTypesForGiven.Where(x => !x.IsAbstract);
 
             return allTypesForGiven;

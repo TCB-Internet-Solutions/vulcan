@@ -8,11 +8,9 @@ using System.Collections.Generic;
 
 namespace TcbInternetSolutions.Vulcan.Core.Extensions
 {
-    public static class VulcanExtensions
+    public static class ContentExtensions
     {
         private static ILogger Logger = LogManager.GetLogger();
-
-        public static Injected<IVulcanHandler> VulcanHandler { get; set; }
 
         public static IEnumerable<IContent> GetContents(this ISearchResponse<IContent> searchResponse) => GetContentsWorker<IContent>(searchResponse);
 

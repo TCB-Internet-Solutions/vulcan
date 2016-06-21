@@ -3,6 +3,7 @@ using EPiServer.ServiceLocation;
 using Nest;
 using System;
 using System.Configuration;
+using System.Web;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
@@ -13,6 +14,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         protected virtual ConnectionSettings CommonSettings()
         {
+            bool isDebugMode = HttpContext.Current?.IsDebuggingEnabled ?? false;
             var url = ConfigurationManager.AppSettings["VulcanUrl"];
             var Index = ConfigurationManager.AppSettings["VulcanIndex"];
 
@@ -35,6 +37,9 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             {
                 settings.BasicAuthentication(username, password);
             }
+
+            // Enable bytes to be retrieved in debug mode
+            settings.DisableDirectStreaming(isDebugMode);
 
             return settings;
         }
