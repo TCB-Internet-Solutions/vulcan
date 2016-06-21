@@ -7,9 +7,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
@@ -20,8 +17,9 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         public Injected<IContentLoader> ContentLoader { get; set; }
         public Injected<IVulcanHandler> VulcanHandler { get; set; }
 
-        public CultureInfo Language { get; private set; }
-        public string IndexName { get; private set; }
+        public CultureInfo Language { get; }
+
+        public string IndexName { get; }
 
         public VulcanClient(string index, ConnectionSettings settings, CultureInfo language)
             : base(settings)
@@ -152,15 +150,9 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             }
         }
 
-        private string GetTypeName(IContent content)
-        {
-            return content.GetType().Name.EndsWith("Proxy") ? content.GetType().BaseType.FullName : content.GetType().FullName;
-        }
+        private string GetTypeName(IContent content) => content.GetType().Name.EndsWith("Proxy") ? content.GetType().BaseType.FullName : content.GetType().FullName;
 
-        private string GetId(IContent content)
-        {
-            return content.ContentLink.ToReferenceWithoutVersion().ToString();
-        }
+        private string GetId(IContent content) => content.ContentLink.ToReferenceWithoutVersion().ToString();
 
         public void AddSynonym(string term, string[] synonyms, bool biDirectional)
         {
@@ -172,9 +164,6 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             VulcanHelper.DeleteSynonym(Language.Name, term);
         }
 
-        public Dictionary<string, KeyValuePair<string[], bool>> GetSynonyms()
-        {
-            return VulcanHelper.GetSynonyms(Language.Name);
-        }
+        public Dictionary<string, KeyValuePair<string[], bool>> GetSynonyms() => VulcanHelper.GetSynonyms(Language.Name);
     }
 }

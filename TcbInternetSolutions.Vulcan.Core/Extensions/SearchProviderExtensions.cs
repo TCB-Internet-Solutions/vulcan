@@ -1,5 +1,4 @@
 ﻿using EPiServer;
-using EPiServer.Configuration;
 using EPiServer.Core;
 using EPiServer.Shell;
 using EPiServer.Shell.Modules;

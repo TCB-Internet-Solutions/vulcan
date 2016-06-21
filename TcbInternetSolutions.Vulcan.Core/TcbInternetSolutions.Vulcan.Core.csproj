@@ -162,6 +162,7 @@
   <ItemGroup>
     <Compile Include="Extensions\SearchProviderExtensions.cs" />
     <Compile Include="Extensions\VulcanExtensions.cs" />
+    <Compile Include="Implementation\VulcanClientConnectionSettings.cs" />
     <Compile Include="Implementation\VulcanCmsIndexer.cs" />
     <Compile Include="Implementation\VulcanCmsIndexingModifier.cs" />
     <Compile Include="Implementation\VulcanCustomJsonSerializer.cs" />
@@ -175,6 +176,7 @@
     <Compile Include="Implementation\VulcanIndexSynchronization.cs" />
     <Compile Include="Implementation\VulcanSynonym.cs" />
     <Compile Include="IVulcanClient.cs" />
+    <Compile Include="IVulcanConnectionSettings.cs" />
     <Compile Include="IVulcanContentHit.cs" />
     <Compile Include="IVulcanHandler.cs" />
     <Compile Include="IVulcanIndexer.cs" />

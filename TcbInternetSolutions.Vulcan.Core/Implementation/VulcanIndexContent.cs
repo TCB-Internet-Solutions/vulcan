@@ -1,17 +1,12 @@
-﻿using System;
+﻿using EPiServer;
 using EPiServer.Core;
+using EPiServer.Logging;
 using EPiServer.PlugIn;
 using EPiServer.Scheduler;
 using EPiServer.ServiceLocation;
-using EPiServer;
-using EPiServer.Web;
-using Elasticsearch.Net;
-using Nest;
-using EPiServer.DataAbstraction.RuntimeModel;
-using EPiServer.Logging;
-using System.Linq;
+using System;
 using System.Collections.Generic;
-using EPiServer.DataAbstraction;
+using System.Linq;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
@@ -23,6 +18,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         private bool _stopSignaled;
 
         public Injected<IContentLoader> ContentLoader { get; set; }
+
         public Injected<IVulcanHandler> VulcanHandler { get; set; }
 
         public VulcanIndexContent()

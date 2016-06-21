@@ -1,16 +1,11 @@
 ﻿using Elasticsearch.Net;
-using EPiServer;
 using EPiServer.Core;
-using EPiServer.Core.Html.StringParsing;
 using EPiServer.ServiceLocation;
 using Nest;
 using System;
-using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Web;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
@@ -20,14 +15,21 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         public VulcanCustomJsonSerializer(IConnectionSettingsValues settings)
             : base(settings)
-        {}
+        { }
 
         public override Elasticsearch.Net.IPropertyMapping CreatePropertyMapping(System.Reflection.MemberInfo memberInfo)
         {
+            PropertyInfo propertyInfo = memberInfo as PropertyInfo;
+
+            if (propertyInfo?.PropertyType is IModifiedTrackable)
+            {
+                return new PropertyMapping() { Ignore = true };
+            }
+
             if (memberInfo.Name.Equals("PageName", StringComparison.InvariantCultureIgnoreCase) || (
-                    memberInfo.MemberType == System.Reflection.MemberTypes.Property && 
-                    (IsSubclassOfRawGeneric(typeof(Injected<>), (memberInfo as System.Reflection.PropertyInfo).PropertyType)
-                    || VulcanHelper.IgnoredTypes.Contains((memberInfo as System.Reflection.PropertyInfo).PropertyType)
+                    memberInfo.MemberType == System.Reflection.MemberTypes.Property &&
+                    (IsSubclassOfRawGeneric(typeof(Injected<>), propertyInfo?.PropertyType)
+                    || VulcanHelper.IgnoredTypes.Contains(propertyInfo?.PropertyType)
                     || memberInfo.Name.Equals("DefaultMvcController", StringComparison.InvariantCultureIgnoreCase))))
             {
                 return new PropertyMapping() { Ignore = true };
@@ -61,11 +63,11 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                 stream.Flush();
 
-                var content = data.GetType().GetProperty("Nest.IIndexRequest.UntypedDocument",BindingFlags.Instance | BindingFlags.NonPublic).GetValue(data) as IContent;
+                var content = data.GetType().GetProperty("Nest.IIndexRequest.UntypedDocument", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(data) as IContent;
 
                 if (VulcanHandler.Service.IndexingModifers != null)
                 {
-                    foreach(var indexingModifier in VulcanHandler.Service.IndexingModifers)
+                    foreach (var indexingModifier in VulcanHandler.Service.IndexingModifers)
                     {
                         indexingModifier.ProcessContent(content, writableStream);
                     }

@@ -5,10 +5,6 @@ using EPiServer.ServiceLocation;
 using Nest;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TcbInternetSolutions.Vulcan.Core.Implementation;
 
 namespace TcbInternetSolutions.Vulcan.Core.Extensions
 {
@@ -18,16 +14,10 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
 
         public static Injected<IVulcanHandler> VulcanHandler { get; set; }
 
-        public static IEnumerable<IContent> GetContents(this ISearchResponse<IContent> searchResponse)
-        {
-            return GetContentsWorker<IContent>(searchResponse);
-        }
+        public static IEnumerable<IContent> GetContents(this ISearchResponse<IContent> searchResponse) => GetContentsWorker<IContent>(searchResponse);
 
-        public static IEnumerable<T> GetContents<T>(this ISearchResponse<IContent> searchResponse) where T : class, IContent
-        {
-            return GetContentsWorker<T>(searchResponse);
-        }
-        
+        public static IEnumerable<T> GetContents<T>(this ISearchResponse<IContent> searchResponse) where T : class, IContent => GetContentsWorker<T>(searchResponse);
+
         private static IEnumerable<T> GetContentsWorker<T>(ISearchResponse<IContent> searchResponse) where T : class, IContent
         {
             var list = new List<T>();
