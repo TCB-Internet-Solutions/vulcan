@@ -51,8 +51,8 @@
             _SiteDefinitionResolver = enterpriseSettings;
 
             EditPath = (contentData, contentLink, languageName) =>
-            {
-                string fullUrlToEditView = SearchProviderExtensions.GetFullUrlToEditView(_SiteDefinitionResolver.GetDefinitionForContent(contentLink, false, false), null);
+            {                                
+                string fullUrlToEditView = SearchProviderExtensions.GetFullUrlToEditView(_SiteDefinitionResolver.GetDefinitionForContent(contentLink, fallbackToEmpty: true, fallbackToWildcardMapped: true), null);
                 Uri uri = SearchProviderExtensions.GetUri(contentData);
 
                 if (!string.IsNullOrWhiteSpace(languageName))
@@ -103,7 +103,7 @@
             }
 
             // TODO: Add in permission filtering
-            
+
             ISearchResponse<IContent> hits;
 
             // Special condition for BlockData since it doesn't derive from BlockData
@@ -129,7 +129,7 @@
                         rootReferences: searchRoots
                 );
             }
-            
+
             var results = hits.Hits.Select(x => CreateSearchResult(x.Source));
 
             return results;
@@ -164,6 +164,11 @@
 
             ILocalizable localizable = content as ILocalizable;
             IChangeTrackable changeTracking = content as IChangeTrackable;
+
+            if (content is MediaData)
+            {
+                var n = content.Name;
+            }
 
             if (content == null)
                 throw new ArgumentException(string.Format("Argument {0} must implement interface EPiServer.Core.IContent", "content"));
@@ -204,9 +209,9 @@
             string language = localizable != null ? localizable.Language.Name : ContentLanguage.PreferredCulture.Name;
             string editUrl = EditPath(contentData, contentLink, language);
             onCurrentHost = true;
-            SiteDefinition definitionForContent = _SiteDefinitionResolver.GetDefinitionForContent(contentData.ContentLink, false, false);
+            SiteDefinition definitionForContent = _SiteDefinitionResolver.GetDefinitionForContent(contentData.ContentLink, true, true);
 
-            if (definitionForContent.SiteUrl != SiteDefinition.Current.SiteUrl)
+            if (definitionForContent?.SiteUrl != SiteDefinition.Current.SiteUrl)
                 onCurrentHost = false;
 
             //if (Settings.Instance.UseLegacyEditMode && typeof(PageData).IsAssignableFrom(typeof(TContent)))
