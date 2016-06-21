@@ -2,7 +2,8 @@
 {
     internal class _TODOs
     {
-        // TODO: Add attribute to extract contentarea contents and use the CmsIndexModifier to look for properties with it to index
+        // TODO: Fix assembly scanning error for iModifiedTrackable.IsModified on Alloy Blocks, mapping issue is field name with "."
+        // TODONE: Add attribute to extract contentarea contents and use the CmsIndexModifier to look for properties with it to index
         // TODO: Add content events to work with content area attribute to sync block changes that are searchable.
         // TODONE: Figure out permissions, need to index roles with read
         // TODO: Build read permission filter for searching

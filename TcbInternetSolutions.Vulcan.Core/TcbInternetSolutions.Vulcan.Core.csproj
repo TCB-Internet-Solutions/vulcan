@@ -160,6 +160,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Extensions\ContentAreaExtensions.cs" />
     <Compile Include="Extensions\SearchProviderExtensions.cs" />
     <Compile Include="Extensions\TypeExtensions.cs" />
     <Compile Include="Extensions\ContentExtensions.cs" />
@@ -188,6 +189,7 @@
     <Compile Include="SearchProviders\VulcanPageSearchProvider.cs" />
     <Compile Include="SearchProviders\VulcanSearchProviderBase.cs" />
     <Compile Include="VulcanFieldConstants.cs" />
+    <Compile Include="VulcanSearchableAttribute.cs" />
     <Compile Include="_TODOs.cs" />
   </ItemGroup>
   <ItemGroup>
