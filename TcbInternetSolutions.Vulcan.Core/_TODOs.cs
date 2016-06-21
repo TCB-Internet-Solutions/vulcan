@@ -4,7 +4,7 @@
     {
         // TODONE: Figure out permissions, need to index roles with read
         // TODO: Build read permission filter for searching
-        // TODO: Figure out how to handle block only searches when there is an IContent type restriction
+        // TODONE: Figure out how to handle block only searches when there is an IContent type restriction, just needs an OR filter for all types deriving from BlockData
         // TODO: Figure out how to index media file contents for things like pdf/doc(x) etc.
         // TODO: Create simple search extension for site search queries that take search string and look for pages and files, with parameter to filter on search roots, and exclude certain types
         // TODO: Commerce search provider for UI

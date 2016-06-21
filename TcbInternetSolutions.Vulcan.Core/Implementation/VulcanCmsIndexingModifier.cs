@@ -10,7 +10,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     {
         public Injected<IContentLoader> ContentLoader { get; set; }
 
-        public void ProcessContent(EPiServer.Core.IContent content, System.IO.Stream writableStream)
+        public virtual void ProcessContent(EPiServer.Core.IContent content, System.IO.Stream writableStream)
         {
             var first = true;
             var streamWriter = new StreamWriter(writableStream);

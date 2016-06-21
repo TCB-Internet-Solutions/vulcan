@@ -13,6 +13,7 @@
     using EPiServer.SpecializedProperties;
     using EPiServer.Web;
     using Implementation;
+    using Nest;
     using System;
     using System.Collections.Generic;
     using System.Globalization;
@@ -102,20 +103,34 @@
             }
 
             // TODO: Add in permission filtering
+            
 
+            ISearchResponse<IContent> hits;
+
+            // Special condition for BlockData since it doesn't derive from BlockData
             if (typeof(TContent) == typeof(VulcanContentHit))
             {
-                // TODO: add query to filter for all types that derive from BlockData due to IContentRestriction
-            }
+                var typeRestriction = typeof(BlockData).GetAllTypesFor(filterAbstracts: true);
 
-            var hits = _VulcanHandler.GetClient().SearchContent<TContent>(d => d
+                hits = _VulcanHandler.GetClient().SearchContent<IContent>(d => d
+                        .Take(query.MaxResults)
+                        .Query(q => q.QueryString(sq => sq.Query(searchText))),                        
+                        includeNeutralLanguage: IncludeInvariant,
+                        rootReferences: searchRoots,
+                        typeFilter: typeRestriction
+                );
+            }
+            else
+            {
+                hits = _VulcanHandler.GetClient().SearchContent<TContent>(d => d
                         .Take(query.MaxResults)
                         .Query(q => q.QueryString(sq => sq.Query(searchText))),
                         //.Query(q => q.SimpleQueryString(sq => sq.Fields(fields => fields.Field("*.analyzed")).Query(searchText))),
                         includeNeutralLanguage: IncludeInvariant,
                         rootReferences: searchRoots
                 );
-
+            }
+            
             var results = hits.Hits.Select(x => CreateSearchResult(x.Source));
 
             return results;

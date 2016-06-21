@@ -161,6 +161,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Extensions\SearchProviderExtensions.cs" />
+    <Compile Include="Extensions\TypeExtensions.cs" />
     <Compile Include="Extensions\VulcanExtensions.cs" />
     <Compile Include="Implementation\VulcanClientConnectionSettings.cs" />
     <Compile Include="Implementation\VulcanCmsIndexer.cs" />
