@@ -12,6 +12,7 @@
     using EPiServer.Shell.Web.Mvc.Html;
     using EPiServer.SpecializedProperties;
     using EPiServer.Web;
+    using Implementation;
     using System;
     using System.Collections.Generic;
     using System.Globalization;
@@ -50,7 +51,7 @@
 
             EditPath = (contentData, contentLink, languageName) =>
             {
-                string fullUrlToEditView = SearchProviderExtensions.GetFullUrlToEditView(_SiteDefinitionResolver.GetDefinitionForContent(contentLink, false,false), null);
+                string fullUrlToEditView = SearchProviderExtensions.GetFullUrlToEditView(_SiteDefinitionResolver.GetDefinitionForContent(contentLink, false, false), null);
                 Uri uri = SearchProviderExtensions.GetUri(contentData);
 
                 if (!string.IsNullOrWhiteSpace(languageName))
@@ -85,14 +86,34 @@
         /// <returns></returns>
         public virtual IEnumerable<SearchResult> Search(Query query)
         {
-            //TODO: add in search roots, need to see if Vulcan can multiple search roots.
-
+            List<ContentReference> searchRoots = null;
             var searchText = query.SearchQuery;
+
+            if (query.SearchRoots?.Any() == true)
+            {
+                searchRoots = new List<ContentReference>();
+                ContentReference c = null;
+
+                foreach (var item in query.SearchRoots)
+                {
+                    if (ContentReference.TryParse(item, out c))
+                        searchRoots.Add(c);
+                }
+            }
+
+            // TODO: Add in permission filtering
+
+            if (typeof(TContent) == typeof(VulcanContentHit))
+            {
+                // TODO: add query to filter for all types that derive from BlockData due to IContentRestriction
+            }
 
             var hits = _VulcanHandler.GetClient().SearchContent<TContent>(d => d
                         .Take(query.MaxResults)
-                        .Query(q => q.SimpleQueryString(sq => sq.Fields(fields => fields.Field("*.analyzed")).Query(searchText))),
-                        includeNeutralLanguage: IncludeInvariant
+                        .Query(q => q.QueryString(sq => sq.Query(searchText))),
+                        //.Query(q => q.SimpleQueryString(sq => sq.Fields(fields => fields.Field("*.analyzed")).Query(searchText))),
+                        includeNeutralLanguage: IncludeInvariant,
+                        rootReferences: searchRoots
                 );
 
             var results = hits.Hits.Select(x => CreateSearchResult(x.Source));
@@ -169,7 +190,7 @@
             string language = localizable != null ? localizable.Language.Name : ContentLanguage.PreferredCulture.Name;
             string editUrl = EditPath(contentData, contentLink, language);
             onCurrentHost = true;
-            SiteDefinition definitionForContent = _SiteDefinitionResolver.GetDefinitionForContent(contentData.ContentLink, false, false);            
+            SiteDefinition definitionForContent = _SiteDefinitionResolver.GetDefinitionForContent(contentData.ContentLink, false, false);
 
             if (definitionForContent.SiteUrl != SiteDefinition.Current.SiteUrl)
                 onCurrentHost = false;

@@ -33,7 +33,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             IndexName = VulcanHelper.GetIndexName(index, Language);
         }
 
-        public ISearchResponse<IContent> SearchContent<T>(Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null, bool includeNeutralLanguage = false, ContentReference rootReference = null) where T : class, EPiServer.Core.IContent
+        public ISearchResponse<IContent> SearchContent<T>(Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null, bool includeNeutralLanguage = false, IEnumerable<ContentReference> rootReferences = null) where T : class, EPiServer.Core.IContent
         {
             SearchDescriptor<T> resolvedDescriptor;
 
@@ -62,18 +62,19 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             }
 
             resolvedDescriptor = resolvedDescriptor.Index(indexName);
+            var validRootReferences = rootReferences?.Where(x => !ContentReference.IsNullOrEmpty(x)).ToList();
 
-            if (!ContentReference.IsNullOrEmpty(rootReference))
+            if (validRootReferences.Count > 0)
             {
                 Func<SearchDescriptor<T>, ISearchRequest> selector = ts => resolvedDescriptor;
-
                 var container = selector.Invoke(new SearchDescriptor<T>());
-
                 var blendDescriptor = new QueryContainerDescriptor<T>();
+
+                // TODO: Figure out how to support multiple roots with OR
 
                 blendDescriptor = blendDescriptor.Term(t => t
                     .Field(VulcanFieldConstants.Ancestors)
-                        .Value(rootReference.ToReferenceWithoutVersion().ToString())) as QueryContainerDescriptor<T>;
+                        .Value(validRootReferences.FirstOrDefault().ToReferenceWithoutVersion().ToString())) as QueryContainerDescriptor<T>;
 
                 if (container.Query != null)
                 {

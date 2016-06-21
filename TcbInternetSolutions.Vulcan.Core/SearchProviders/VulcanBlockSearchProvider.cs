@@ -8,10 +8,11 @@
     using EPiServer.Shell;
     using EPiServer.Shell.Search;
     using EPiServer.Web;
+    using Implementation;
     using TcbInternetSolutions.Vulcan.Core;
 
     [SearchProvider]
-    public class VulcanBlockSearchProvider : VulcanSearchProviderBase<BlockData, BlockType>
+    public class VulcanBlockSearchProvider : VulcanSearchProviderBase<VulcanContentHit, BlockType> // using VulcanContentHit due to IContent restriction
     {
         public VulcanBlockSearchProvider()
               : this(
@@ -63,6 +64,6 @@
         /// <summary>
         /// Gets the icon CSS class for pages.
         /// </summary>
-        protected override string IconCssClass(BlockData pageData) => "epi-resourceIcon epi-resourceIcon-block";
+        protected override string IconCssClass(VulcanContentHit pageData) => "epi-resourceIcon epi-resourceIcon-block";
     }
 }

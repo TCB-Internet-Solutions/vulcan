@@ -182,6 +182,7 @@
     <Compile Include="IVulcanIndexer.cs" />
     <Compile Include="IVulcanIndexingModifier.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SearchProviders\VulcanBlockSearchProvider.cs" />
     <Compile Include="SearchProviders\VulcanMediaSearchProvider.cs" />
     <Compile Include="SearchProviders\VulcanPageSearchProvider.cs" />
     <Compile Include="SearchProviders\VulcanSearchProviderBase.cs" />
