@@ -103,7 +103,6 @@
             }
 
             // TODO: Add in permission filtering
-
             ISearchResponse<IContent> hits;
 
             // Special condition for BlockData since it doesn't derive from BlockData

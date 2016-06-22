@@ -6,6 +6,6 @@
 
         public const string ReadPermission = "__readPermission";
 
-        public const string CustomContents = "__customContents.analyzed"; // not sure if .analyzed is useful yet
+        public const string CustomContents = "__customContents";
     }
 }

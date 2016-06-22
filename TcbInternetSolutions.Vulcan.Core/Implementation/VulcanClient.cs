@@ -138,11 +138,8 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 var container = selector.Invoke(new SearchDescriptor<T>());
                 var blendDescriptor = new QueryContainerDescriptor<T>();
 
-                // TODO: Figure out how to support multiple roots with OR
-
-                blendDescriptor = blendDescriptor.Term(t => t
-                    .Field(VulcanFieldConstants.Ancestors)
-                        .Value(validRootReferences.FirstOrDefault().ToReferenceWithoutVersion().ToString())) as QueryContainerDescriptor<T>;
+                var searchRoots = string.Join(" OR ", validRootReferences.Select(x => x.ToReferenceWithoutVersion().ToString()));                
+                blendDescriptor = blendDescriptor.Term(t => t.Field(VulcanFieldConstants.Ancestors).Value(searchRoots)) as QueryContainerDescriptor<T>;
 
                 if (container.Query != null)
                 {
