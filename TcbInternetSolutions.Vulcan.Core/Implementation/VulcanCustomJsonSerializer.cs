@@ -19,17 +19,11 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         public override Elasticsearch.Net.IPropertyMapping CreatePropertyMapping(System.Reflection.MemberInfo memberInfo)
         {
-            PropertyInfo propertyInfo = memberInfo as PropertyInfo;
-
-            if (propertyInfo?.PropertyType is IModifiedTrackable)
-            {
-                return new PropertyMapping() { Ignore = true };
-            }
-
-            if (memberInfo.Name.Equals("PageName", StringComparison.InvariantCultureIgnoreCase) || (
+            if (memberInfo.Name.Equals("PageName", StringComparison.InvariantCultureIgnoreCase) ||
+                memberInfo.Name.Contains(".") || (
                     memberInfo.MemberType == System.Reflection.MemberTypes.Property &&
-                    (IsSubclassOfRawGeneric(typeof(Injected<>), propertyInfo?.PropertyType)
-                    || VulcanHelper.IgnoredTypes.Contains(propertyInfo?.PropertyType)
+                    (IsSubclassOfRawGeneric(typeof(Injected<>), (memberInfo as System.Reflection.PropertyInfo).PropertyType)
+                    || VulcanHelper.IgnoredTypes.Contains((memberInfo as System.Reflection.PropertyInfo).PropertyType)
                     || memberInfo.Name.Equals("DefaultMvcController", StringComparison.InvariantCultureIgnoreCase))))
             {
                 return new PropertyMapping() { Ignore = true };
