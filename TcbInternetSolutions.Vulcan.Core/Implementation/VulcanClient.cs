@@ -118,7 +118,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 resolvedDescriptor = searchDescriptor.Invoke(new SearchDescriptor<T>());
             }
             
-            typeFilter = typeFilter ?? typeof(T).GetSearchTypesFor(removeAbstractClasses: true);
+            typeFilter = typeFilter ?? typeof(T).GetSearchTypesFor(VulcanFieldConstants.AbstractFilter);
             resolvedDescriptor = resolvedDescriptor.Type(string.Join(",", typeFilter.Select(t => t.FullName)))
                 .ConcreteTypeSelector((d, docType) => typeof(VulcanContentHit));
 

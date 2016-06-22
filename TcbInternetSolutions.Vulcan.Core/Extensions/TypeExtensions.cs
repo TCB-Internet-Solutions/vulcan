@@ -8,12 +8,12 @@
 
     public static class TypeExtensions
     {
-        private static ConcurrentDictionary<Type, List<Type>> resolvedTypes = new ConcurrentDictionary<Type, List<Type>>();
+        private static ConcurrentDictionary<Type, List<Type>> resolvedTypes = new ConcurrentDictionary<Type, List<Type>>();        
 
-        public static List<Type> GetSearchTypesFor<T>(bool removeAbstractClasses = true) where T : class, IContent =>
-            GetSearchTypesFor(typeof(T), removeAbstractClasses);
+        public static List<Type> GetSearchTypesFor<T>(Func<Type, bool> filter = null) where T : class, IContent =>
+            GetSearchTypesFor(typeof(T), filter);
 
-        public static List<Type> GetSearchTypesFor(this Type type, bool classesOnly = true, bool removeAbstractClasses = true)
+        public static List<Type> GetSearchTypesFor(this Type type, Func<Type,bool> filter = null)
         {
             List<Type> allTypesForGiven;
 
@@ -30,11 +30,8 @@
                 resolvedTypes.TryAdd(type, allTypesForGiven);
             }
 
-            if (removeAbstractClasses)
-                allTypesForGiven = allTypesForGiven.Where(x => !x.IsAbstract).ToList();
-
-            if (classesOnly)
-                allTypesForGiven = allTypesForGiven.Where(x => x.IsClass).ToList();
+            if (filter != null)
+                allTypesForGiven = allTypesForGiven.Where(filter).ToList();
 
             return allTypesForGiven;
         }

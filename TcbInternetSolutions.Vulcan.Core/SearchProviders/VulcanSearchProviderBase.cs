@@ -108,7 +108,7 @@
             // Special condition for BlockData since it doesn't derive from BlockData
             if (typeof(TContent) == typeof(VulcanContentHit))
             {
-                var typeRestriction = typeof(BlockData).GetSearchTypesFor(removeAbstractClasses: true);
+                var typeRestriction = typeof(BlockData).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
 
                 hits = _VulcanHandler.GetClient().SearchContent<IContent>(d => d
                         .Take(query.MaxResults)

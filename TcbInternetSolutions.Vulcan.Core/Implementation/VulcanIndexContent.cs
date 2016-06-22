@@ -34,9 +34,9 @@
         public override string Execute()
         {
             OnStatusChanged(string.Format("Starting execution of {0}", GetType()));
-
+            
             VulcanHandler.Service.DeleteIndex(); // delete all language indexes
-            var indexers = typeof(IVulcanIndexer).GetSearchTypesFor(classesOnly: true, removeAbstractClasses: true);
+            var indexers = typeof(IVulcanIndexer).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
             var count = 0;
             
             for (int i = 0; i < indexers.Count; i++)

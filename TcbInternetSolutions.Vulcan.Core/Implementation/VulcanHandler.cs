@@ -31,7 +31,7 @@
             {
                 if (indexingModifiers == null)
                 {
-                    var typeModifiers = typeof(IVulcanIndexingModifier).GetSearchTypesFor(classesOnly: true, removeAbstractClasses: true);
+                    var typeModifiers = typeof(IVulcanIndexingModifier).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
                     indexingModifiers = typeModifiers.Select(t => (IVulcanIndexingModifier)Activator.CreateInstance(t));
                 }
 
@@ -40,7 +40,9 @@
         }
 
         protected Injected<IVulcanClientConnectionSettings> CommonConnectionSettings { get; set; }
+
         protected Injected<IContentLoader> ContentLoader { get; set; }
+
         public virtual void DeleteContentByLanguage(IContent content)
         {
             IVulcanClient client;
@@ -80,7 +82,7 @@
         public virtual void DeleteIndex()
         {
             lock (lockObject)
-            {                
+            {
                 var client = CreateElasticClient(CommonConnectionSettings.Service.ConnectionSettings); // use a raw elasticclient because we just need this to be quick
                 var indices = client.CatIndices();
 
@@ -201,7 +203,7 @@
         }
 
         public virtual IVulcanClient[] GetClients()
-        {            
+        {
             var clients = new List<IVulcanClient>();
             var client = CreateElasticClient(CommonConnectionSettings.Service.ConnectionSettings);
             var indices = client.CatIndices();
