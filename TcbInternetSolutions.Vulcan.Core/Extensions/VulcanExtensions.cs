@@ -18,6 +18,16 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
 
         public static Injected<IVulcanHandler> VulcanHandler { get; set; }
 
+        public static T GetContent<T>(this Nest.IHit<IContent> hit) where T : IContent
+        {
+            return ServiceLocator.Current.GetInstance<IContentLoader>().Get<T>(new ContentReference(hit.Id));
+        }
+
+        public static T GetContent<T>(this IContent content) where T : IContent
+        {
+            return ServiceLocator.Current.GetInstance<IContentLoader>().Get<T>(content.ContentLink);
+        }
+
         public static IEnumerable<IContent> GetContents(this ISearchResponse<IContent> searchResponse)
         {
             return GetContentsWorker<IContent>(searchResponse);
