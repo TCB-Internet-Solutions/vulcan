@@ -5,39 +5,26 @@ using EPiServer.ServiceLocation;
 using Nest;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TcbInternetSolutions.Vulcan.Core.Implementation;
 
 namespace TcbInternetSolutions.Vulcan.Core.Extensions
 {
-    public static class VulcanExtensions
+    public static class ContentExtensions
     {
         private static ILogger Logger = LogManager.GetLogger();
 
         public static Injected<IVulcanHandler> VulcanHandler { get; set; }
 
-        public static T GetContent<T>(this Nest.IHit<IContent> hit) where T : IContent
-        {
-            return ServiceLocator.Current.GetInstance<IContentLoader>().Get<T>(new ContentReference(hit.Id));
-        }
+        public static T GetContent<T>(this Nest.IHit<IContent> hit) where T : IContent =>
+            ServiceLocator.Current.GetInstance<IContentLoader>().Get<T>(new ContentReference(hit.Id));
 
-        public static T GetContent<T>(this IContent content) where T : IContent
-        {
-            return ServiceLocator.Current.GetInstance<IContentLoader>().Get<T>(content.ContentLink);
-        }
+        public static T GetContent<T>(this IContent content) where T : IContent =>
+            ServiceLocator.Current.GetInstance<IContentLoader>().Get<T>(content.ContentLink);
 
-        public static IEnumerable<IContent> GetContents(this ISearchResponse<IContent> searchResponse)
-        {
-            return GetContentsWorker<IContent>(searchResponse);
-        }
+        public static IEnumerable<IContent> GetContents(this ISearchResponse<IContent> searchResponse) => GetContentsWorker<IContent>(searchResponse);
 
-        public static IEnumerable<T> GetContents<T>(this ISearchResponse<IContent> searchResponse) where T : class, IContent
-        {
-            return GetContentsWorker<T>(searchResponse);
-        }
-        
+        public static IEnumerable<T> GetContents<T>(this ISearchResponse<IContent> searchResponse) where T : class, IContent =>
+            GetContentsWorker<T>(searchResponse);
+
         private static IEnumerable<T> GetContentsWorker<T>(ISearchResponse<IContent> searchResponse) where T : class, IContent
         {
             var list = new List<T>();

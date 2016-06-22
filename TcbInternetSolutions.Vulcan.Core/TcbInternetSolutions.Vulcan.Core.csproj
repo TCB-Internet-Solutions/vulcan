@@ -11,7 +11,7 @@
     <AssemblyName>TcbInternetSolutions.Vulcan.Core</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />    
+    <TargetFrameworkProfile />
     <RestorePackages>true</RestorePackages>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -114,7 +114,7 @@
     <Compile Include="Extensions\ContentAreaExtensions.cs" />
     <Compile Include="Extensions\SearchProviderExtensions.cs" />
     <Compile Include="Extensions\TypeExtensions.cs" />
-    <Compile Include="Extensions\VulcanExtensions.cs" />
+    <Compile Include="Extensions\ContentExtensions.cs" />
     <Compile Include="Implementation\VulcanClientConnectionSettings.cs" />
     <Compile Include="Implementation\VulcanCmsIndexer.cs" />
     <Compile Include="Implementation\VulcanCmsIndexingModifier.cs" />
@@ -145,6 +145,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="TcbInternetSolutions.Vulcan.Core.nuspec" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Resources\LanguageFiles\Vulcan_en.xml" />
