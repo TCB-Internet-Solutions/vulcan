@@ -5,8 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
@@ -28,19 +26,15 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             return IndexNameBase + suffix;
         }
 
-        internal static Type[] IgnoredTypes
-        {
-            get
+        internal static Type[] IgnoredTypes =>
+            new Type[] 
             {
-                return new Type[] {
-                    typeof(PropertyDataCollection),
-                    typeof(ContentArea),
-                    typeof(CultureInfo),
-                    typeof(IEnumerable<CultureInfo>),
-                    typeof(PageType)
-                };
-            }
-        }
+                typeof(PropertyDataCollection),
+                typeof(ContentArea),
+                typeof(CultureInfo),
+                typeof(IEnumerable<CultureInfo>),
+                typeof(PageType)
+            };
 
         internal static string GetAnalyzer(CultureInfo cultureInfo)
         {

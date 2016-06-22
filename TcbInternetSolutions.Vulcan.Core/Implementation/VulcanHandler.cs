@@ -1,75 +1,106 @@
-﻿using Elasticsearch.Net;
-using EPiServer;
-using EPiServer.Core;
-using EPiServer.DataAbstraction.RuntimeModel;
-using EPiServer.Logging;
-using EPiServer.ServiceLocation;
-using Nest;
-using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Globalization;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace TcbInternetSolutions.Vulcan.Core.Implementation
+﻿namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
+    using EPiServer;
+    using EPiServer.Core;
+    using EPiServer.DataAbstraction.RuntimeModel;
+    using EPiServer.Logging;
+    using EPiServer.ServiceLocation;
+    using Extensions;
+    using Nest;
+    using System;
+    using System.Collections.Generic;
+    using System.Globalization;
+    using System.Linq;
+
     [ServiceConfiguration(typeof(IVulcanHandler), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanHandler : IVulcanHandler
     {
-        private static ILogger Logger = LogManager.GetLogger();
+        protected static ILogger Logger = LogManager.GetLogger();
 
-        public Injected<IContentLoader> ContentLoader { get; set; }
+        protected Dictionary<CultureInfo, IVulcanClient> clients = new Dictionary<CultureInfo, IVulcanClient>();
 
-        private Dictionary<CultureInfo, VulcanClient> clients = new Dictionary<CultureInfo, VulcanClient>();
+        private IEnumerable<IVulcanIndexingModifier> indexingModifiers = null;
 
         private object lockObject = new object();
 
-        public IVulcanClient[] GetClients()
+        public virtual string Index => CommonConnectionSettings.Service.Index;
+
+        public virtual IEnumerable<IVulcanIndexingModifier> IndexingModifers
         {
-            var url = ConfigurationManager.AppSettings["VulcanUrl"];
-
-            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(url) || url == "SET THIS")
+            get
             {
-                throw new Exception("You need to specify the Vulcan Url in AppSettings");
-            }
-
-            if (string.IsNullOrWhiteSpace(Index) || string.IsNullOrWhiteSpace(Index) || Index == "SET THIS")
-            {
-                throw new Exception("You need to specify the Vulcan Index in AppSettings");
-            }
-
-            var clients = new List<IVulcanClient>();
-
-            var connectionPool = new SingleNodeConnectionPool(new Uri(url));
-            var settings = new ConnectionSettings(connectionPool, s => new VulcanCustomJsonSerializer(s));
-
-            var username = ConfigurationManager.AppSettings["VulcanUsername"];
-            var password = ConfigurationManager.AppSettings["VulcanPassword"];
-            if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
-            {
-                settings.BasicAuthentication(username, password);
-            }
-
-            var client = new ElasticClient(settings);
-
-            var indices = client.CatIndices();
-
-            if (indices != null && indices.Records != null && indices.Records.Any())
-            {
-                foreach (var index in indices.Records.Where(i => i.Index.StartsWith(Index + "_")).Select(i => i.Index))
+                if (indexingModifiers == null)
                 {
-                    var cultureName = index.Substring(Index.Length + 1);
+                    var typeModifiers = typeof(IVulcanIndexingModifier).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
+                    indexingModifiers = typeModifiers.Select(t => (IVulcanIndexingModifier)Activator.CreateInstance(t));
+                }
 
-                    clients.Add(GetClient(cultureName.Equals("invariant", StringComparison.InvariantCultureIgnoreCase) ? CultureInfo.InvariantCulture : new CultureInfo(cultureName)));
+                return indexingModifiers;
+            }
+        }
+
+        protected Injected<IVulcanClientConnectionSettings> CommonConnectionSettings { get; set; }
+
+        protected Injected<IContentLoader> ContentLoader { get; set; }
+
+        public virtual void DeleteContentByLanguage(IContent content)
+        {
+            IVulcanClient client;
+
+            if (!(content is ILocalizable))
+            {
+                client = GetClient(CultureInfo.InvariantCulture);
+
+            }
+            else
+            {
+                client = GetClient((content as ILocalizable).Language);
+            }
+
+            client.DeleteContent(content);
+        }
+
+        public virtual void DeleteContentEveryLanguage(IContent content)
+        {
+            if (!(content is ILocalizable))
+            {
+                var client = GetClient(CultureInfo.InvariantCulture);
+
+                client.DeleteContent(content);
+            }
+            else
+            {
+                foreach (var language in (content as ILocalizable).ExistingLanguages)
+                {
+                    var client = GetClient(language);
+
+                    client.DeleteContent(content);
                 }
             }
+        }
 
-            return clients.ToArray();
+        public virtual void DeleteIndex()
+        {
+            lock (lockObject)
+            {
+                var client = CreateElasticClient(CommonConnectionSettings.Service.ConnectionSettings); // use a raw elasticclient because we just need this to be quick
+                var indices = client.CatIndices();
+
+                if (indices != null && indices.Records != null && indices.Records.Any())
+                {
+                    foreach (var index in indices.Records.Where(i => i.Index.StartsWith(Index + "_")).Select(i => i.Index))
+                    {
+                        var response = client.DeleteIndex(index);
+
+                        if (!response.IsValid)
+                        {
+                            Logger.Error("Could not run a delete index: " + response.DebugInformation);
+                        }
+                    }
+                }
+
+                clients = new Dictionary<CultureInfo, IVulcanClient>(); // need to force a re-creation
+            }
         }
 
         /// <summary>
@@ -77,7 +108,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// </summary>
         /// <param name="language">Pass in null for current culture, a specific culture or CultureInfo.InvariantCulture to get a client for non-language specific data</param>
         /// <returns>A Vulcan client</returns>
-        public IVulcanClient GetClient(CultureInfo language = null)
+        public virtual IVulcanClient GetClient(CultureInfo language = null)
         {
             var cultureInfo = language == null ? CultureInfo.CurrentUICulture : language;
 
@@ -88,20 +119,11 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 // we now know what our culture is (current culture or invariant), but we need to choose the language analyzer
 
                 var languageAnalyzer = VulcanHelper.GetAnalyzer(cultureInfo);
-
-                var connectionPool = new SingleNodeConnectionPool(new Uri(ConfigurationManager.AppSettings["VulcanUrl"]));
-                var settings = new ConnectionSettings(connectionPool, s => new VulcanCustomJsonSerializer(s));
+                var settings = CommonConnectionSettings.Service.ConnectionSettings;
                 settings.InferMappingFor<ContentMixin>(pd => pd.Ignore(p => p.MixinInstance));
                 settings.DefaultIndex(VulcanHelper.GetIndexName(Index, cultureInfo));
 
-                var username = ConfigurationManager.AppSettings["VulcanUsername"];
-                var password = ConfigurationManager.AppSettings["VulcanPassword"];
-                if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
-                {
-                    settings.BasicAuthentication(username, password);
-                }
-
-                var client = new VulcanClient(Index, settings, cultureInfo);
+                var client = CreateVulcanClient(Index, settings, cultureInfo);
 
                 // first let's check our version
 
@@ -127,13 +149,13 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                         {
                             var node = nodesInfo.Nodes.First(); // just use first
 
-                            if(string.IsNullOrWhiteSpace(node.Value.Version)) // just use first
+                            if (string.IsNullOrWhiteSpace(node.Value.Version)) // just use first
                             {
                                 throw new Exception("Could not find a version on node to check Elasticsearch Version. Check that you are correctly connected to Elasticsearch?");
                             }
                             else
                             {
-                                if(node.Value.Version.StartsWith("1."))
+                                if (node.Value.Version.StartsWith("1."))
                                 {
                                     throw new Exception("Sorry, Vulcan only works with Elasticsearch version 2.x or higher. The Elasticsearch node you are currently connected to is version " + node.Value.Version);
                                 }
@@ -180,86 +202,26 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             }
         }
 
-        public string Index
+        public virtual IVulcanClient[] GetClients()
         {
-            get
-            {
-                return ConfigurationManager.AppSettings["VulcanIndex"];
-            }
-        }
+            var clients = new List<IVulcanClient>();
+            var client = CreateElasticClient(CommonConnectionSettings.Service.ConnectionSettings);
+            var indices = client.CatIndices();
 
-        public void DeleteIndex()
-        {
-            lock (lockObject)
+            if (indices != null && indices.Records != null && indices.Records.Any())
             {
-                var connectionPool = new SingleNodeConnectionPool(new Uri(ConfigurationManager.AppSettings["VulcanUrl"]));
-                var settings = new ConnectionSettings(connectionPool, s => new VulcanCustomJsonSerializer(s));
-
-                var username = ConfigurationManager.AppSettings["VulcanUsername"];
-                var password = ConfigurationManager.AppSettings["VulcanPassword"];
-                if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
+                foreach (var index in indices.Records.Where(i => i.Index.StartsWith(Index + "_")).Select(i => i.Index))
                 {
-                    settings.BasicAuthentication(username, password);
-                }
+                    var cultureName = index.Substring(Index.Length + 1);
 
-                var client = new ElasticClient(settings); // use a raw elasticclient because we just need this to be quick
-
-                var indices = client.CatIndices();
-
-                if (indices != null && indices.Records != null && indices.Records.Any())
-                {
-                    foreach (var index in indices.Records.Where(i => i.Index.StartsWith(Index + "_")).Select(i => i.Index))
-                    {
-                        var response = client.DeleteIndex(index);
-
-                        if (!response.IsValid)
-                        {
-                            Logger.Error("Could not run a delete index: " + response.DebugInformation);
-                        }
-                    }
-                }
-
-                clients = new Dictionary<CultureInfo, VulcanClient>(); // need to force a re-creation
-            }
-        }
-
-        public void DeleteContentByLanguage(IContent content)
-        {
-            IVulcanClient client;
-
-            if (!(content is ILocalizable))
-            {
-                client = GetClient(CultureInfo.InvariantCulture);
-
-            }
-            else
-            {
-                client = GetClient((content as ILocalizable).Language);
-            }
-
-            client.DeleteContent(content);
-        }
-
-        public void DeleteContentEveryLanguage(IContent content)
-        {
-            if (!(content is ILocalizable))
-            {
-                var client = GetClient(CultureInfo.InvariantCulture);
-
-                client.DeleteContent(content);
-            }
-            else
-            {
-                foreach (var language in (content as ILocalizable).ExistingLanguages)
-                {
-                    var client = GetClient(language);
-
-                    client.DeleteContent(content);
+                    clients.Add(GetClient(cultureName.Equals("invariant", StringComparison.InvariantCultureIgnoreCase) ? CultureInfo.InvariantCulture : new CultureInfo(cultureName)));
                 }
             }
+
+            return clients.ToArray();
         }
 
-        public void IndexContentByLanguage(IContent content)
+        public virtual void IndexContentByLanguage(IContent content)
         {
             IVulcanClient client;
 
@@ -276,7 +238,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             client.IndexContent(content);
         }
 
-        public void IndexContentEveryLanguage(IContent content)
+        public virtual void IndexContentEveryLanguage(IContent content)
         {
             if (!(content is ILocalizable))
             {
@@ -295,73 +257,33 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             }
         }
 
-        private string[] GetSynonyms(VulcanClient client)
-        {
-            var resolved = new List<string>();
+        protected virtual IElasticClient CreateElasticClient(IConnectionSettingsValues settings) => new ElasticClient(settings);
 
-            var synonyms = client.GetSynonyms();
+        protected virtual IVulcanClient CreateVulcanClient(string index, ConnectionSettings settings, CultureInfo culture) =>
+            new VulcanClient(index, settings, culture);
 
-            if (synonyms != null)
-            {
-                foreach (var synonym in synonyms)
-                {
-                    if (synonym.Value.Value) // bidirectional
-                    {
-                        resolved.Add(synonym.Key + "," + string.Join(",", synonym.Value.Key));
-                    }
-                    else
-                    {
-                        resolved.Add(synonym.Key + " => " + string.Join(",", synonym.Value.Key));
-                    }
-                }
-            }
-
-            if (resolved.Count == 0)
-            {
-                resolved.Add("thisisadummyterm,makesurethesynonymsenabled");
-            }
-
-            return resolved.ToArray();
-        }
-
-        private string GetStemmerLanguage(string language)
+        protected virtual string[] GetElisionArticles(string language)
         {
             switch (language)
             {
-                case "french":
-                    return "light_french";
+                case "catalan":
+                    return new string[] { "d", "l", "m", "n", "s", "t" };
 
-                case "german":
-                    return "light_german";
+                case "french":
+                    return new string[] { "l", "m", "t", "qu", "n", "s", "j", "d", "c", "jusqu", "quoiqu", "lorsqu", "puisqu" };
+
+                case "irish":
+                    return new string[] { "h", "n", "t" };
 
                 case "italian":
-                    return "light_italian";
-
-                case "portuguese":
-                    return "light_portuguese";
-
-                case "spanish":
-                    return "light_spanish";
+                    return new string[] { "c", "l", "all", "dall", "dell", "nell", "sull", "coll", "pell", "gl", "agl", "dagl", "degl", "negl", "sugl", "un", "m", "t", "s", "v", "d" };
 
                 default:
-                    return language;
+                    return new string[] { "" };
             }
         }
 
-        private string GetStopwordsLanguage(string language)
-        {
-            switch (language)
-            {
-                case "cjk":
-                    return "english";
-
-                default:
-                    return language;
-            }
-        }
-
-
-        private string[] GetFilters(string language)
+        protected virtual string[] GetFilters(string language)
         {
             switch (language)
             {
@@ -414,31 +336,74 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             }
         }
 
-        private string[] GetElisionArticles(string language)
+        protected virtual string GetStemmerLanguage(string language)
         {
             switch (language)
             {
-                case "catalan":
-                    return new string[] { "d", "l", "m", "n", "s", "t" };
-
                 case "french":
-                    return new string[] { "l", "m", "t", "qu", "n", "s", "j", "d", "c", "jusqu", "quoiqu", "lorsqu", "puisqu" };
+                    return "light_french";
 
-                case "irish":
-                    return new string[] { "h", "n", "t" };
+                case "german":
+                    return "light_german";
 
                 case "italian":
-                    return new string[] { "c", "l", "all", "dall", "dell", "nell", "sull", "coll", "pell", "gl", "agl", "dagl", "degl", "negl", "sugl", "un", "m", "t", "s", "v", "d" };
+                    return "light_italian";
+
+                case "portuguese":
+                    return "light_portuguese";
+
+                case "spanish":
+                    return "light_spanish";
 
                 default:
-                    return new string[] { "" };
+                    return language;
             }
         }
 
-        private void InitializeAnalyzer(VulcanClient client)
+        protected virtual string GetStopwordsLanguage(string language)
+        {
+            switch (language)
+            {
+                case "cjk":
+                    return "english";
+
+                default:
+                    return language;
+            }
+        }
+
+        protected virtual string[] GetSynonyms(IVulcanClient client)
+        {
+            var resolved = new List<string>();
+
+            var synonyms = client.GetSynonyms();
+
+            if (synonyms != null)
+            {
+                foreach (var synonym in synonyms)
+                {
+                    if (synonym.Value.Value) // bidirectional
+                    {
+                        resolved.Add(synonym.Key + "," + string.Join(",", synonym.Value.Key));
+                    }
+                    else
+                    {
+                        resolved.Add(synonym.Key + " => " + string.Join(",", synonym.Value.Key));
+                    }
+                }
+            }
+
+            if (resolved.Count == 0)
+            {
+                resolved.Add("thisisadummyterm,makesurethesynonymsenabled");
+            }
+
+            return resolved.ToArray();
+        }
+
+        protected virtual void InitializeAnalyzer(IVulcanClient client)
         {
             var language = VulcanHelper.GetAnalyzer(client.Language);
-
             IUpdateIndexSettingsResponse response;
 
             if (language != "standard")
@@ -578,21 +543,6 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 {
                     Logger.Error("Could not set up char filters for " + client.IndexName + ": " + response.DebugInformation);
                 }
-            }
-        }
-
-        private IEnumerable<IVulcanIndexingModifier> indexingModifiers = null;
-        
-        public IEnumerable<IVulcanIndexingModifier> IndexingModifers
-        {
-            get
-            {
-                if(indexingModifiers == null)
-                {
-                    indexingModifiers = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes().Where(t => typeof(IVulcanIndexingModifier).IsAssignableFrom(t) && t.IsClass).Select(t => (IVulcanIndexingModifier)Activator.CreateInstance(t)));
-                }
-
-                return indexingModifiers;
             }
         }
     }

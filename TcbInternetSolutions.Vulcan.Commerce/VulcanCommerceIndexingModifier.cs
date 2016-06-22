@@ -2,12 +2,9 @@
 using EPiServer.Commerce.Catalog.ContentTypes;
 using EPiServer.ServiceLocation;
 using Mediachase.Commerce.Markets;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TcbInternetSolutions.Vulcan.Core;
 
 namespace TcbInternetSolutions.Vulcan.Commerce

@@ -1,20 +1,15 @@
-﻿using System;
-using EPiServer.Core;
-using EPiServer.PlugIn;
-using EPiServer.Scheduler;
-using EPiServer.ServiceLocation;
-using EPiServer;
-using EPiServer.Web;
-using Elasticsearch.Net;
-using Nest;
-using EPiServer.DataAbstraction.RuntimeModel;
-using EPiServer.Logging;
-using System.Linq;
-using System.Collections.Generic;
-using EPiServer.DataAbstraction;
-
-namespace TcbInternetSolutions.Vulcan.Core.Implementation
+﻿namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
+    using EPiServer;
+    using EPiServer.Core;
+    using EPiServer.Logging;
+    using EPiServer.PlugIn;
+    using EPiServer.Scheduler;
+    using EPiServer.ServiceLocation;
+    using Extensions;
+    using System;
+    using System.Linq;
+
     [ScheduledPlugIn(DisplayName = "Vulcan Index Content")]
     public class VulcanIndexContent : ScheduledJobBase
     {
@@ -23,6 +18,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         private bool _stopSignaled;
 
         public Injected<IContentLoader> ContentLoader { get; set; }
+
         public Injected<IVulcanHandler> VulcanHandler { get; set; }
 
         public VulcanIndexContent()
@@ -37,23 +33,15 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         public override string Execute()
         {
-            OnStatusChanged(String.Format("Starting execution of {0}", this.GetType()));
-
-            VulcanHandler.Service.DeleteIndex(); // delete all language indexes
-
-            var indexers = new List<Type>();
+            OnStatusChanged(string.Format("Starting execution of {0}", GetType()));
             
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                indexers.AddRange(assembly.GetTypes().Where(t => typeof(IVulcanIndexer).IsAssignableFrom(t) && t.IsClass));
-            }
-
+            VulcanHandler.Service.DeleteIndex(); // delete all language indexes
+            var indexers = typeof(IVulcanIndexer).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
             var count = 0;
             
             for (int i = 0; i < indexers.Count; i++)
             {
                 var indexer = (IVulcanIndexer)Activator.CreateInstance(indexers[i]);
-
                 var contentReferences = ContentLoader.Service.GetDescendents(indexer.GetRoot().Key);
 
                 for(int cr = 0; cr < contentReferences.Count(); cr++)

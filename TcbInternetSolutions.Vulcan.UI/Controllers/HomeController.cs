@@ -1,13 +1,5 @@
-﻿using EPiServer.ServiceLocation;
-using EPiServer.Shell.Navigation;
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using EPiServer.Shell.Navigation;
 using System.Web.Mvc;
-using TcbInternetSolutions.Vulcan.Core;
 using TcbInternetSolutions.Vulcan.UI.Models.ViewModels;
 using TcbInternetSolutions.Vulcan.UI.Support;
 

@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<languages>
+  <language name="English" id="en">
+    <vulcan>
+      <searchprovider>
+        <pages>
+          <name>Vulcan Pages</name>
+        </pages>
+        <blocks>
+          <name>Vulcan Blocks</name>
+        </blocks>
+        <files>
+          <name>Vulcan Files</name>
+        </files>
+      </searchprovider>
+    </vulcan>
+  </language>
+</languages>

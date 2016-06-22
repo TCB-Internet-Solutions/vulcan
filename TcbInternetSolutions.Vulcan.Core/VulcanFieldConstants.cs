@@ -1,13 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TcbInternetSolutions.Vulcan.Core
 {
     public class VulcanFieldConstants
     {
         public const string Ancestors = "__ancestors";
+
+        public const string ReadPermission = "__readPermission";
+
+        public const string CustomContents = "__customContents";
+
+        public static Func<Type, bool> DefaultFilter = (x => x.IsClass && !x.IsAbstract);
+
+        public static Func<Type, bool> AbstractFilter = (x => !x.IsAbstract);
     }
 }
