@@ -10,7 +10,7 @@
         // TODONE: Figure out how to handle block only searches when there is an IContent type restriction, just needs an OR filter for all types deriving from BlockData
         // TODO: Figure out how to index media file contents for things like pdf/doc(x) etc. (elastic needs mapper-attachments installed), seems to store base64 blob as well.
         // TODO: Create simple search extension for site search queries that take search string and look for pages and files, with parameter to filter on search roots, and exclude certain types
-        // TODO: Commerce search provider for UI
+        // TODONE: Commerce search provider for UI
         // TODONE: IVulcanClient.Search needs to support blocks, multiple search roots, etc (done by adding TypeFilter with extension to get all types of BlockData).
         // TODO: Learn more about elastic 2.x setup and hosting best practices
         // TODONE: Make all assembly scanning calls use structuremap instead. (used dictionary to store assembly scan, and methods to create search clients)
