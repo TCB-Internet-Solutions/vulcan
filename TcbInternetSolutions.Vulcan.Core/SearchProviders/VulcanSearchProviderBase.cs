@@ -101,8 +101,7 @@
                         searchRoots.Add(c);
                 }
             }
-
-            // TODO: Add in permission filtering
+            
             ISearchResponse<IContent> hits;
 
             // Special condition for BlockData since it doesn't derive from BlockData
@@ -115,7 +114,8 @@
                         .Query(q => q.SimpleQueryString(sq => sq.Fields(fields => fields.Field("*.analyzed")).Query(searchText))),
                         includeNeutralLanguage: IncludeInvariant,
                         rootReferences: searchRoots,
-                        typeFilter: typeRestriction
+                        typeFilter: typeRestriction,
+                        principleReadFilter: UserExtensions.GetUser()
                 );
             }
             else
@@ -125,7 +125,8 @@
                         //.Query(q => q.QueryString(sq => sq.Query(searchText))),
                         .Query(q => q.SimpleQueryString(sq => sq.Fields(fields => fields.Field("*.analyzed")).Query(searchText))),
                         includeNeutralLanguage: IncludeInvariant,
-                        rootReferences: searchRoots
+                        rootReferences: searchRoots,
+                        principleReadFilter: UserExtensions.GetUser()
                 );
             }
 
@@ -170,7 +171,7 @@
             }
 
             if (content == null)
-                throw new ArgumentException(string.Format("Argument {0} must implement interface EPiServer.Core.IContent", "content"));
+                throw new ArgumentException(string.Format("Argument {0} must implement interface EPiServer.Core.IContent", nameof(content)));
 
             bool onCurrentHost;
             SearchResult result = new SearchResult
@@ -180,7 +181,7 @@
                 CreatePreviewText(content)
             );
 
-            result.IconCssClass = IconCssClass((TContent)content);
+            result.IconCssClass = IconCssClass(content);
             result.Metadata["Id"] = content.ContentLink.ToString();
             result.Metadata["LanguageBranch"] = localizable == null || localizable.Language == null ? string.Empty : localizable.Language.Name;
             result.Metadata["ParentId"] = content.ParentLink.ToString();
@@ -240,7 +241,7 @@
         /// <summary>
         /// Gets the icon CSS class.
         /// </summary>
-        protected abstract string IconCssClass(TContent contentData);
+        protected abstract string IconCssClass(IContent contentData);
 
         private void CreateToolTip(IContent content, IChangeTrackable changeTracking, SearchResult result, ContentType contentType)
         {

@@ -63,6 +63,6 @@
         /// <summary>
         /// Gets the icon CSS class for pages.
         /// </summary>
-        protected override string IconCssClass(PageData pageData) => "epi-resourceIcon epi-resourceIcon-page";
+        protected override string IconCssClass(IContent pageData) => "epi-resourceIcon epi-resourceIcon-page";
     }
 }

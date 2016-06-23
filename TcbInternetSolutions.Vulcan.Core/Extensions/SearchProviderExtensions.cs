@@ -4,6 +4,7 @@ using EPiServer.Shell;
 using EPiServer.Shell.Modules;
 using EPiServer.Web;
 using System;
+using System.IO;
 using System.Linq;
 
 namespace TcbInternetSolutions.Vulcan.Core.Extensions
@@ -22,6 +23,23 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
             string relativeUri = UriSupport.AbsolutePathForSite(VirtualPathUtilityEx.ToAppRelative(moduleTable != null ? moduleTable.ResolvePath("CMS", string.Empty) : Paths.ToResource("CMS", string.Empty)), settings);
 
             return new Uri(settings.SiteUrl, relativeUri).ToString();
+        }
+
+        public static string SearchFileExtension(this IContent content)
+        {
+            var media = content as MediaData;
+
+            if (media == null)
+                return string.Empty;
+
+            try
+            {
+                return Path.GetExtension(media.RouteSegment).Replace(".", string.Empty);
+            }
+            catch
+            {
+                return string.Empty;
+            }
         }
 
         /// <summary>
