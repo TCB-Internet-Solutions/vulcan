@@ -69,6 +69,6 @@
         /// Gets the icon CSS class for pages.
         /// </summary>
         protected override string IconCssClass(IContent content) => 
-            "epi-resourceIcon epi-resourceIcon-" + Extensions.SearchProviderExtensions.SearchFileExtension(content);
+            "epi-resourceIcon epi-resourceIcon-" + Extensions.SearchProviderExtensions.SearchFileExtension(content as MediaData);
     }
 }

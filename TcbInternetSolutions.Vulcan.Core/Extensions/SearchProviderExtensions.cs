@@ -25,10 +25,8 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
             return new Uri(settings.SiteUrl, relativeUri).ToString();
         }
 
-        public static string SearchFileExtension(this IContent content)
-        {
-            var media = content as MediaData;
-
+        public static string SearchFileExtension(this MediaData media)
+        {            
             if (media == null)
                 return string.Empty;
 

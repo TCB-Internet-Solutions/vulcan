@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>    
+    <version>0.1.0</version>
+    <authors>Dan Matthews</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Support for indexing attachments</description>
+    <copyright>Copyright 2016</copyright>
+    <tags>ElasticSearch Nest Attachments Files Media</tags>
+    <dependencies>
+      <dependency id="TcbInternetSolutions.Vulcan.Core" version="[1,2)" />
+    </dependencies>
+  </metadata>
+</package>
