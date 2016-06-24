@@ -6,14 +6,13 @@
     using System.Configuration;
     using System.Linq;
 
-    [ServiceConfiguration(FactoryType = typeof(IVulcanAttachmentInspector), Lifecycle = ServiceInstanceScope.Singleton)]
+    [ServiceConfiguration(typeof(IVulcanAttachmentInspector), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanAttachmentInspector : IVulcanAttachmentInspector
     {
         public virtual bool AllowIndexing(MediaData media)
         {
             if (media == null)
                 return false;
-
             
             var ext = media.SearchFileExtension();
 

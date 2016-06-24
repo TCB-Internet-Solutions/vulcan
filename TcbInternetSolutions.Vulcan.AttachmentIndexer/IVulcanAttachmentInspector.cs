@@ -4,6 +4,6 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer
 {
     public interface IVulcanAttachmentInspector
     {
-        bool AllowIndexing(MediaData media)
+        bool AllowIndexing(MediaData media);
     }
 }

@@ -2,19 +2,21 @@
 using EPiServer.ServiceLocation;
 using System;
 using System.IO;
+using TcbInternetSolutions.Vulcan.Core;
+using TcbInternetSolutions.Vulcan.Core.Extensions;
+using TcbInternetSolutions.Vulcan.Core.Implementation;
 using static TcbInternetSolutions.Vulcan.Core.VulcanFieldConstants;
 
 namespace TcbInternetSolutions.Vulcan.AttachmentIndexer
 {
     public class VulcanAttachmentIndexModifier : Core.IVulcanIndexingModifier
-    {        
-        private static Injected<IVulcanAttachmentInspector> _Inspector { get; }
-
+    {   
         public void ProcessContent(IContent content, Stream writableStream)
         {
             var media = content as MediaData;
+            var inspector = ServiceLocator.Current.GetInstance<IVulcanAttachmentInspector>();            
 
-            if (media != null && _Inspector.Service.AllowIndexing(media))
+            if (media != null && inspector.AllowIndexing(media))
             {
                 var streamWriter = new StreamWriter(writableStream);
 
