@@ -112,6 +112,7 @@
                 typeRestriction = typeof(BlockData).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
             }
 
+            // TODO: Figure out how to search attachments as well...
             hits = _VulcanHandler.GetClient().SearchContent<IContent>(d => d
                     .Take(query.MaxResults)
                     .Fields(fs => fs.Field(p => p.ContentLink)) // only return id for performance

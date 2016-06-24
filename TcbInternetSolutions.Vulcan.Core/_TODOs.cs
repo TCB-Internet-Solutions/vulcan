@@ -6,9 +6,9 @@
         // TODONE: Add attribute to extract contentarea contents and use the CmsIndexModifier to look for properties with it to index
         // TODO: Add content events to work with content area attribute to sync block changes that are searchable.
         // TODONE: Figure out permissions, need to index roles with read
-        // TODO: Build read permission filter for searching
+        // TODONE: Build read permission filter for searching
         // TODONE: Figure out how to handle block only searches when there is an IContent type restriction, just needs an OR filter for all types deriving from BlockData
-        // TODO: Figure out how to index media file contents for things like pdf/doc(x) etc. (elastic needs mapper-attachments installed), seems to store base64 blob as well.
+        // TODO: (WIP) need help in searching... Figure out how to index media file contents for things like pdf/doc(x) etc. (elastic needs mapper-attachments installed), seems to store base64 blob as well.
         // TODO: Create simple search extension for site search queries that take search string and look for pages and files, with parameter to filter on search roots, and exclude certain types
         // TODO: Commerce search provider for UI
         // TODONE: IVulcanClient.Search needs to support blocks, multiple search roots, etc (done by adding TypeFilter with extension to get all types of BlockData).
