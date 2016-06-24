@@ -28,6 +28,5 @@ namespace TcbInternetSolutions.Vulcan.Core
         void RemoveSynonym(string term);
 
         Dictionary<string, KeyValuePair<string[], bool>> GetSynonyms();
-        object Map<T>(Func<PutMappingDescriptor<object>, IPutMappingRequest> p);
     }
 }

@@ -112,11 +112,11 @@
                 typeRestriction = typeof(BlockData).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
             }
 
-            hits = _VulcanHandler.GetClient().SearchContent<TContent>(d => d
+            hits = _VulcanHandler.GetClient().SearchContent<IContent>(d => d
                     .Take(query.MaxResults)
                     .Fields(fs => fs.Field(p => p.ContentLink)) // only return id for performance
-                    .Query(q => q.QueryString(sq => sq.Query(searchText))),
-                    //.Query(q => q.SimpleQueryString(sq => sq.Fields(fields => fields.Field("*.analyzed")).Query(searchText))),
+                    //.Query(q => q.QueryString(sq => sq.Query(searchText))),
+                    .Query(q => q.SimpleQueryString(sq => sq.Fields(fields => fields.Field("*.analyzed")).Query(searchText))),
                     includeNeutralLanguage: IncludeInvariant,
                     rootReferences: searchRoots,
                     typeFilter: typeRestriction,
