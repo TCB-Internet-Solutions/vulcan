@@ -14,7 +14,7 @@
     using TcbInternetSolutions.Vulcan.Core.Extensions;
     using TcbInternetSolutions.Vulcan.Core.SearchProviders;
 
-    public class VulcanCatalogSearchProvider : VulcanSearchProviderBase<EntryContentBase, ContentType>
+    public class VulcanCatalogSearchProvider : VulcanSearchProviderBase<EntryContentBase>
     {
         public VulcanCatalogSearchProvider()
               : this(
