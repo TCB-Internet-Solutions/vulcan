@@ -11,7 +11,7 @@
     using TcbInternetSolutions.Vulcan.Core;
 
     [SearchProvider]
-    public class VulcanPageSearchProvider : VulcanSearchProviderBase<PageData, PageType>
+    public class VulcanPageSearchProvider : VulcanSearchProviderBase<PageData>
     {
         public VulcanPageSearchProvider()
               : this(

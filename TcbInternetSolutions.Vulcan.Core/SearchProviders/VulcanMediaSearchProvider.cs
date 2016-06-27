@@ -11,7 +11,7 @@
     using TcbInternetSolutions.Vulcan.Core;
 
     [SearchProvider]
-    public class VulcanMediaSearchProvider : VulcanSearchProviderBase<MediaData, ContentType>
+    public class VulcanMediaSearchProvider : VulcanSearchProviderBase<MediaData>
     {
         public VulcanMediaSearchProvider()
               : this(

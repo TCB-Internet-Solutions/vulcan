@@ -22,8 +22,8 @@
     using System.Web;
     using TcbInternetSolutions.Vulcan.Core.Extensions;
 
-    public abstract class VulcanSearchProviderBase<TContent, TContentType> :
-        ISearchProvider, ISortable where TContent : class, IContent where TContentType : ContentType
+    public abstract class VulcanSearchProviderBase<TContent> :
+        ISearchProvider, ISortable where TContent : class, IContent
     {
         /// <summary>
         /// Link for the search hit, which should be a link to the edit page for the content.
@@ -117,7 +117,10 @@
                     .Take(query.MaxResults)
                     .Fields(fs => fs.Field(p => p.ContentLink)) // only return id for performance
                     //.Query(q => q.QueryString(sq => sq.Query(searchText))),
-                    .Query(q => q.SimpleQueryString(sq => sq.Fields(fields => fields.Field("*.analyzed")).Query(searchText))),
+                    .Query(x =>
+                        x.SimpleQueryString(sq => sq.Fields(fields => fields.Field("*.analyzed")).Query(searchText)) ||
+                        x.QueryString(sq => sq.Query(searchText)) // searches file contents
+                    ),
                     includeNeutralLanguage: IncludeInvariant,
                     rootReferences: searchRoots,
                     typeFilter: typeRestriction,
