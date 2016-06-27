@@ -26,18 +26,23 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer
 
                 if (media != null)
                 {
-                    streamWriter.Write(",\"" + MediaContents + "\":[");
+                    streamWriter.Write(",\"" + MediaContents + "\":{");
                     string base64contents = string.Empty;
+                    long fileByteSize = -1;
 
                     using (var reader = media.BinaryData.OpenRead())
                     {
-                        byte[] buffer = new byte[reader.Length];
-                        reader.Read(buffer, 0, (int)reader.Length);
+                        fileByteSize = reader.Length;
+                        byte[] buffer = new byte[fileByteSize];
+                        reader.Read(buffer, 0,(int)fileByteSize);
                         base64contents = Convert.ToBase64String(buffer);
                     }
-
-                    streamWriter.Write("\"" + base64contents + "\"");
-                    streamWriter.Write("]");
+                    
+                    streamWriter.Write("\"_name\": \"" + media.Name + "\",");
+                    streamWriter.Write("\"_content_type\": \"" + media.MimeType + "\",");
+                    streamWriter.Write("\"_content_length\": \"" + fileByteSize + "\",");
+                    streamWriter.Write("\"_content\": \"" + base64contents + "\""); 
+                    streamWriter.Write("}");
                 }
 
                 streamWriter.Flush();
