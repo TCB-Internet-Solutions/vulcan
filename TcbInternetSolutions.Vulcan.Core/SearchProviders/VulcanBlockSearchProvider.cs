@@ -12,7 +12,7 @@
     using TcbInternetSolutions.Vulcan.Core;
 
     [SearchProvider]
-    public class VulcanBlockSearchProvider : VulcanSearchProviderBase<VulcanContentHit, BlockType> // using VulcanContentHit due to IContent restriction
+    public class VulcanBlockSearchProvider : VulcanSearchProviderBase<VulcanContentHit> // using VulcanContentHit due to IContent restriction
     {
         public VulcanBlockSearchProvider()
               : this(

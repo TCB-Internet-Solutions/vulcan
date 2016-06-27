@@ -173,7 +173,7 @@
                     resolvedDescriptor = resolvedDescriptor.Query(q => q.Bool(b => b.Must(filters.ToArray())));
                 }
             }
-
+            
             var response =  base.Search<T, IContent>(resolvedDescriptor);
 
             return response;
@@ -181,6 +181,6 @@
 
         protected virtual string GetId(IContent content) => content.ContentLink.ToReferenceWithoutVersion().ToString();
 
-        protected virtual string GetTypeName(IContent content) => content.GetType().Name.EndsWith("Proxy") ? content.GetType().BaseType.FullName : content.GetType().FullName;
+        protected virtual string GetTypeName(IContent content) => content.GetTypeName();
     }
 }

@@ -25,6 +25,9 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
         public static IEnumerable<T> GetContents<T>(this ISearchResponse<IContent> searchResponse) where T : class, IContent =>
             GetContentsWorker<T>(searchResponse);
 
+        public static string GetTypeName(this IContent content) =>
+            content.GetType().Name.EndsWith("Proxy") ? content.GetType().BaseType.FullName : content.GetType().FullName;
+
         private static IEnumerable<T> GetContentsWorker<T>(ISearchResponse<IContent> searchResponse) where T : class, IContent
         {
             var list = new List<T>();

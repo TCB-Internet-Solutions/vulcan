@@ -39,6 +39,8 @@
             }
         }
 
+        public IndexDeleteHandler DeletedIndices { get; set; }
+
         protected Injected<IVulcanClientConnectionSettings> CommonConnectionSettings { get; set; }
 
         protected Injected<IContentLoader> ContentLoader { get; set; }
@@ -88,6 +90,8 @@
 
                 if (indices != null && indices.Records != null && indices.Records.Any())
                 {
+                    var indicesToDelete = new List<string>();
+
                     foreach (var index in indices.Records.Where(i => i.Index.StartsWith(Index + "_")).Select(i => i.Index))
                     {
                         var response = client.DeleteIndex(index);
@@ -96,10 +100,16 @@
                         {
                             Logger.Error("Could not run a delete index: " + response.DebugInformation);
                         }
+                        else
+                        {
+                            indicesToDelete.Add(index);
+                        }
                     }
+
+                    DeletedIndices?.Invoke(indicesToDelete);
                 }
 
-                clients = new Dictionary<CultureInfo, IVulcanClient>(); // need to force a re-creation
+                clients = new Dictionary<CultureInfo, IVulcanClient>(); // need to force a re-creation                
             }
         }
 
