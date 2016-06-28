@@ -1,7 +1,9 @@
 ﻿namespace TcbInternetSolutions.Vulcan.Core
 {
+    using System;
+
     public interface IVulcanPocoIndexingJob
     {
-        void Index(IVulcanPocoIndexer pocoIndexer, ref int count);
+        string Index(IVulcanPocoIndexer pocoIndexer, Action<string> updateStatus, ref int count, ref bool stopSignaled);
     }
 }

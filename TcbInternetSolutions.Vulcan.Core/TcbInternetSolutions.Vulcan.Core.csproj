@@ -128,6 +128,7 @@
     <Compile Include="Implementation\VulcanContentHit.cs" />
     <Compile Include="Implementation\VulcanHandler.cs" />
     <Compile Include="Implementation\VulcanIndexSynchronization.cs" />
+    <Compile Include="Implementation\VulcanPocoIndexingJob.cs" />
     <Compile Include="Implementation\VulcanSynonym.cs" />
     <Compile Include="IVulcanClient.cs" />
     <Compile Include="IVulcanConnectionSettings.cs" />
@@ -135,6 +136,7 @@
     <Compile Include="IVulcanHandler.cs" />
     <Compile Include="IVulcanIndexer.cs" />
     <Compile Include="IVulcanIndexingModifier.cs" />
+    <Compile Include="IVulcanPocoIndexer.cs" />
     <Compile Include="IVulcanPocoIndexingJob.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SearchProviders\VulcanBlockSearchProvider.cs" />

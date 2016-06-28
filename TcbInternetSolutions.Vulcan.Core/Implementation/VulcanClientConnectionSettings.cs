@@ -1,12 +1,12 @@
-﻿using Elasticsearch.Net;
-using EPiServer.ServiceLocation;
-using Nest;
-using System;
-using System.Configuration;
-using System.Web;
-
-namespace TcbInternetSolutions.Vulcan.Core.Implementation
+﻿namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
+    using Elasticsearch.Net;
+    using EPiServer.ServiceLocation;
+    using Nest;
+    using System;
+    using System.Configuration;
+    using System.Web;
+
     [ServiceConfiguration(typeof(IVulcanClientConnectionSettings), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanClientConnectionSettings : IVulcanClientConnectionSettings
     { 
@@ -34,16 +34,17 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             var settings = new ConnectionSettings(connectionPool, s => new VulcanCustomJsonSerializer(s));
             var username = ConfigurationManager.AppSettings["VulcanUsername"];
             var password = ConfigurationManager.AppSettings["VulcanPassword"];
+            bool enableCompression = false;
+            bool.TryParse(ConfigurationManager.AppSettings["VulcanEnableHttpCompression"], out enableCompression);
 
             if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
             {
-                settings.BasicAuthentication(username, password);
+                settings = settings.BasicAuthentication(username, password);
             }
 
-            // Enable bytes to be retrieved in debug mode
-            settings.DisableDirectStreaming(isDebugMode);
-
-            return settings;
+            return settings
+                .DisableDirectStreaming(isDebugMode)// Enable bytes to be retrieved in debug mode
+                .EnableHttpCompression(enableCompression); // allow http compression, false by default
         }
     }
 }
