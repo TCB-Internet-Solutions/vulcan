@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>1.1.0</version>
+    <authors>Dan Matthews</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>User Interface for Vulcan, the lightweight Elasticsearch client for Episerver</description>
+    <!--<releaseNotes>Summary of changes made in this release of the package.</releaseNotes>-->
+    <copyright>Copyright 2016</copyright>
+    <tags>Vulcan UI Management ElasticSearch</tags>
+    <dependencies>
+      <dependency id="TcbInternetSolutions.Vulcan.Core" version="[1,2)" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="web.*.xdt" target="content" />    
+    <!--All files in Content need a build action set to None-->
+    <file src="Content\**\*.*" target="content\modules\_protected\TcbInternetSolutions.Vulcan.UI" />
+  </files>
+</package>

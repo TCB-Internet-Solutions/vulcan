@@ -1,9 +1,7 @@
-﻿using System;
-using System.Linq;
+﻿using EPiServer.Core;
 using EPiServer.Framework;
 using EPiServer.Framework.Initialization;
 using EPiServer.ServiceLocation;
-using EPiServer.Core;
 using EPiServer.Web;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation

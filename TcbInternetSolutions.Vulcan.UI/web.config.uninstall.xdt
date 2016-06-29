@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0"?>
 <configuration xmlns:xdt="http://schemas.microsoft.com/XML-Document-Transform">
   <appSettings>
-    <add key="VulcanUrl" value="SET THIS" xdt:Transform="Remove" xdt:Locator="Match(key)" />
-    <add key="VulcanIndex" value="SET THIS" xdt:Transform="Remove" xdt:Locator="Match(key)" />
+    <!--Don't remove as package updates will clear their settings-->
+    <!--<add key="VulcanUrl" value="SET THIS" xdt:Transform="Remove" xdt:Locator="Match(key)" />-->
+    <!--<add key="VulcanIndex" value="SET THIS" xdt:Transform="Remove" xdt:Locator="Match(key)" />-->
   </appSettings>
 </configuration>

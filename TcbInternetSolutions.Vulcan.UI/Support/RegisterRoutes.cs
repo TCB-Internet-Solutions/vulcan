@@ -1,9 +1,7 @@
-﻿using System;
-using System.Linq;
-using EPiServer.Framework;
+﻿using EPiServer.Framework;
 using EPiServer.Framework.Initialization;
-using System.Web.Routing;
 using System.Web.Mvc;
+using System.Web.Routing;
 
 namespace TcbInternetSolutions.Vulcan.UI.Support
 {
