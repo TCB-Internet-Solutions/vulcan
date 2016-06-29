@@ -1,16 +1,17 @@
-﻿using EPiServer;
-using EPiServer.Core;
-using EPiServer.Logging;
-using EPiServer.ServiceLocation;
-using Nest;
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using TcbInternetSolutions.Vulcan.Core.Extensions;
-
-namespace TcbInternetSolutions.Vulcan.Core.Implementation
+﻿namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
+    using EPiServer;
+    using EPiServer.Core;
+    using EPiServer.Logging;
+    using EPiServer.ServiceLocation;
+    using Nest;
+    using System;
+    using System.Collections.Generic;
+    using System.Globalization;
+    using System.Linq;
+    using System.Security.Principal;
+    using TcbInternetSolutions.Vulcan.Core.Extensions;
+
     public class VulcanClient : ElasticClient, IVulcanClient
     {
         private static ILogger Logger = LogManager.GetLogger();
@@ -105,7 +106,12 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             VulcanHelper.DeleteSynonym(Language.Name, term);
         }
 
-        public virtual ISearchResponse<IContent> SearchContent<T>(Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null, bool includeNeutralLanguage = false, IEnumerable<ContentReference> rootReferences = null, IEnumerable<Type> typeFilter = null) where T : class, EPiServer.Core.IContent
+        public virtual ISearchResponse<IContent> SearchContent<T>(
+                Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null,
+                bool includeNeutralLanguage = false,
+                IEnumerable<ContentReference> rootReferences = null,
+                IEnumerable<Type> typeFilter = null,
+                IPrincipal principleReadFilter = null) where T : class, IContent
         {
             SearchDescriptor<T> resolvedDescriptor;
 
@@ -117,7 +123,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             {
                 resolvedDescriptor = searchDescriptor.Invoke(new SearchDescriptor<T>());
             }
-            
+
             typeFilter = typeFilter ?? typeof(T).GetSearchTypesFor(VulcanFieldConstants.AbstractFilter);
             resolvedDescriptor = resolvedDescriptor.Type(string.Join(",", typeFilter.Select(t => t.FullName)))
                 .ConcreteTypeSelector((d, docType) => typeof(VulcanContentHit));
@@ -131,35 +137,50 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             resolvedDescriptor = resolvedDescriptor.Index(indexName);
             var validRootReferences = rootReferences?.Where(x => !ContentReference.IsNullOrEmpty(x)).ToList();
+            List<QueryContainer> filters = new List<QueryContainer>();
 
             if (validRootReferences?.Count > 0)
             {
+                //var searchRoots = string.Join(" OR ", validRootReferences.Select(x => x.ToReferenceWithoutVersion().ToString()));
+                var scopeDescriptor = new QueryContainerDescriptor<T>().
+                    Terms(t => t.Field(VulcanFieldConstants.Ancestors).Terms(validRootReferences.Select(x => x.ToReferenceWithoutVersion().ToString())));
+
+                filters.Add(scopeDescriptor);
+            }
+
+            if (principleReadFilter != null)
+            {
+                //var roles = string.Join(" OR ", userPrinciple.GetRoles());
+                var permissionDescriptor = new QueryContainerDescriptor<T>().
+                    Terms(t => t.Field(VulcanFieldConstants.ReadPermission).Terms(principleReadFilter.GetRoles()));
+
+                filters.Add(permissionDescriptor);
+            }
+
+            if (filters.Count > 0)
+            {
                 Func<SearchDescriptor<T>, ISearchRequest> selector = ts => resolvedDescriptor;
                 var container = selector.Invoke(new SearchDescriptor<T>());
-                var blendDescriptor = new QueryContainerDescriptor<T>();
-
-                var searchRoots = string.Join(" OR ", validRootReferences.Select(x => x.ToReferenceWithoutVersion().ToString()));                
-                blendDescriptor = blendDescriptor.Term(t => t.Field(VulcanFieldConstants.Ancestors).Value(searchRoots)) as QueryContainerDescriptor<T>;
 
                 if (container.Query != null)
                 {
-                    resolvedDescriptor = resolvedDescriptor.Query(q => q
-                        .Bool(b => b
-                            .Must(new QueryContainer[] { container.Query, blendDescriptor })));
+                    filters.Insert(0, container.Query);
+
+                    resolvedDescriptor = resolvedDescriptor.Query(q => q.Bool(b => b.Must(filters.ToArray())));
                 }
                 else
                 {
-                    resolvedDescriptor = resolvedDescriptor.Query(q => q
-                        .Bool(b => b
-                            .Must(new QueryContainer[] { blendDescriptor })));
+                    resolvedDescriptor = resolvedDescriptor.Query(q => q.Bool(b => b.Must(filters.ToArray())));
                 }
             }
+            
+            var response =  base.Search<T, IContent>(resolvedDescriptor);
 
-            return base.Search<T, IContent>(resolvedDescriptor);
+            return response;
         }
 
         protected virtual string GetId(IContent content) => content.ContentLink.ToReferenceWithoutVersion().ToString();
 
-        protected virtual string GetTypeName(IContent content) => content.GetType().Name.EndsWith("Proxy") ? content.GetType().BaseType.FullName : content.GetType().FullName;
+        protected virtual string GetTypeName(IContent content) => content.GetTypeName();
     }
 }

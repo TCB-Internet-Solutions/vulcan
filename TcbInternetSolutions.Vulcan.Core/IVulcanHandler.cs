@@ -4,6 +4,11 @@ using System.Globalization;
 
 namespace TcbInternetSolutions.Vulcan.Core
 {
+    /// <summary>
+    /// Used to help modifiers handle deletes.
+    /// </summary>
+    public delegate void IndexDeleteHandler(IEnumerable<string> deletedIndexes);
+
     public interface IVulcanHandler
     {
         string Index { get; }
@@ -13,6 +18,8 @@ namespace TcbInternetSolutions.Vulcan.Core
         IVulcanClient[] GetClients();
 
         void DeleteIndex();
+
+        IndexDeleteHandler DeletedIndices { get; set; }
 
         void DeleteContentByLanguage(IContent content);
 

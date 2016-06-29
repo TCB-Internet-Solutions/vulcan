@@ -12,7 +12,7 @@
     using TcbInternetSolutions.Vulcan.Core;
 
     [SearchProvider]
-    public class VulcanBlockSearchProvider : VulcanSearchProviderBase<VulcanContentHit, BlockType> // using VulcanContentHit due to IContent restriction
+    public class VulcanBlockSearchProvider : VulcanSearchProviderBase<VulcanContentHit> // using VulcanContentHit due to IContent restriction
     {
         public VulcanBlockSearchProvider()
               : this(
@@ -59,11 +59,11 @@
         /// <summary>
         /// Gets the page localization path.
         /// </summary>
-        protected override string ToolTipResourceKeyBase => "/shell/cms/search/blocks/category";
+        protected override string ToolTipResourceKeyBase => "/shell/cms/search/blocks/tooltip";
 
         /// <summary>
         /// Gets the icon CSS class for pages.
         /// </summary>
-        protected override string IconCssClass(VulcanContentHit pageData) => "epi-resourceIcon epi-resourceIcon-block";
+        protected override string IconCssClass(IContent pageData) => "epi-resourceIcon epi-resourceIcon-block";
     }
 }

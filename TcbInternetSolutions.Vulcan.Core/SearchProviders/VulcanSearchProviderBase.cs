@@ -14,6 +14,7 @@
     using EPiServer.Web;
     using Implementation;
     using Nest;
+    using Newtonsoft.Json.Linq;
     using System;
     using System.Collections.Generic;
     using System.Globalization;
@@ -21,8 +22,8 @@
     using System.Web;
     using TcbInternetSolutions.Vulcan.Core.Extensions;
 
-    public abstract class VulcanSearchProviderBase<TContent, TContentType> :
-        ISearchProvider, ISortable where TContent : class, IContent where TContentType : ContentType
+    public abstract class VulcanSearchProviderBase<TContent> :
+        ISearchProvider, ISortable where TContent : class, IContent
     {
         /// <summary>
         /// Link for the search hit, which should be a link to the edit page for the content.
@@ -51,7 +52,7 @@
             _SiteDefinitionResolver = enterpriseSettings;
 
             EditPath = (contentData, contentLink, languageName) =>
-            {                                
+            {
                 string fullUrlToEditView = SearchProviderExtensions.GetFullUrlToEditView(_SiteDefinitionResolver.GetDefinitionForContent(contentLink, fallbackToEmpty: true, fallbackToWildcardMapped: true), null);
                 Uri uri = SearchProviderExtensions.GetUri(contentData);
 
@@ -102,34 +103,33 @@
                 }
             }
 
-            // TODO: Add in permission filtering
             ISearchResponse<IContent> hits;
+            List<Type> typeRestriction = typeof(TContent).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
 
             // Special condition for BlockData since it doesn't derive from BlockData
             if (typeof(TContent) == typeof(VulcanContentHit))
             {
-                var typeRestriction = typeof(BlockData).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
-
-                hits = _VulcanHandler.GetClient().SearchContent<IContent>(d => d
-                        .Take(query.MaxResults)
-                        .Query(q => q.SimpleQueryString(sq => sq.Fields(fields => fields.Field("*.analyzed")).Query(searchText))),
-                        includeNeutralLanguage: IncludeInvariant,
-                        rootReferences: searchRoots,
-                        typeFilter: typeRestriction
-                );
+                typeRestriction = typeof(BlockData).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
             }
-            else
-            {
-                hits = _VulcanHandler.GetClient().SearchContent<TContent>(d => d
-                        .Take(query.MaxResults)
-                        //.Query(q => q.QueryString(sq => sq.Query(searchText))),
-                        .Query(q => q.SimpleQueryString(sq => sq.Fields(fields => fields.Field("*.analyzed")).Query(searchText))),
-                        includeNeutralLanguage: IncludeInvariant,
-                        rootReferences: searchRoots
-                );
-            }
+            
+            hits = _VulcanHandler.GetClient().SearchContent<IContent>(d => d
+                    .Take(query.MaxResults)
+                    .Fields(fs => fs.Field(p => p.ContentLink)) // only return id for performance
+                    .Query(x =>
+                        x.SimpleQueryString(sqs =>
+                            sqs.Fields(f => f
+                                        .Field("*.analyzed")
+                                        .Field($"{VulcanFieldConstants.MediaContents}.content")
+                                        .Field($"{VulcanFieldConstants.MediaContents}.content_type"))
+                                    .Query(searchText))                        
+                    ),
+                    includeNeutralLanguage: IncludeInvariant,
+                    rootReferences: searchRoots,
+                    typeFilter: typeRestriction,
+                    principleReadFilter: UserExtensions.GetUser()
+            );
 
-            var results = hits.Hits.Select(x => CreateSearchResult(x.Source));
+            var results = hits.Hits.Select(x => CreateSearchResult(x));
 
             return results;
         }
@@ -155,22 +155,23 @@
         /// </summary>
         /// <param name="content"></param>
         /// <returns></returns>
-        protected virtual SearchResult CreateSearchResult(IContent content)
+        protected virtual SearchResult CreateSearchResult(IHit<IContent> hit)
         {
-            Validator.ThrowIfNull(nameof(content), content);
-            // TODO: look into vulcan issue not setting IContent correctly
-            content = _ContentRepository.Get<IContent>(content.ContentLink); // reload as Vulcan isn't returning properties correctly
+            Validator.ThrowIfNull(nameof(hit), hit);
 
+            // load the content from the given link
+            var referenceString = (hit.Fields["contentLink"] as JArray)?.FirstOrDefault();
+            ContentReference reference = null;
+
+            if (referenceString != null)
+                ContentReference.TryParse(referenceString.ToString(), out reference);
+
+            if (ContentReference.IsNullOrEmpty(reference))
+                throw new Exception("Unable to convert search hit to IContent!");
+
+            var content = _ContentRepository.Get<IContent>(reference);
             ILocalizable localizable = content as ILocalizable;
             IChangeTrackable changeTracking = content as IChangeTrackable;
-
-            if (content is MediaData)
-            {
-                var n = content.Name;
-            }
-
-            if (content == null)
-                throw new ArgumentException(string.Format("Argument {0} must implement interface EPiServer.Core.IContent", "content"));
 
             bool onCurrentHost;
             SearchResult result = new SearchResult
@@ -180,7 +181,7 @@
                 CreatePreviewText(content)
             );
 
-            result.IconCssClass = IconCssClass((TContent)content);
+            result.IconCssClass = IconCssClass(content);
             result.Metadata["Id"] = content.ContentLink.ToString();
             result.Metadata["LanguageBranch"] = localizable == null || localizable.Language == null ? string.Empty : localizable.Language.Name;
             result.Metadata["ParentId"] = content.ParentLink.ToString();
@@ -240,7 +241,7 @@
         /// <summary>
         /// Gets the icon CSS class.
         /// </summary>
-        protected abstract string IconCssClass(TContent contentData);
+        protected abstract string IconCssClass(IContent contentData);
 
         private void CreateToolTip(IContent content, IChangeTrackable changeTracking, SearchResult result, ContentType contentType)
         {

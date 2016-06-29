@@ -20,7 +20,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             }
             else
             {
-                suffix += language.Name;
+                suffix += language.Name.ToLowerInvariant(); // causing invalid index name w/o tolowerstring
             }
 
             return IndexNameBase + suffix;

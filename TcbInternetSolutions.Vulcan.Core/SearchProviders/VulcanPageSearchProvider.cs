@@ -11,7 +11,7 @@
     using TcbInternetSolutions.Vulcan.Core;
 
     [SearchProvider]
-    public class VulcanPageSearchProvider : VulcanSearchProviderBase<PageData, PageType>
+    public class VulcanPageSearchProvider : VulcanSearchProviderBase<PageData>
     {
         public VulcanPageSearchProvider()
               : this(
@@ -63,6 +63,6 @@
         /// <summary>
         /// Gets the icon CSS class for pages.
         /// </summary>
-        protected override string IconCssClass(PageData pageData) => "epi-resourceIcon epi-resourceIcon-page";
+        protected override string IconCssClass(IContent pageData) => "epi-resourceIcon epi-resourceIcon-page";
     }
 }
