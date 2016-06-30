@@ -42,8 +42,14 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 settings.BasicAuthentication(username, password);
             }
 
+            bool enableCompression = false;
+            bool.TryParse(ConfigurationManager.AppSettings["VulcanEnableHttpCompression"], out enableCompression);
+
             // Enable bytes to be retrieved in debug mode
             settings.DisableDirectStreaming(isDebugMode);
+
+            // Enable compression
+            settings.EnableHttpCompression(enableCompression);
 
             return settings;
         }
