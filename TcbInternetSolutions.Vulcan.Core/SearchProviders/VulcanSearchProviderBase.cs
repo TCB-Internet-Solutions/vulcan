@@ -53,13 +53,12 @@
 
             EditPath = (contentData, contentLink, languageName) =>
             {
-                string fullUrlToEditView = SearchProviderExtensions.GetFullUrlToEditView(_SiteDefinitionResolver.GetDefinitionForContent(contentLink, fallbackToEmpty: true, fallbackToWildcardMapped: true), null);
-                Uri uri = SearchProviderExtensions.GetUri(contentData);
+                var uri = SearchProviderExtensions.GetUri(contentData);
 
                 if (!string.IsNullOrWhiteSpace(languageName))
-                    return string.Format("{0}?language={1}#context={2}", fullUrlToEditView, languageName, uri);
+                    return string.Format("{0}#language={1}", uri, languageName);
 
-                return string.Format("{0}?#context={1}", fullUrlToEditView, uri);
+                return uri;
             };
         }
 

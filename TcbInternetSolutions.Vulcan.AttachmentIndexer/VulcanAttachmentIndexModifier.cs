@@ -39,6 +39,7 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer
                     }
                     
                     streamWriter.Write("\"_name\": \"" + media.Name + "\",");
+                    streamWriter.Write("\"_indexed_chars\": \"-1\","); // indexes entire document instead of first 100000 chars   
                     streamWriter.Write("\"_content_type\": \"" + media.MimeType + "\",");
                     streamWriter.Write("\"_content_length\": \"" + fileByteSize + "\",");
                     streamWriter.Write("\"_content\": \"" + base64contents + "\""); 
