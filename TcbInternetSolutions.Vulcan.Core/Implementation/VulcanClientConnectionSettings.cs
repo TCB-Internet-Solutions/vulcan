@@ -1,12 +1,13 @@
-﻿namespace TcbInternetSolutions.Vulcan.Core.Implementation
-{
-    using Elasticsearch.Net;
-    using EPiServer.ServiceLocation;
-    using Nest;
-    using System;
-    using System.Configuration;
-    using System.Web;
+﻿using Elasticsearch.Net;
+using EPiServer.ServiceLocation;
+using Nest;
+using System;
+using System.Configuration;
+using System.Web;
+using System.Web.Configuration;
 
+namespace TcbInternetSolutions.Vulcan.Core.Implementation
+{
     [ServiceConfiguration(typeof(IVulcanClientConnectionSettings), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanClientConnectionSettings : IVulcanClientConnectionSettings
     { 
@@ -16,7 +17,8 @@
 
         protected virtual ConnectionSettings CommonSettings()
         {
-            bool isDebugMode = HttpContext.Current?.IsDebuggingEnabled ?? false;
+            CompilationSection section = ConfigurationManager.GetSection("system.web/compilation") as CompilationSection;
+            bool isDebugMode = section != null ? section.Debug : false;
             var url = ConfigurationManager.AppSettings["VulcanUrl"];
             var Index = ConfigurationManager.AppSettings["VulcanIndex"];
 
@@ -34,17 +36,22 @@
             var settings = new ConnectionSettings(connectionPool, s => new VulcanCustomJsonSerializer(s));
             var username = ConfigurationManager.AppSettings["VulcanUsername"];
             var password = ConfigurationManager.AppSettings["VulcanPassword"];
-            bool enableCompression = false;
-            bool.TryParse(ConfigurationManager.AppSettings["VulcanEnableHttpCompression"], out enableCompression);
 
             if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
             {
-                settings = settings.BasicAuthentication(username, password);
+                settings.BasicAuthentication(username, password);
             }
 
-            return settings
-                .DisableDirectStreaming(isDebugMode)// Enable bytes to be retrieved in debug mode
-                .EnableHttpCompression(enableCompression); // allow http compression, false by default
+            bool enableCompression = false;
+            bool.TryParse(ConfigurationManager.AppSettings["VulcanEnableHttpCompression"], out enableCompression);
+
+            // Enable bytes to be retrieved in debug mode
+            settings.DisableDirectStreaming(isDebugMode);
+
+            // Enable compression
+            settings.EnableHttpCompression(enableCompression);
+
+            return settings;
         }
     }
 }
