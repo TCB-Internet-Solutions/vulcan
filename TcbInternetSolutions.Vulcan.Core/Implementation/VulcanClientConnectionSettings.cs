@@ -4,6 +4,7 @@ using Nest;
 using System;
 using System.Configuration;
 using System.Web;
+using System.Web.Configuration;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
@@ -16,7 +17,8 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         protected virtual ConnectionSettings CommonSettings()
         {
-            bool isDebugMode = HttpContext.Current?.IsDebuggingEnabled ?? false;
+            CompilationSection section = ConfigurationManager.GetSection("system.web/compilation") as CompilationSection;
+            bool isDebugMode = section != null ? section.Debug : false;
             var url = ConfigurationManager.AppSettings["VulcanUrl"];
             var Index = ConfigurationManager.AppSettings["VulcanIndex"];
 

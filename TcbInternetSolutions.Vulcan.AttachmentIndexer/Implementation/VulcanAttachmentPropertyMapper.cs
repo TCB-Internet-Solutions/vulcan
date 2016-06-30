@@ -30,7 +30,9 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer.Implementation
                     Index("_all").
                     Type(typeName).
                         Properties(props => props.
-                            Attachment(s => s.Name(MediaContents)))
+                            Attachment(s => s.Name(MediaContents)                                
+                                .FileField(ff => ff.Name("content").Store().TermVector(Nest.TermVectorOption.WithPositionsOffsets))
+                                ))
                     );
 
                 if (!response.IsValid)
