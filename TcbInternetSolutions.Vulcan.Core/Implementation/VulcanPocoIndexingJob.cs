@@ -58,6 +58,7 @@
 
                     var indexItem = Activator.CreateInstance(operationType, item) as IBulkOperation;
                     indexItem.Type = new TypeName() { Name = itemTypeName, Type = itemType };
+                    indexItem.Id = pocoIndexer.GetItemIdentifier(item);
                     operations.Add(indexItem);
 
                     internalCount++;
