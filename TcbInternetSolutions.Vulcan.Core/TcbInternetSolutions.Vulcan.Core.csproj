@@ -112,6 +112,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Extensions\ContentAreaExtensions.cs" />
+    <Compile Include="Extensions\IVulcanClientExtensions.cs" />
     <Compile Include="Extensions\SearchProviderExtensions.cs" />
     <Compile Include="Extensions\TypeExtensions.cs" />
     <Compile Include="Extensions\ContentExtensions.cs" />
@@ -129,6 +130,8 @@
     <Compile Include="Implementation\VulcanHandler.cs" />
     <Compile Include="Implementation\VulcanIndexSynchronization.cs" />
     <Compile Include="Implementation\VulcanPocoIndexingJob.cs" />
+    <Compile Include="Implementation\VulcanSearchHit.cs" />
+    <Compile Include="Implementation\VulcanSearchHitList.cs" />
     <Compile Include="Implementation\VulcanSynonym.cs" />
     <Compile Include="IVulcanClient.cs" />
     <Compile Include="IVulcanConnectionSettings.cs" />
@@ -138,6 +141,7 @@
     <Compile Include="IVulcanIndexingModifier.cs" />
     <Compile Include="IVulcanPocoIndexer.cs" />
     <Compile Include="IVulcanPocoIndexingJob.cs" />
+    <Compile Include="IVulcanSearchHitDescription.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SearchProviders\VulcanBlockSearchProvider.cs" />
     <Compile Include="SearchProviders\VulcanMediaSearchProvider.cs" />
