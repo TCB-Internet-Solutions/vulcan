@@ -136,6 +136,7 @@
     <Compile Include="IVulcanClient.cs" />
     <Compile Include="IVulcanConnectionSettings.cs" />
     <Compile Include="IVulcanContentHit.cs" />
+    <Compile Include="IVulcanContentIndexer.cs" />
     <Compile Include="IVulcanHandler.cs" />
     <Compile Include="IVulcanIndexer.cs" />
     <Compile Include="IVulcanIndexingModifier.cs" />

@@ -50,18 +50,19 @@
             {
                 var indexer = (IVulcanIndexer)Activator.CreateInstance(indexers[i]);
                 var pocoIndexer = indexer as IVulcanPocoIndexer;
+                var cmsIndexer = indexer as IVulcanContentIndexer;
 
                 if (pocoIndexer != null)
                 {
                     VulcanPocoIndexHandler.Service.Index(pocoIndexer, OnStatusChanged, ref count, ref _stopSignaled);
                 }
-                else // default episerver content
+                else if(cmsIndexer != null) // default episerver content
                 {
-                    var contentReferences = ContentLoader.Service.GetDescendents(indexer.GetRoot().Key);
+                    var contentReferences = ContentLoader.Service.GetDescendents(cmsIndexer.GetRoot().Key);
 
                     for (int cr = 0; cr < contentReferences.Count(); cr++)
                     {
-                        OnStatusChanged("Indexing item " + (cr + 1).ToString() + " of " + contentReferences.Count() + " items of " + indexer.GetRoot().Value + " content (indexer " + (i + 1).ToString() + " of " + indexers.Count.ToString() + ")...");
+                        OnStatusChanged(indexer.IndexerName + " indexing item " + (cr + 1).ToString() + " of " + contentReferences.Count() + " items of " + cmsIndexer.GetRoot().Value + " content (indexer " + (i + 1).ToString() + " of " + indexers.Count.ToString() + ")...");
 
                         VulcanHandler.Service.IndexContentEveryLanguage(ContentLoader.Service.Get<IContent>(contentReferences.ElementAt(cr)));
 

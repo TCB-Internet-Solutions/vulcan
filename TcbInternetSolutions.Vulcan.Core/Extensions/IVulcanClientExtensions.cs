@@ -10,6 +10,7 @@
     using Newtonsoft.Json.Linq;
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Linq;
     using TcbInternetSolutions.Vulcan.Core;
     using TcbInternetSolutions.Vulcan.Core.Implementation;
@@ -18,6 +19,24 @@
     public static class IVulcanClientExtensions
     {
         private static readonly UrlResolver urlResolver = ServiceLocator.Current.GetInstance<UrlResolver>();
+
+        public static Injected<IVulcanHandler> VulcanHandler { get; set; }
+
+        /// <summary>
+        /// Adds full name as search type, and ensures invariant culture for POCO searching.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="client"></param>
+        /// <param name="searchDescriptor"></param>
+        /// <returns></returns>
+        public static ISearchResponse<T> PocoSearch<T>(this IVulcanClient client, Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null) where T : class
+        {
+            var tempClient = client.Language == CultureInfo.InvariantCulture ? client : VulcanHandler.Service.GetClient(CultureInfo.InvariantCulture);
+            SearchDescriptor<T> resolvedDescriptor = searchDescriptor?.Invoke(new SearchDescriptor<T>()) ?? new SearchDescriptor<T>();
+            resolvedDescriptor = resolvedDescriptor.Type(typeof(T).FullName);
+
+            return tempClient.Search<T>(resolvedDescriptor);
+        }
 
         /// <summary>
         /// Default search hit, which utilizes a 'vulcanSearchDescription' to set the summary, which can be added to content models via IVulcanSearchHitDescription; 

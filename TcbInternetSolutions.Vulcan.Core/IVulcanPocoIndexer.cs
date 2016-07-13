@@ -6,9 +6,7 @@
     {
         long TotalItems { get; }
 
-        int PageSize { get; }
-
-        string IndexerName { get; }
+        int PageSize { get; }        
 
         IEnumerable<object> GetItems(int page, int pageSize);
 
