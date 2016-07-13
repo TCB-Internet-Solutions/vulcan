@@ -13,11 +13,10 @@
     using System.Linq;
     using TcbInternetSolutions.Vulcan.Core;
     using TcbInternetSolutions.Vulcan.Core.Implementation;
+    using static VulcanFieldConstants;
 
     public static class IVulcanClientExtensions
     {
-        private const string contentLinkField = "contentLink";
-        private const string searchDescriptionField = "vulcanSearchDescription";
         private static readonly UrlResolver urlResolver = ServiceLocator.Current.GetInstance<UrlResolver>();
 
         /// <summary>
@@ -36,7 +35,7 @@
 
                 if (contentLoader.TryGet(contentReference, out content))
                 {
-                    var searchDescriptionCheck = contentHit.Fields.Where(x => x.Key == searchDescriptionField).FirstOrDefault();
+                    var searchDescriptionCheck = contentHit.Fields.Where(x => x.Key == SearchDescriptionField).FirstOrDefault();
                     string storedDescription = searchDescriptionCheck.Value != null ? (searchDescriptionCheck.Value as JArray).FirstOrDefault().ToString() : null;
                     var fallbackDescription = content as IVulcanSearchHitDescription;
                     string description = storedDescription != null ? storedDescription.ToString() :
@@ -128,7 +127,7 @@
             var hits = client.SearchContent<VulcanContentHit>(d => d
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
-                    .Fields(fs => fs.Field(searchDescriptionField).Field(p => p.ContentLink)) // only return contentLink
+                    .Fields(fs => fs.Field(SearchDescriptionField).Field(p => p.ContentLink)) // only return contentLink
                     .Query(q => query)
                     //.Highlight(h => h.Encoder("html").Fields(f => f.Field("*")))
                     .Aggregations(agg => agg.Terms("types", t => t.Field("_type"))),
