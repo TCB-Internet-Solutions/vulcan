@@ -36,6 +36,20 @@
                         }
                     </ul>
                 }
+                <h3>POCO Indexers</h3>
+                @if (Model.PocoIndexers == null || !Model.PocoIndexers.Any())
+                {
+                    <strong>None configured</strong>
+                }
+                else
+                {
+                    <ul>
+                        @foreach (var indexer in Model.PocoIndexers)
+                        {
+                            <li>&gt; @indexer.GetType().FullName</li>
+                        }
+                    </ul>
+                }
             </div>
             @foreach (var client in clients)
             {
@@ -48,7 +62,7 @@
                         </script>
                     </button>
                     @{
-                var synonyms = client.GetSynonyms();
+                        var synonyms = client.GetSynonyms();
                     }
                     <div id="@("grid" + client.Language.Name)" style="height:200px;clear:both;"></div>
 
@@ -76,7 +90,7 @@
                     <hr />
 
                     @{
-                var typeCount = client.Search<object>(m => m.AllTypes().SearchType(Elasticsearch.Net.SearchType.Count).Aggregations(aggs => aggs.Terms("typeCount", t => t.Field("_type")))).Aggregations["typeCount"] as Nest.BucketAggregate;
+                        var typeCount = client.Search<object>(m => m.AllTypes().SearchType(Elasticsearch.Net.SearchType.Count).Aggregations(aggs => aggs.Terms("typeCount", t => t.Field("_type")))).Aggregations["typeCount"] as Nest.BucketAggregate;
                     }
 
                     <h3>Contents (@typeCount.Items.Sum(i => (i as Nest.KeyedBucket).DocCount))</h3>
@@ -89,13 +103,11 @@
                     </ul>
                 </div>
 
-            }
+                        }
         </div>
 
-    }
+                        }
 </div>
-
-
 
 @if (clients != null && clients.Any())
 {

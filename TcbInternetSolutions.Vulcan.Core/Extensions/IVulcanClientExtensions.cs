@@ -99,7 +99,7 @@
         {
             var searchTextQuery = new QueryContainerDescriptor<IContent>().SimpleQueryString(sqs => sqs
                 .Fields(f => f
-                            .Field("*.analyzed")
+                            .AllAnalyzed()
                             .Field($"{VulcanFieldConstants.MediaContents}.content")
                             .Field($"{VulcanFieldConstants.MediaContents}.content_type"))
                 .Query(searchText)
@@ -149,7 +149,7 @@
                     .Fields(fs => fs.Field(SearchDescriptionField).Field(p => p.ContentLink)) // only return contentLink
                     .Query(q => query)
                     //.Highlight(h => h.Encoder("html").Fields(f => f.Field("*")))
-                    .Aggregations(agg => agg.Terms("types", t => t.Field("_type"))),
+                    .Aggregations(agg => agg.Terms("types", t => t.Field(VulcanFieldConstants.TypeField))),
                     includeNeutralLanguage: true,
                     typeFilter: searchForTypes,
                     principleReadFilter: PrincipalInfo.Current.Principal,

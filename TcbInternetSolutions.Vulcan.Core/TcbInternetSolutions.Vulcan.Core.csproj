@@ -112,6 +112,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Extensions\ContentAreaExtensions.cs" />
+    <Compile Include="Extensions\FieldExtensions.cs" />
     <Compile Include="Extensions\IVulcanClientExtensions.cs" />
     <Compile Include="Extensions\SearchProviderExtensions.cs" />
     <Compile Include="Extensions\TypeExtensions.cs" />
