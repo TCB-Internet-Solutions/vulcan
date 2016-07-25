@@ -52,7 +52,7 @@
                 var pocoIndexer = indexer as IVulcanPocoIndexer;
                 var cmsIndexer = indexer as IVulcanContentIndexer;
 
-                if (pocoIndexer != null)
+                if (pocoIndexer?.IncludeInDefaultIndexJob == true)
                 {
                     VulcanPocoIndexHandler.Service.Index(pocoIndexer, OnStatusChanged, ref count, ref _stopSignaled);
                 }

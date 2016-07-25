@@ -29,6 +29,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
         /// <returns></returns>
         public static FieldsDescriptor<T> FieldAnalyzed<T>(this FieldsDescriptor<T> descriptor, Expression<Func<T, object>> field, double? boost = null, DefaultContractResolver resolver = null) where T : class
         {
+            // TODO: Can we append analyzed to the name simpler than this?
             MemberExpression memberExpression = null;
 
             if (field.Body.NodeType == ExpressionType.Convert)
