@@ -8,12 +8,14 @@
     using EPiServer.Framework.Localization;
     using EPiServer.ServiceLocation;
     using EPiServer.Shell;
+    using EPiServer.Shell.Search;
     using EPiServer.Web;
     using System;
     using TcbInternetSolutions.Vulcan.Core;
     using TcbInternetSolutions.Vulcan.Core.Extensions;
     using TcbInternetSolutions.Vulcan.Core.SearchProviders;
 
+    [SearchProvider]
     public class VulcanCatalogSearchProvider : VulcanSearchProviderBase<EntryContentBase>
     {
         public VulcanCatalogSearchProvider()
