@@ -28,15 +28,18 @@
             var repo = ServiceLocator.Current.GetInstance<IContentSecurityRepository>();
             var permissions = repo.Get(content.ContentLink);
 
-            streamWriter.Write(",\"" + VulcanFieldConstants.ReadPermission + "\":[");
-            streamWriter.Write(string.Join(",", permissions.Entries.
-                        Where(x =>
-                            x.Access.HasFlag(AccessLevel.Read) ||
-                            x.Access.HasFlag(AccessLevel.Administer) ||
-                            x.Access.HasFlag(AccessLevel.FullAccess))
-                        .Select(x => "\"" + x.Name + "\"")
-                    ));
-            streamWriter.Write("]");
+            if (permissions != null) // will be null for commerce products
+            {
+                streamWriter.Write(",\"" + VulcanFieldConstants.ReadPermission + "\":[");
+                streamWriter.Write(string.Join(",", permissions.Entries.
+                            Where(x =>
+                                x.Access.HasFlag(AccessLevel.Read) ||
+                                x.Access.HasFlag(AccessLevel.Administer) ||
+                                x.Access.HasFlag(AccessLevel.FullAccess))
+                            .Select(x => "\"" + x.Name + "\"")
+                        ));
+                streamWriter.Write("]");
+            }
 
             // index VulcanSearchableAttribute
             List<string> contents = new List<string>();

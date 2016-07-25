@@ -53,13 +53,12 @@
 
             EditPath = (contentData, contentLink, languageName) =>
             {
-                string fullUrlToEditView = SearchProviderExtensions.GetFullUrlToEditView(_SiteDefinitionResolver.GetDefinitionForContent(contentLink, fallbackToEmpty: true, fallbackToWildcardMapped: true), null);
-                Uri uri = SearchProviderExtensions.GetUri(contentData);
+                var uri = SearchProviderExtensions.GetUri(contentData);
 
                 if (!string.IsNullOrWhiteSpace(languageName))
-                    return string.Format("{0}?language={1}#context={2}", fullUrlToEditView, languageName, uri);
+                    return string.Format("{0}#language={1}", uri, languageName);
 
-                return string.Format("{0}?#context={1}", fullUrlToEditView, uri);
+                return uri;
             };
         }
 
@@ -111,15 +110,17 @@
             {
                 typeRestriction = typeof(BlockData).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
             }
-
-            // TODO: Figure out how to search attachments as well...
+            
             hits = _VulcanHandler.GetClient().SearchContent<IContent>(d => d
                     .Take(query.MaxResults)
                     .Fields(fs => fs.Field(p => p.ContentLink)) // only return id for performance
-                    //.Query(q => q.QueryString(sq => sq.Query(searchText))),
                     .Query(x =>
-                        x.SimpleQueryString(sq => sq.Fields(fields => fields.Field("*.analyzed")).Query(searchText)) ||
-                        x.QueryString(sq => sq.Query(searchText)) // searches file contents
+                        x.SimpleQueryString(sqs =>
+                            sqs.Fields(f => f
+                                        .Field("*.analyzed")
+                                        .Field($"{VulcanFieldConstants.MediaContents}.content")
+                                        .Field($"{VulcanFieldConstants.MediaContents}.content_type"))
+                                    .Query(searchText))                        
                     ),
                     includeNeutralLanguage: IncludeInvariant,
                     rootReferences: searchRoots,
