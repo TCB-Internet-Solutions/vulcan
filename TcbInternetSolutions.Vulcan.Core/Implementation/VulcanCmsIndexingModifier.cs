@@ -28,7 +28,7 @@
             var repo = ServiceLocator.Current.GetInstance<IContentSecurityRepository>();
             var permissions = repo.Get(content.ContentLink);
 
-            if (permissions != null) // will be null for commerce products
+            if (permissions != null) // will be null for commerce products, compatibility handled in commerce modifier
             {
                 streamWriter.Write(",\"" + VulcanFieldConstants.ReadPermission + "\":[");
                 streamWriter.Write(string.Join(",", permissions.Entries.

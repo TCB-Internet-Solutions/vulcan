@@ -1,5 +1,6 @@
 ﻿using EPiServer;
 using EPiServer.Commerce.Catalog.ContentTypes;
+using EPiServer.Security;
 using EPiServer.ServiceLocation;
 using Mediachase.Commerce.Markets;
 using System.Collections.Generic;
@@ -13,24 +14,20 @@ namespace TcbInternetSolutions.Vulcan.Commerce
     {
         public void ProcessContent(EPiServer.Core.IContent content, System.IO.Stream writableStream)
         {
+            var streamWriter = new StreamWriter(writableStream);
+
             if (content is VariationContent)
             {
-                var streamWriter = new StreamWriter(writableStream);
-
                 streamWriter.Write(",\"__prices\":{");
-
                 WritePrices(streamWriter, GetDefaultPrices(content as VariationContent));
-
                 streamWriter.Write("}");
-
-                streamWriter.Flush();
             }
             else if(content is ProductContent)
             {
                 var pricesLow = new Dictionary<string, Dictionary<string, decimal>>();
                 var pricesHigh = new Dictionary<string, Dictionary<string, decimal>>();
-
-                var variants = ServiceLocator.Current.GetInstance<IContentLoader>().GetItems((content as ProductContent).GetVariants(), (content as ProductContent).Language);
+                var variants = ServiceLocator.Current.GetInstance<IContentLoader>()
+                    .GetItems((content as ProductContent).GetVariants(), (content as ProductContent).Language);
 
                 if (variants != null)
                 {
@@ -86,22 +83,26 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                     }
                 }
 
-                var streamWriter = new StreamWriter(writableStream);
-
                 streamWriter.Write(",\"__pricesLow\":{");
-
                 WritePrices(streamWriter, pricesLow);
-
                 streamWriter.Write("}");
-
                 streamWriter.Write(",\"__pricesHigh\":{");
-
                 WritePrices(streamWriter, pricesHigh);
-
                 streamWriter.Write("}");
-
-                streamWriter.Flush();
             }
+
+            // read permission compatibility for commerce content, since markets handle access
+            var commercePermissionEntries = new AccessControlEntry[]
+            {
+                    new AccessControlEntry(EveryoneRole.RoleName, AccessLevel.Read),
+                    new AccessControlEntry(AnonymousRole.RoleName, AccessLevel.Read)
+            };
+
+            streamWriter.Write(",\"" + VulcanFieldConstants.ReadPermission + "\":[");
+            streamWriter.Write(string.Join(",", commercePermissionEntries.Select(x => "\"" + x.Name + "\"")));
+            streamWriter.Write("]");
+
+            streamWriter.Flush();
         }
 
         private void WritePrices(StreamWriter streamWriter, Dictionary<string, Dictionary<string, decimal>> markets)
