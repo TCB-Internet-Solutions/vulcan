@@ -12,9 +12,6 @@
         <files>
           <name>Vulcan Files</name>
         </files>
-        <products>
-          <name>Vulcan Products</name>
-        </products>
       </searchprovider>
     </vulcan>
   </language>
