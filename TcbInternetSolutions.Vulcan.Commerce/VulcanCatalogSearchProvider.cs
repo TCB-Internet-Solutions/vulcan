@@ -51,15 +51,7 @@
 
         private string GetEditPath(IContent entryContent, ContentReference contentLink, string languageName)
         {
-            string str = Paths.ToResource("Commerce", "Catalog");
-
-            if (str == "/")
-                str = Paths.ToResource("CMS", null);
-
-            if (!string.IsNullOrWhiteSpace(languageName))
-                return string.Format("{0}?language={1}#context={2}", str, languageName, SearchProviderExtensions.GetUri(entryContent));
-
-            return string.Format("{0}#context={1}", str, SearchProviderExtensions.GetUri(entryContent));
+            return SearchProviderExtensions.GetUri(entryContent);
         }
     }
 }
