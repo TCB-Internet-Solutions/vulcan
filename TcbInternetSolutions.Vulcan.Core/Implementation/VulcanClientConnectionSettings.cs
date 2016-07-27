@@ -4,6 +4,7 @@ using Nest;
 using System;
 using System.Configuration;
 using System.Web;
+using System.Web.Configuration;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
@@ -16,7 +17,8 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         protected virtual ConnectionSettings CommonSettings()
         {
-            bool isDebugMode = HttpContext.Current?.IsDebuggingEnabled ?? false;
+            CompilationSection section = ConfigurationManager.GetSection("system.web/compilation") as CompilationSection;
+            bool isDebugMode = section != null ? section.Debug : false;
             var url = ConfigurationManager.AppSettings["VulcanUrl"];
             var Index = ConfigurationManager.AppSettings["VulcanIndex"];
 
@@ -40,8 +42,14 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 settings.BasicAuthentication(username, password);
             }
 
+            bool enableCompression = false;
+            bool.TryParse(ConfigurationManager.AppSettings["VulcanEnableHttpCompression"], out enableCompression);
+
             // Enable bytes to be retrieved in debug mode
             settings.DisableDirectStreaming(isDebugMode);
+
+            // Enable compression
+            settings.EnableHttpCompression(enableCompression);
 
             return settings;
         }

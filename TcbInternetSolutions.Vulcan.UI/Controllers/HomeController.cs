@@ -1,7 +1,11 @@
 ﻿using EPiServer.Shell.Navigation;
 using System.Web.Mvc;
+using TcbInternetSolutions.Vulcan.Core;
 using TcbInternetSolutions.Vulcan.UI.Models.ViewModels;
 using TcbInternetSolutions.Vulcan.UI.Support;
+using TcbInternetSolutions.Vulcan.Core.Extensions;
+using System.Linq;
+using System;
 
 namespace TcbInternetSolutions.Vulcan.UI.Controllers
 {
@@ -14,7 +18,9 @@ namespace TcbInternetSolutions.Vulcan.UI.Controllers
         {
             var viewModel = new HomeViewModel()
             {
-                VulcanHandler = VulcanHandler.Service
+                VulcanHandler = VulcanHandler.Service,
+                PocoIndexers = typeof(IVulcanPocoIndexer)
+                    .GetSearchTypesFor(VulcanFieldConstants.DefaultFilter).Select(x => Activator.CreateInstance(x) as IVulcanPocoIndexer)
             };
 
             return View(Helper.ResolveView("Home/Index.cshtml"), viewModel);

@@ -180,7 +180,7 @@
                             dyn => dyn.DynamicTemplate("analyzer_template", dt => dt
                                 .Match("*") //matches all fields
                                 .MatchMappingType("string") //that are a string
-                                .Mapping(dynmap => dynmap.String(s => s.NotAnalyzed().IncludeInAll(false).Fields(f => f.String(ana => ana.Name("analyzed").IncludeInAll(false).Store(true)
+                                .Mapping(dynmap => dynmap.String(s => s.NotAnalyzed().IncludeInAll(false).Fields(f => f.String(ana => ana.Name(VulcanFieldConstants.AnalyzedModifier).IncludeInAll(false).Store(true)
                                     )))))))));
 
                 if (!client.IndexExists(VulcanHelper.GetIndexName(Index, cultureInfo)).Exists)

@@ -7,6 +7,7 @@
     using Implementation;
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Linq;
     using System.Web;
     using TcbInternetSolutions.Vulcan.Core;
@@ -35,7 +36,7 @@
                 VulcanAttachmentPropertyMapper.AddedMappings.Clear();
             });
 
-            IVulcanClient client = handler.GetClient();
+            IVulcanClient client = handler.GetClient(CultureInfo.InvariantCulture);
             var info = client.NodesInfo();
 
             if (info?.Nodes?.Any(x => x.Value?.Plugins?.Any(y => string.Compare(y.Name, "mapper-attachments", true) == 0) == true) != true)

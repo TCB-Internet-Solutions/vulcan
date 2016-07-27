@@ -3,12 +3,13 @@ using EPiServer.Logging;
 using EPiServer.ServiceLocation;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using TcbInternetSolutions.Vulcan.Core;
 using TcbInternetSolutions.Vulcan.Core.Extensions;
 using static TcbInternetSolutions.Vulcan.Core.VulcanFieldConstants;
 
 namespace TcbInternetSolutions.Vulcan.AttachmentIndexer.Implementation
-{    
+{
     public class VulcanAttachmentPropertyMapper
     {
         private static ILogger _Logger = LogManager.GetLogger(typeof(VulcanAttachmentPropertyMapper));
@@ -25,12 +26,14 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer.Implementation
 
             try
             {   
-                IVulcanClient client = ServiceLocator.Current.GetInstance<IVulcanHandler>().GetClient();
+                IVulcanClient client = ServiceLocator.Current.GetInstance<IVulcanHandler>().GetClient(CultureInfo.InvariantCulture);
                 var response = client.Map<object>(m => m.
                     Index("_all").
                     Type(typeName).
                         Properties(props => props.
-                            Attachment(s => s.Name(MediaContents)))
+                            Attachment(s => s.Name(MediaContents)                                
+                                .FileField(ff => ff.Name("content").Store().TermVector(Nest.TermVectorOption.WithPositionsOffsets))
+                                ))
                     );
 
                 if (!response.IsValid)

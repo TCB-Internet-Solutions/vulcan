@@ -21,6 +21,8 @@
 
         public Injected<IVulcanHandler> VulcanHandler { get; set; }
 
+        public Injected<IVulcanPocoIndexingJob> VulcanPocoIndexHandler { get; set; }
+
         public VulcanIndexContent()
         {
             IsStoppable = true;
@@ -34,28 +36,43 @@
         public override string Execute()
         {
             OnStatusChanged(string.Format("Starting execution of {0}", GetType()));
-            
+
             VulcanHandler.Service.DeleteIndex(); // delete all language indexes
             var indexers = typeof(IVulcanIndexer).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
             var count = 0;
-            
+
+            //indexers.AsParallel().ForAll((Type t) =>
+            //{
+            //    return;
+            //});
+
             for (int i = 0; i < indexers.Count; i++)
             {
                 var indexer = (IVulcanIndexer)Activator.CreateInstance(indexers[i]);
-                var contentReferences = ContentLoader.Service.GetDescendents(indexer.GetRoot().Key);
+                var pocoIndexer = indexer as IVulcanPocoIndexer;
+                var cmsIndexer = indexer as IVulcanContentIndexer;
 
-                for(int cr = 0; cr < contentReferences.Count(); cr++)
+                if (pocoIndexer?.IncludeInDefaultIndexJob == true)
                 {
-                    OnStatusChanged("Indexing item " + (cr + 1).ToString() + " of " + contentReferences.Count() + " items of " + indexer.GetRoot().Value + " content (indexer " + (i + 1).ToString() + " of " + indexers.Count.ToString() + ")...");
+                    VulcanPocoIndexHandler.Service.Index(pocoIndexer, OnStatusChanged, ref count, ref _stopSignaled);
+                }
+                else if(cmsIndexer != null) // default episerver content
+                {
+                    var contentReferences = ContentLoader.Service.GetDescendents(cmsIndexer.GetRoot().Key);
 
-                    VulcanHandler.Service.IndexContentEveryLanguage(ContentLoader.Service.Get<IContent>(contentReferences.ElementAt(cr)));
-
-                    if (_stopSignaled)
+                    for (int cr = 0; cr < contentReferences.Count(); cr++)
                     {
-                        return "Stop of job was called";
-                    }
+                        OnStatusChanged(indexer.IndexerName + " indexing item " + (cr + 1).ToString() + " of " + contentReferences.Count() + " items of " + cmsIndexer.GetRoot().Value + " content (indexer " + (i + 1).ToString() + " of " + indexers.Count.ToString() + ")...");
 
-                    count++;
+                        VulcanHandler.Service.IndexContentEveryLanguage(ContentLoader.Service.Get<IContent>(contentReferences.ElementAt(cr)));
+
+                        if (_stopSignaled)
+                        {
+                            return "Stop of job was called";
+                        }
+
+                        count++;
+                    }
                 }
             }
 
