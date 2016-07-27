@@ -43,12 +43,14 @@
 
         public virtual void DeleteContent(IContent content)
         {
-            if (content is ILocalizable && (content as ILocalizable).Language != Language)
+            var localizableContent = content as ILocalizable;
+
+            if (localizableContent != null && !localizableContent.Language.Equals(Language))
             {
-                throw new Exception("Cannot delete content '" + GetId(content) + "' with language " + (content as ILocalizable).Language.Name + " with Vulcan client for language " + (Language == CultureInfo.InvariantCulture ? "invariant" : Language.Name));
+                throw new Exception("Cannot delete content '" + GetId(content) + "' with language " + (content as ILocalizable).Language.Name + " with Vulcan client for language " + Language.GetCultureName());
             }
 
-            if (!(content is ILocalizable) && Language != CultureInfo.InvariantCulture)
+            if (localizableContent == null && !Language.Equals(CultureInfo.InvariantCulture))
             {
                 throw new Exception("Cannot delete content '" + GetId(content) + "' with no language with Vulcan client for language " + Language.Name);
             }
@@ -57,11 +59,11 @@
             {
                 var response = base.Delete(new DeleteRequest(IndexName, GetTypeName(content), GetId(content)));
 
-                Logger.Debug("Vulcan deleted " + GetId(content) + " for language " + (Language == CultureInfo.InvariantCulture ? "invariant" : Language.Name) + ": " + response.DebugInformation);
+                Logger.Debug("Vulcan deleted " + GetId(content) + " for language " + Language.GetCultureName() + ": " + response.DebugInformation);
             }
             catch (Exception e)
             {
-                Logger.Warning("Vulcan could not delete content with content link " + GetId(content) + " for language " + (Language == CultureInfo.InvariantCulture ? "invariant" : Language.Name) + ":", e);
+                Logger.Warning("Vulcan could not delete content with content link " + GetId(content) + " for language " + Language.GetCultureName() + ":", e);
             }
         }
 
@@ -69,17 +71,21 @@
 
         public virtual void IndexContent(IContent content)
         {
-            if (content is ILocalizable && (content as ILocalizable).Language != Language)
+            var localizableContent = content as ILocalizable;            
+
+            if (localizableContent != null  && !localizableContent.Language.Equals(Language))
             {
-                throw new Exception("Cannot index content '" + GetId(content) + "' with language " + (content as ILocalizable).Language.Name + " with Vulcan client for language " + (Language == CultureInfo.InvariantCulture ? "invariant" : Language.Name));
+                throw new Exception("Cannot index content '" + GetId(content) + "' with language " + (content as ILocalizable).Language.Name + " with Vulcan client for language " + Language.GetCultureName());
             }
 
-            if (!(content is ILocalizable) && Language != CultureInfo.InvariantCulture)
+            if (localizableContent == null && !Language.Equals(CultureInfo.InvariantCulture))
             {
                 throw new Exception("Cannot index content '" + GetId(content) + "' with no language with Vulcan client for language " + Language.Name);
             }
 
-            if (!(content is IVersionable) || (content as IVersionable).Status == VersionStatus.Published)
+            var versionableContent = content as IVersionable;
+
+            if (versionableContent == null || versionableContent.Status == VersionStatus.Published)
             {
                 try
                 {
@@ -87,7 +93,7 @@
 
                     if (response.IsValid)
                     {
-                        Logger.Debug("Vulcan indexed " + GetId(content) + " for language " + (Language == CultureInfo.InvariantCulture ? "invariant" : Language.Name) + ": " + response.DebugInformation);
+                        Logger.Debug("Vulcan indexed " + GetId(content) + " for language " + Language.GetCultureName() + ": " + response.DebugInformation);
                     }
                     else
                     {
@@ -96,7 +102,7 @@
                 }
                 catch (Exception e)
                 {
-                    Logger.Error("Vulcan could not index content with content link " + GetId(content) + " for language " + (Language == CultureInfo.InvariantCulture ? "invariant" : Language.Name) + ": ", e);
+                    Logger.Error("Vulcan could not index content with content link " + GetId(content) + " for language " + Language.GetCultureName() + ": ", e);
                 }
             }
         }
@@ -140,8 +146,7 @@
             List<QueryContainer> filters = new List<QueryContainer>();
 
             if (validRootReferences?.Count > 0)
-            {
-                //var searchRoots = string.Join(" OR ", validRootReferences.Select(x => x.ToReferenceWithoutVersion().ToString()));
+            {                
                 var scopeDescriptor = new QueryContainerDescriptor<T>().
                     Terms(t => t.Field(VulcanFieldConstants.Ancestors).Terms(validRootReferences.Select(x => x.ToReferenceWithoutVersion().ToString())));
 
@@ -149,8 +154,7 @@
             }
 
             if (principleReadFilter != null)
-            {
-                //var roles = string.Join(" OR ", userPrinciple.GetRoles());
+            {                
                 var permissionDescriptor = new QueryContainerDescriptor<T>().
                     Terms(t => t.Field(VulcanFieldConstants.ReadPermission).Terms(principleReadFilter.GetRoles()));
 
@@ -164,14 +168,10 @@
 
                 if (container.Query != null)
                 {
-                    filters.Insert(0, container.Query);
+                    filters.Insert(0, container.Query);    
+                }
 
-                    resolvedDescriptor = resolvedDescriptor.Query(q => q.Bool(b => b.Must(filters.ToArray())));
-                }
-                else
-                {
-                    resolvedDescriptor = resolvedDescriptor.Query(q => q.Bool(b => b.Must(filters.ToArray())));
-                }
+                resolvedDescriptor = resolvedDescriptor.Query(q => q.Bool(b => b.Must(filters.ToArray())));
             }
             
             var response =  base.Search<T, IContent>(resolvedDescriptor);
