@@ -49,7 +49,7 @@
             ContentReference contentReference = null;
 
             if (ContentReference.TryParse(contentHit.Id, out contentReference))
-            {                
+            {
                 IContent content;
 
                 if (contentLoader.TryGet(contentReference, out content))
@@ -97,14 +97,16 @@
                         Func<IHit<IContent>, IContentLoader, VulcanSearchHit> buildSearchHit = null
             )
         {
-            var searchTextQuery = new QueryContainerDescriptor<IContent>().SimpleQueryString(sqs => sqs
-                .Fields(f => f
-                            .AllAnalyzed()
-                            .Field($"{VulcanFieldConstants.MediaContents}.content")
-                            .Field($"{VulcanFieldConstants.MediaContents}.content_type"))
-                .Query(searchText)
-                .Analyzer("default")
-            );
+            var searchTextQuery = new QueryContainerDescriptor<IContent>()
+                    .SimpleQueryString(sqs => sqs
+                        .Fields(f => f
+                                    .AllAnalyzed()
+                                    .Field($"{VulcanFieldConstants.MediaContents}.content")
+                                    .Field($"{VulcanFieldConstants.MediaContents}.content_type"))
+                        .Query(searchText)
+                        .Analyzer("default")
+                    ).
+                    FilterForPublished<IContent>();
 
             return GetSearchHits(client, searchTextQuery, page, pageSize, searchRoots, includeTypes, excludeTypes, buildSearchHit);
         }
@@ -139,6 +141,10 @@
                 includeTypes = pageTypes.Union(mediaTypes);
             }
 
+            // restrict to start page and global blocks if not otherwise specified
+            if (searchRoots == null && !ContentReference.IsNullOrEmpty(ContentReference.StartPage))
+                searchRoots = new ContentReference[] { ContentReference.StartPage, ContentReference.GlobalBlockFolder };
+
             buildSearchHit = buildSearchHit ?? DefaultBuildSearchHit;
             pageSize = pageSize < 1 ? 10 : pageSize;
             page = page < 1 ? 1 : page;
@@ -161,6 +167,6 @@
             var results = new VulcanSearchHitList(searchHits) { TotalHits = hits.Total, ResponseContext = hits, Page = page, PageSize = pageSize };
 
             return results;
-        }        
+        }
     }
 }
