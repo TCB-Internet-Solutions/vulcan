@@ -122,21 +122,23 @@
         {
             var cultureInfo = language == null ? CultureInfo.CurrentUICulture : language;
 
+            IVulcanClient storedClient;
+
+            if (clients.TryGetValue(cultureInfo, out storedClient))
+                return storedClient;
+
             lock (lockObject)
             {
-                if (clients.ContainsKey(cultureInfo)) return clients[cultureInfo];
-
-                // we now know what our culture is (current culture or invariant), but we need to choose the language analyzer
-
+                // we now know what our culture is (current culture or invariant), but we need to choose the language analyzer                
                 var languageAnalyzer = VulcanHelper.GetAnalyzer(cultureInfo);
+                var indexName = VulcanHelper.GetIndexName(Index, cultureInfo);
                 var settings = CommonConnectionSettings.Service.ConnectionSettings;
                 settings.InferMappingFor<ContentMixin>(pd => pd.Ignore(p => p.MixinInstance));
-                settings.DefaultIndex(VulcanHelper.GetIndexName(Index, cultureInfo));
+                settings.DefaultIndex(indexName);
 
                 var client = CreateVulcanClient(Index, settings, cultureInfo);
 
                 // first let's check our version
-
                 var nodesInfo = client.NodesInfo();
 
                 if (nodesInfo == null)
@@ -180,32 +182,40 @@
                             dyn => dyn.DynamicTemplate("analyzer_template", dt => dt
                                 .Match("*") //matches all fields
                                 .MatchMappingType("string") //that are a string
-                                .Mapping(dynmap => dynmap.String(s => s.NotAnalyzed().IncludeInAll(false).Fields(f => f.String(ana => ana.Name(VulcanFieldConstants.AnalyzedModifier).IncludeInAll(false).Store(true)
-                                    )))))))));
+                                .Mapping(dynmap => dynmap.String(s => s
+                                    .NotAnalyzed()
+                                    .IgnoreAbove(256) // needed for: document contains at least one immense term in field
+                                    .IncludeInAll(false)
+                                    .Fields(f => f
+                                        .String(ana => ana
+                                            .Name(VulcanFieldConstants.AnalyzedModifier)
+                                            .IncludeInAll(false)
+                                            .Store(true)
+                                        )
+                                    ))
+                                )
+                            )))));
 
-                if (!client.IndexExists(VulcanHelper.GetIndexName(Index, cultureInfo)).Exists)
+                if (!client.IndexExists(indexName).Exists)
                 {
-                    var response = client.CreateIndex(VulcanHelper.GetIndexName(Index, cultureInfo));
+                    var response = client.CreateIndex(indexName);
 
                     if (!response.IsValid)
                     {
-                        Logger.Error("Could not create index " + VulcanHelper.GetIndexName(Index, cultureInfo) + ": " + response.DebugInformation);
+                        Logger.Error("Could not create index " + indexName + ": " + response.DebugInformation);
                     }
                 }
 
-                client.Refresh(VulcanHelper.GetIndexName(Index, cultureInfo));
-
-                var closeResponse = client.CloseIndex(VulcanHelper.GetIndexName(Index, cultureInfo));
+                client.Refresh(indexName);
+                var closeResponse = client.CloseIndex(indexName);
 
                 if (!closeResponse.IsValid)
                 {
-                    Logger.Error("Could not close index " + VulcanHelper.GetIndexName(Index, cultureInfo) + ": " + closeResponse.DebugInformation);
+                    Logger.Error("Could not close index " + indexName + ": " + closeResponse.DebugInformation);
                 }
 
                 InitializeAnalyzer(client);
-
-                client.OpenIndex(VulcanHelper.GetIndexName(Index, cultureInfo));
-
+                client.OpenIndex(indexName);
                 clients.Add(cultureInfo, client);
 
                 return client;
