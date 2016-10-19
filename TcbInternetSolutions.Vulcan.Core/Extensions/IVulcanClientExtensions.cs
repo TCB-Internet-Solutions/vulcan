@@ -40,7 +40,7 @@
         /// </summary>
         /// <param name="client"></param>
         /// <param name="logger"></param>
-        internal static void RunCustomizers(this IVulcanClient client, ILogger logger)
+        public static void RunCustomizers(this IVulcanClient client, ILogger logger)
         {
             foreach (var customizer in Customizers)
             {
