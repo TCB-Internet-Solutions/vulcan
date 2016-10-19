@@ -3,6 +3,7 @@
 
     using EPiServer;
     using EPiServer.Core;
+    using EPiServer.Logging;
     using EPiServer.Security;
     using EPiServer.ServiceLocation;
     using EPiServer.Web.Routing;
@@ -21,6 +22,54 @@
         private static readonly UrlResolver urlResolver = ServiceLocator.Current.GetInstance<UrlResolver>();
 
         public static Injected<IVulcanHandler> VulcanHandler { get; set; }
+
+        internal static List<IVulcanCustomizer> Customizers;
+        internal static List<Type> CustomizerTypes;
+
+        static IVulcanClientExtensions()
+        {
+            CustomizerTypes = typeof(IVulcanCustomizer).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
+            Customizers = new List<IVulcanCustomizer>();
+
+            foreach (var type in CustomizerTypes)
+                Customizers.Add((IVulcanCustomizer)Activator.CreateInstance(type));
+        }
+
+        /// <summary>
+        /// Allows for customizations on analyzers and mappings.
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="logger"></param>
+        internal static void RunCustomizers(this IVulcanClient client, ILogger logger)
+        {
+            foreach (var customizer in Customizers)
+            {
+                try
+                {
+                    var updateResponse = customizer?.CustomIndexUpdater(client);
+
+                    if (updateResponse?.IsValid == false)
+                    {
+                        logger.Error("Could not update index " + client.IndexName + ": " + updateResponse.DebugInformation);
+                    }
+                }
+                catch (NotImplementedException) { }
+            }
+
+            foreach (var customizer in Customizers)
+            {
+                try
+                {
+                    var mappingResponse = customizer?.CustomMapper(client);
+
+                    if (mappingResponse?.IsValid == false)
+                    {
+                        logger.Error("Could not add mapping for index " + client.IndexName + ": " + mappingResponse.DebugInformation);
+                    }
+                }
+                catch (NotImplementedException) { }
+            }
+        }
 
         /// <summary>
         /// Adds full name as search type, and ensures invariant culture for POCO searching.
@@ -94,19 +143,25 @@
                         IEnumerable<ContentReference> searchRoots = null,
                         IEnumerable<Type> includeTypes = null,
                         IEnumerable<Type> excludeTypes = null,
-                        Func<IHit<IContent>, IContentLoader, VulcanSearchHit> buildSearchHit = null
+                        Func<IHit<IContent>, IContentLoader, VulcanSearchHit> buildSearchHit = null,
+                        bool requireIsSearchable = false
             )
         {
-            var searchTextQuery = new QueryContainerDescriptor<IContent>()
-                    .SimpleQueryString(sqs => sqs
-                        .Fields(f => f
-                                    .AllAnalyzed()
-                                    .Field($"{VulcanFieldConstants.MediaContents}.content")
-                                    .Field($"{VulcanFieldConstants.MediaContents}.content_type"))
-                        .Query(searchText)
-                        .Analyzer("default")
-                    ).
-                    FilterForPublished<IContent>();
+            QueryContainer searchTextQuery = new QueryContainerDescriptor<IContent>();
+
+            // only add query string if query has value
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                searchTextQuery = new QueryContainerDescriptor<IContent>().SimpleQueryString(sqs => sqs
+                    .Fields(f => f
+                                .AllAnalyzed()                                
+                                .Field($"{VulcanFieldConstants.MediaContents}.content")
+                                .Field($"{VulcanFieldConstants.MediaContents}.content_type"))
+                    .Query(searchText)
+                );
+            }
+
+            searchTextQuery = searchTextQuery.FilterForPublished<IContent>(requireIsSearchable);
 
             return GetSearchHits(client, searchTextQuery, page, pageSize, searchRoots, includeTypes, excludeTypes, buildSearchHit);
         }

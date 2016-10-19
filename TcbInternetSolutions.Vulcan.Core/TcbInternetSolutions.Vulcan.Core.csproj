@@ -123,6 +123,7 @@
     <Compile Include="Implementation\VulcanClientConnectionSettings.cs" />
     <Compile Include="Implementation\VulcanCmsIndexer.cs" />
     <Compile Include="Implementation\VulcanCmsIndexingModifier.cs" />
+    <Compile Include="Implementation\VulcanCreateIndexCustomizer.cs" />
     <Compile Include="Implementation\VulcanCustomJsonSerializer.cs" />
     <Compile Include="Implementation\VulcanHelper.cs" />
     <Compile Include="Implementation\VulcanIndexContent.cs">
@@ -140,6 +141,8 @@
     <Compile Include="IVulcanConnectionSettings.cs" />
     <Compile Include="IVulcanContentHit.cs" />
     <Compile Include="IVulcanContentIndexer.cs" />
+    <Compile Include="IVulcanCreateIndexCustomizer.cs" />
+    <Compile Include="IVulcanCustomizer.cs" />
     <Compile Include="IVulcanHandler.cs" />
     <Compile Include="IVulcanIndexer.cs" />
     <Compile Include="IVulcanIndexingModifier.cs" />

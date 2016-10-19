@@ -45,6 +45,8 @@
 
         protected Injected<IContentLoader> ContentLoader { get; set; }
 
+        protected Injected<IVulcanCreateIndexCustomizer> CreateIndexCustomizer { get; }
+
         public virtual void DeleteContentByLanguage(IContent content)
         {
             IVulcanClient client;
@@ -141,37 +143,23 @@
                 // first let's check our version
                 var nodesInfo = client.NodesInfo();
 
-                if (nodesInfo == null)
+                if (nodesInfo?.Nodes?.Any() != true)
                 {
                     throw new Exception("Could not get Nodes info to check Elasticsearch Version. Check that you are correctly connected to Elasticsearch?");
                 }
                 else
                 {
-                    if (nodesInfo.Nodes == null)
+                    var node = nodesInfo.Nodes.First(); // just use first
+
+                    if (string.IsNullOrWhiteSpace(node.Value.Version)) // just use first
                     {
-                        throw new Exception("Could not find valid nodes to check Elasticsearch Version. Check that you are correctly connected to Elasticsearch?");
+                        throw new Exception("Could not find a version on node to check Elasticsearch Version. Check that you are correctly connected to Elasticsearch?");
                     }
                     else
                     {
-                        if (nodesInfo.Nodes.Count == 0)
+                        if (node.Value.Version.StartsWith("1."))
                         {
-                            throw new Exception("Could not find any valid nodes to check Elasticsearch Version. Check that you are correctly connected to Elasticsearch?");
-                        }
-                        else
-                        {
-                            var node = nodesInfo.Nodes.First(); // just use first
-
-                            if (string.IsNullOrWhiteSpace(node.Value.Version)) // just use first
-                            {
-                                throw new Exception("Could not find a version on node to check Elasticsearch Version. Check that you are correctly connected to Elasticsearch?");
-                            }
-                            else
-                            {
-                                if (node.Value.Version.StartsWith("1."))
-                                {
-                                    throw new Exception("Sorry, Vulcan only works with Elasticsearch version 2.x or higher. The Elasticsearch node you are currently connected to is version " + node.Value.Version);
-                                }
-                            }
+                            throw new Exception("Sorry, Vulcan only works with Elasticsearch version 2.x or higher. The Elasticsearch node you are currently connected to is version " + node.Value.Version);
                         }
                     }
                 }
@@ -184,7 +172,7 @@
                                 .MatchMappingType("string") //that are a string
                                 .Mapping(dynmap => dynmap.String(s => s
                                     .NotAnalyzed()
-                                    .IgnoreAbove(256) // needed for: document contains at least one immense term in field
+                                    .IgnoreAbove(CreateIndexCustomizer.Service.IgnoreAbove) // needed for: document contains at least one immense term in field
                                     .IncludeInAll(false)
                                     .Fields(f => f
                                         .String(ana => ana
@@ -198,7 +186,7 @@
 
                 if (!client.IndexExists(indexName).Exists)
                 {
-                    var response = client.CreateIndex(indexName);
+                    var response = client.CreateIndex(indexName, CreateIndexCustomizer.Service.CustomizeIndex);
 
                     if (!response.IsValid)
                     {
@@ -215,7 +203,11 @@
                 }
 
                 InitializeAnalyzer(client);
-                client.OpenIndex(indexName);
+                client.RunCustomizers(Logger); // allows for customizations
+
+                var openResponse = client.OpenIndex(indexName);
+                var initShards = client.ClusterHealth(x => x.WaitForActiveShards(1)); // fixes empty results on first request
+
                 clients.Add(cultureInfo, client);
 
                 return client;
