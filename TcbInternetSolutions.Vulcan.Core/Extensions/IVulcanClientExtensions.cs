@@ -23,16 +23,13 @@
 
         public static Injected<IVulcanHandler> VulcanHandler { get; set; }
 
-        internal static List<IVulcanCustomizer> Customizers;
+        internal static IEnumerable<IVulcanCustomizer> Customizers;
         internal static List<Type> CustomizerTypes;
 
         static IVulcanClientExtensions()
         {
             CustomizerTypes = typeof(IVulcanCustomizer).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
-            Customizers = new List<IVulcanCustomizer>();
-
-            foreach (var type in CustomizerTypes)
-                Customizers.Add((IVulcanCustomizer)Activator.CreateInstance(type));
+            Customizers = CustomizerTypes.Select(t => (IVulcanCustomizer)Activator.CreateInstance(t));
         }
 
         /// <summary>
@@ -42,6 +39,7 @@
         /// <param name="logger"></param>
         public static void RunCustomizers(this IVulcanClient client, ILogger logger)
         {
+            // run index updaters first, incase they are creating analyzers the mapping need
             foreach (var customizer in Customizers)
             {
                 try
@@ -56,6 +54,7 @@
                 catch (NotImplementedException) { }
             }
 
+            // then run the mappings
             foreach (var customizer in Customizers)
             {
                 try

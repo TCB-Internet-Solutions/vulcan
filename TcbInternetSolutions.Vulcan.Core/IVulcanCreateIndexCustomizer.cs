@@ -3,10 +3,13 @@
     using Nest;
     using System;
 
+    /// <summary>
+    /// Used to customize 
+    /// </summary>
     public interface IVulcanCreateIndexCustomizer
     {
         /// <summary>
-        /// Null by default, but can be used to create custom analyzers
+        /// Null by default, but can be used to setup shards, replicas, anaylzers, etc for the index.
         /// </summary>
         Func<CreateIndexDescriptor, ICreateIndexRequest> CustomizeIndex { get; }
 
