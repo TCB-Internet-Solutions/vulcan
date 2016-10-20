@@ -18,5 +18,10 @@
         /// <para>See https://www.elastic.co/guide/en/elasticsearch/reference/current/ignore-above.html </para>
         /// </summary>
         int IgnoreAbove { get; }
+
+        /// <summary>
+        /// Helps avoid all shards failed on first request.
+        /// </summary>
+        int WaitForActiveShards { get; }
     }
 }

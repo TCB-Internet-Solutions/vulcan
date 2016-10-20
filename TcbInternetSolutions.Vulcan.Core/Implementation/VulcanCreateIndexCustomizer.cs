@@ -10,5 +10,7 @@
         public virtual Func<CreateIndexDescriptor, ICreateIndexRequest> CustomizeIndex => null;
 
         public virtual int IgnoreAbove => 256;
+
+        public virtual int WaitForActiveShards => 1;
     }
 }

@@ -23,13 +23,21 @@
 
         public static Injected<IVulcanHandler> VulcanHandler { get; set; }
 
-        internal static IEnumerable<IVulcanCustomizer> Customizers;
-        internal static List<Type> CustomizerTypes;
+        private static IEnumerable<IVulcanCustomizer> _Customizers;
 
-        static IVulcanClientExtensions()
+        public static IEnumerable<IVulcanCustomizer> Customizers
         {
-            CustomizerTypes = typeof(IVulcanCustomizer).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
-            Customizers = CustomizerTypes.Select(t => (IVulcanCustomizer)Activator.CreateInstance(t));
+            get
+            {
+                if (_Customizers == null)
+                {
+                    var types = typeof(IVulcanCustomizer).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
+
+                    _Customizers = types.Select(t => (IVulcanCustomizer)Activator.CreateInstance(t));
+                }
+
+                return _Customizers;
+            }
         }
 
         /// <summary>
@@ -176,7 +184,7 @@
             {
                 searchTextQuery = new QueryContainerDescriptor<IContent>().SimpleQueryString(sqs => sqs
                     .Fields(f => f
-                                .AllAnalyzed()                                
+                                .AllAnalyzed()
                                 .Field($"{VulcanFieldConstants.MediaContents}.content")
                                 .Field($"{VulcanFieldConstants.MediaContents}.content_type"))
                     .Query(searchText)

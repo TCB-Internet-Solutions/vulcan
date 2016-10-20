@@ -217,7 +217,7 @@
                 client.RunCustomizers(Logger); // allows for customizations
 
                 var openResponse = client.OpenIndex(indexName);
-                var initShards = client.ClusterHealth(x => x.WaitForActiveShards(1)); // fixes empty results on first request
+                var initShards = client.ClusterHealth(x => x.WaitForActiveShards(CreateIndexCustomizer.Service.WaitForActiveShards)); // fixes empty results on first request
 
                 clients.Add(cultureInfo, client);
 
