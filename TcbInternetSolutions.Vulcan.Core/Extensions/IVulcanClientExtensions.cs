@@ -71,6 +71,29 @@
         }
 
         /// <summary>
+        /// Allows for creation/updates of index templates
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="indexPrefix"></param>
+        /// <param name="logger"></param>
+        public static void RunCustomIndexTemplates(this IVulcanClient client, string indexPrefix, ILogger logger)
+        {
+            foreach (var customizer in Customizers)
+            {
+                try
+                {
+                    var updateIndexTemplate = customizer?.CustomIndexTemplate?.Invoke(client, indexPrefix);
+
+                    if (updateIndexTemplate?.IsValid == false)
+                    {
+                        logger.Error("Could not update index template " + client.IndexName + ": " + updateIndexTemplate.DebugInformation);
+                    }
+                }
+                catch (NotImplementedException) { }
+            }
+        }
+
+        /// <summary>
         /// Adds full name as search type, and ensures invariant culture for POCO searching.
         /// </summary>
         /// <typeparam name="T"></typeparam>

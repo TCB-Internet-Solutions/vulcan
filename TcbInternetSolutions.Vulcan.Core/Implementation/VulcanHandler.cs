@@ -111,6 +111,13 @@
                     DeletedIndices?.Invoke(indicesToDelete);
                 }
 
+                // todo: this is a temp fix to keep multiple templates from getting added, shouldn't exist long term....
+                if (client.IndexTemplateExists("analyzer_disabling").Exists)
+                {
+                    // clean up template that was too generic in a shared environment
+                    client.DeleteIndexTemplate("analyzer_disabling");
+                }
+
                 clients = new Dictionary<CultureInfo, IVulcanClient>(); // need to force a re-creation                
             }
         }
@@ -164,8 +171,12 @@
                     }
                 }
 
-                client.PutIndexTemplate("analyzer_disabling", ad => ad
-                        .Template("*") //match on all created indices
+                client.RunCustomIndexTemplates(Index, Logger);
+
+                // keep our base last with lowest possible Order
+                client.PutIndexTemplate($"{Index}_analyzer_disabling", ad => ad
+                        .Order(0)
+                        .Template($"{Index}*") //match on all created indices for index name
                         .Mappings(mappings => mappings.Map("_default_", map => map.DynamicTemplates(
                             dyn => dyn.DynamicTemplate("analyzer_template", dt => dt
                                 .Match("*") //matches all fields
