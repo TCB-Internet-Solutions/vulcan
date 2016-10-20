@@ -44,7 +44,7 @@
             {
                 try
                 {
-                    var updateResponse = customizer?.CustomIndexUpdater(client);
+                    var updateResponse = customizer?.CustomIndexUpdater?.Invoke(client);
 
                     if (updateResponse?.IsValid == false)
                     {
@@ -59,7 +59,7 @@
             {
                 try
                 {
-                    var mappingResponse = customizer?.CustomMapper(client);
+                    var mappingResponse = customizer?.CustomMapper?.Invoke(client);
 
                     if (mappingResponse?.IsValid == false)
                     {
