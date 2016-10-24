@@ -3,18 +3,30 @@ using EPiServer.ServiceLocation;
 using Nest;
 using System;
 using System.Configuration;
-using System.Web;
 using System.Web.Configuration;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
+    /// <summary>
+    /// Default Vulcan Client Connection settings, using a single connection pool and app setting values
+    /// </summary>
     [ServiceConfiguration(typeof(IVulcanClientConnectionSettings), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanClientConnectionSettings : IVulcanClientConnectionSettings
-    { 
+    {
+        /// <summary>
+        /// Gets common settings from AppSetting keys 'VulcanUrl', 'VulcanIndex', 'VulcanUsername' (optional), 'VulcanPassword' (optional), 'VulcanEnableHttpCompression' (optional true/false)
+        /// </summary>
         public virtual ConnectionSettings ConnectionSettings => CommonSettings();
 
+        /// <summary>
+        /// Value of AppSetting 'VulcanIndex'
+        /// </summary>
         public virtual string Index => ConfigurationManager.AppSettings["VulcanIndex"];
 
+        /// <summary>
+        /// Common connection settings
+        /// </summary>
+        /// <returns></returns>
         protected virtual ConnectionSettings CommonSettings()
         {
             CompilationSection section = ConfigurationManager.GetSection("system.web/compilation") as CompilationSection;
@@ -32,7 +44,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 throw new Exception("You need to specify the Vulcan Index in AppSettings");
             }
 
-            var connectionPool = new SingleNodeConnectionPool(new Uri(url));
+            var connectionPool = GetConnectionPool(url);
             var settings = new ConnectionSettings(connectionPool, s => new VulcanCustomJsonSerializer(s));
             var username = ConfigurationManager.AppSettings["VulcanUsername"];
             var password = ConfigurationManager.AppSettings["VulcanPassword"];
@@ -53,5 +65,12 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             return settings;
         }
+
+        /// <summary>
+        /// Allows for simpler overriding of connection pool, see https://www.elastic.co/guide/en/elasticsearch/client/net-api/current/connection-pooling.html
+        /// </summary>
+        /// <param name="vulcanUrl"></param>
+        /// <returns></returns>
+        protected virtual IConnectionPool GetConnectionPool(string vulcanUrl) => new SingleNodeConnectionPool(new Uri(vulcanUrl));
     }
 }
