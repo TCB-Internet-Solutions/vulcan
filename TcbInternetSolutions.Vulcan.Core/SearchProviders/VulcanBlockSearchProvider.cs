@@ -18,7 +18,7 @@
               : this(
                     ServiceLocator.Current.GetInstance<IVulcanHandler>(),
                     ServiceLocator.Current.GetInstance<LocalizationService>(),
-                    ServiceLocator.Current.GetInstance<SiteDefinitionResolver>(),
+                    ServiceLocator.Current.GetInstance<ISiteDefinitionResolver>(),
                     ServiceLocator.Current.GetInstance<IContentRepository>(),
                     ServiceLocator.Current.GetInstance<IContentTypeRepository>(),
                     ServiceLocator.Current.GetInstance<UIDescriptorRegistry>()
@@ -28,7 +28,7 @@
         public VulcanBlockSearchProvider(
             IVulcanHandler vulcanHandler,
             LocalizationService localizationService,
-            SiteDefinitionResolver siteDefinitionResolver,
+            ISiteDefinitionResolver siteDefinitionResolver,
             IContentRepository contentRepository,
             IContentTypeRepository contentTypeRepository,
             UIDescriptorRegistry uiDescriptorRegistry

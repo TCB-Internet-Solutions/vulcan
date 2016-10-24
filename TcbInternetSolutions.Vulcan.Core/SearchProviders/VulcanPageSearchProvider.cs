@@ -17,7 +17,7 @@
               : this(
                     ServiceLocator.Current.GetInstance<IVulcanHandler>(),
                     ServiceLocator.Current.GetInstance<LocalizationService>(),
-                    ServiceLocator.Current.GetInstance<SiteDefinitionResolver>(),
+                    ServiceLocator.Current.GetInstance<ISiteDefinitionResolver>(),
                     ServiceLocator.Current.GetInstance<IContentRepository>(),
                     ServiceLocator.Current.GetInstance<IContentTypeRepository>(),
                     ServiceLocator.Current.GetInstance<UIDescriptorRegistry>()
@@ -27,7 +27,7 @@
         public VulcanPageSearchProvider(
             IVulcanHandler vulcanHandler,
             LocalizationService localizationService,
-            SiteDefinitionResolver siteDefintionResolver,
+            ISiteDefinitionResolver siteDefintionResolver,
             IContentRepository contentRepository,
             IContentTypeRepository contentTypeRepository,
             UIDescriptorRegistry uiDescriptorRegistry

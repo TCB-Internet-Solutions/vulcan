@@ -1,4 +1,5 @@
 ﻿using EPiServer.Security;
+using EPiServer.ServiceLocation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,8 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
 {
     public static class UserExtensions
     {
+        private static Injected<IVirtualRoleRepository> _VirtualRoleRepository { get; }
+
         public static IPrincipal GetUser() => PrincipalInfo.Current.Principal;
 
         public static IPrincipal GetUser(string username) => PrincipalInfo.CreatePrincipal(username);
@@ -19,14 +22,13 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
                 throw new ArgumentNullException(nameof(principle));
 
             var userPrinciple = new PrincipalInfo(principle);
-            var list = new List<string>(userPrinciple.RoleList);
-            VirtualRoleRepository<VirtualRoleProviderBase> repository = VirtualRoleRepository<VirtualRoleProviderBase>.GetDefault();
+            var list = new List<string>(userPrinciple.RoleList);           
 
-            foreach (string name in repository.GetAllRoles())
+            foreach (string name in _VirtualRoleRepository.Service.GetAllRoles())
             {
                 VirtualRoleProviderBase virtualRoleProvider;
 
-                if (repository.TryGetRole(name, out virtualRoleProvider) && virtualRoleProvider.IsInVirtualRole(userPrinciple.Principal, null))
+                if (_VirtualRoleRepository.Service.TryGetRole(name, out virtualRoleProvider) && virtualRoleProvider.IsInVirtualRole(userPrinciple.Principal, null))
                     list.Add(name);
 
             }
