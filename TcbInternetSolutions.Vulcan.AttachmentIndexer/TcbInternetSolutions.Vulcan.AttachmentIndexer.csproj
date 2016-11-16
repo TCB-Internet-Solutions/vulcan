@@ -185,7 +185,7 @@
     <None Include="app.config" />
     <None Include="packages.config" />
     <None Include="TcbInternetSolutions.Vulcan.AttachmentIndexer.nuspec" />
-    <None Include="web.config.install.xdt" />
+    <Content Include="web.config.install.xdt" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TcbInternetSolutions.Vulcan.Core\TcbInternetSolutions.Vulcan.Core.csproj">
