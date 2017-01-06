@@ -9,6 +9,7 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Web;
 
     public class VulcanCmsIndexingModifier : IVulcanIndexingModifier
     {
@@ -36,7 +37,7 @@
                                 x.Access.HasFlag(AccessLevel.Read) ||
                                 x.Access.HasFlag(AccessLevel.Administer) ||
                                 x.Access.HasFlag(AccessLevel.FullAccess))
-                            .Select(x => "\"" + x.Name + "\"")
+                            .Select(x => "\"" + HttpUtility.JavaScriptStringEncode(x.Name) + "\"")
                         ));
                 streamWriter.Write("]");
             }
