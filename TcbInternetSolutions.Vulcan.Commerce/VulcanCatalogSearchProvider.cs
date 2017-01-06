@@ -1,7 +1,6 @@
 ﻿namespace TcbInternetSolutions.Vulcan.Commerce
 {
     using EPiServer;
-    using EPiServer.Business.Commerce.Providers;
     using EPiServer.Commerce.Catalog.ContentTypes;
     using EPiServer.Core;
     using EPiServer.DataAbstraction;
@@ -22,7 +21,7 @@
               : this(
                     ServiceLocator.Current.GetInstance<IVulcanHandler>(),
                     ServiceLocator.Current.GetInstance<LocalizationService>(),
-                    ServiceLocator.Current.GetInstance<SiteDefinitionResolver>(),
+                    ServiceLocator.Current.GetInstance<ISiteDefinitionResolver>(),
                     ServiceLocator.Current.GetInstance<IContentRepository>(),
                     ServiceLocator.Current.GetInstance<IContentTypeRepository>(),
                     ServiceLocator.Current.GetInstance<UIDescriptorRegistry>()
@@ -32,18 +31,17 @@
         public VulcanCatalogSearchProvider(
             IVulcanHandler vulcanHandler,
             LocalizationService localizationService,
-            SiteDefinitionResolver siteDefinitionResolver,
+            ISiteDefinitionResolver siteDefinitionResolver,
             IContentRepository contentRepository,
             IContentTypeRepository contentTypeRepository,
             UIDescriptorRegistry uiDescriptorRegistry
         )
           : base(vulcanHandler, contentRepository, contentTypeRepository, localizationService, uiDescriptorRegistry, siteDefinitionResolver)
         {
-
             EditPath = new Func<IContent, ContentReference, string, string>(GetEditPath);
         }
 
-        public override string Area => ProductSearchProviderBase.SearchArea;
+        public override string Area => "Commerce/Catalog";
 
         public override string Category => _LocalizationService.GetString("/vulcan/searchprovider/products/name");
 
