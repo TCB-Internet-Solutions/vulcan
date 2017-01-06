@@ -3,6 +3,7 @@
     using EPiServer;
     using EPiServer.Core;
     using EPiServer.DataAbstraction.RuntimeModel;
+    using EPiServer.DataAbstraction.RuntimeModel.Internal;
     using EPiServer.Logging;
     using EPiServer.ServiceLocation;
     using Extensions;

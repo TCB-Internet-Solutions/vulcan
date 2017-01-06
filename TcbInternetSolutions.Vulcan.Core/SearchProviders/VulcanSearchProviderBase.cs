@@ -34,7 +34,7 @@
 
         protected IContentTypeRepository _ContentTypeRepository;
 
-        protected SiteDefinitionResolver _SiteDefinitionResolver;
+        protected ISiteDefinitionResolver _SiteDefinitionResolver;
 
         protected LocalizationService _LocalizationService;
 
@@ -42,7 +42,7 @@
 
         protected IVulcanHandler _VulcanHandler;
 
-        public VulcanSearchProviderBase(IVulcanHandler vulcanHandler, IContentRepository contentRepository, IContentTypeRepository contentTypeRepository, LocalizationService localizationService, UIDescriptorRegistry uiDescriptorRegistry, SiteDefinitionResolver enterpriseSettings)
+        public VulcanSearchProviderBase(IVulcanHandler vulcanHandler, IContentRepository contentRepository, IContentTypeRepository contentTypeRepository, LocalizationService localizationService, UIDescriptorRegistry uiDescriptorRegistry, ISiteDefinitionResolver enterpriseSettings)
         {
             _VulcanHandler = vulcanHandler;
             _ContentRepository = contentRepository;
@@ -208,7 +208,7 @@
             string language = localizable != null ? localizable.Language.Name : ContentLanguage.PreferredCulture.Name;
             string editUrl = EditPath(contentData, contentLink, language);
             onCurrentHost = true;
-            SiteDefinition definitionForContent = _SiteDefinitionResolver.GetDefinitionForContent(contentData.ContentLink, true, true);
+            SiteDefinition definitionForContent = _SiteDefinitionResolver.GetByContent(contentData.ContentLink, true, true);
 
             if (definitionForContent?.SiteUrl != SiteDefinition.Current.SiteUrl)
                 onCurrentHost = false;

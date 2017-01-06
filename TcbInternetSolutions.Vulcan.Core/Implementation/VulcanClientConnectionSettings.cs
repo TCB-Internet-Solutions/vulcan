@@ -3,6 +3,9 @@ using EPiServer.ServiceLocation;
 using Nest;
 using System;
 using System.Configuration;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Web;
 using System.Web.Configuration;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
@@ -44,7 +47,8 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 throw new Exception("You need to specify the Vulcan Index in AppSettings");
             }
 
-            var connectionPool = GetConnectionPool(url);
+            var connectionPool = VulcanConnectionPoolFactory.CreateConnectionPool(url);
+
             var settings = new ConnectionSettings(connectionPool, s => new VulcanCustomJsonSerializer(s));
             var username = ConfigurationManager.AppSettings["VulcanUsername"];
             var password = ConfigurationManager.AppSettings["VulcanPassword"];
@@ -65,12 +69,5 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             return settings;
         }
-
-        /// <summary>
-        /// Allows for simpler overriding of connection pool, see https://www.elastic.co/guide/en/elasticsearch/client/net-api/current/connection-pooling.html
-        /// </summary>
-        /// <param name="vulcanUrl"></param>
-        /// <returns></returns>
-        protected virtual IConnectionPool GetConnectionPool(string vulcanUrl) => new SingleNodeConnectionPool(new Uri(vulcanUrl));
     }
 }
