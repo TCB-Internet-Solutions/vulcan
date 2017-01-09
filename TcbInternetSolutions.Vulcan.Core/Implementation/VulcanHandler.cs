@@ -559,5 +559,37 @@
                 }
             }
         }
+
+        private Dictionary<Type, List<IVulcanConditionalContentIndexInstruction>> conditionalContentIndexInstructions { get; set; } = new Dictionary<Type, List<IVulcanConditionalContentIndexInstruction>>();
+
+        public void AddConditionalContentIndexInstruction<T>(Func<T, bool> instruction) where T : IContent
+        {
+            if(!conditionalContentIndexInstructions.ContainsKey(typeof(T)))
+            {
+                conditionalContentIndexInstructions.Add(typeof(T), new List<IVulcanConditionalContentIndexInstruction>());
+            }
+
+            conditionalContentIndexInstructions[typeof(T)].Add(new VulcanConditionalContentIndexInstruction<T>(instruction));
+        }
+
+        public bool AllowContentIndexing(IContent objectToIndex)
+        {
+            bool allowIndex = true; // default is true;
+
+            foreach(var kvp in conditionalContentIndexInstructions)
+            {
+                if(kvp.Key.IsAssignableFrom(objectToIndex.GetType()))
+                {
+                    foreach(var instruction in kvp.Value)
+                    {
+                        allowIndex = instruction.AllowContentIndexing(objectToIndex);
+
+                        if (!allowIndex) break; // we only care about first FALSE
+                    }
+                }
+            }
+
+            return allowIndex;
+        }
     }
 }

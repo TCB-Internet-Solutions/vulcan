@@ -108,22 +108,27 @@
 
             if (versionableContent == null || versionableContent.Status == VersionStatus.Published)
             {
-                try
-                {
-                    var response = base.Index(content, c => c.Id(GetId(content)).Type(GetTypeName(content)));
+                // see if we should index this content
 
-                    if (response.IsValid)
-                    {
-                        Logger.Debug("Vulcan indexed " + GetId(content) + " for language " + Language.GetCultureName() + ": " + response.DebugInformation);
-                    }
-                    else
-                    {
-                        throw new Exception(response.DebugInformation);
-                    }
-                }
-                catch (Exception e)
+                if (VulcanHandler.Service.AllowContentIndexing(content))
                 {
-                    Logger.Error("Vulcan could not index content with content link " + GetId(content) + " for language " + Language.GetCultureName() + ": ", e);
+                    try
+                    {
+                        var response = base.Index(content, c => c.Id(GetId(content)).Type(GetTypeName(content)));
+
+                        if (response.IsValid)
+                        {
+                            Logger.Debug("Vulcan indexed " + GetId(content) + " for language " + Language.GetCultureName() + ": " + response.DebugInformation);
+                        }
+                        else
+                        {
+                            throw new Exception(response.DebugInformation);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error("Vulcan could not index content with content link " + GetId(content) + " for language " + Language.GetCultureName() + ": ", e);
+                    }
                 }
             }
         }

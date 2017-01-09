@@ -1,4 +1,5 @@
 ﻿using EPiServer.Core;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 
@@ -30,5 +31,9 @@ namespace TcbInternetSolutions.Vulcan.Core
         void IndexContentEveryLanguage(IContent content);
 
         IEnumerable<IVulcanIndexingModifier> IndexingModifers { get; }
+
+        void AddConditionalContentIndexInstruction<T>(Func<T, bool> instruction) where T : IContent;
+
+        bool AllowContentIndexing(IContent objectToIndex);
     }
 }
