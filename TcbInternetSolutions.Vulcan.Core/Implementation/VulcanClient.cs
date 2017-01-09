@@ -67,6 +67,27 @@
             }
         }
 
+        public virtual void DeleteContent(ContentReference contentLink)
+        {
+            // we don't know content type so try and find it in current language index
+
+            var result = SearchContent<IContent>(s => s.Query(q => q.Term(c => c.ContentLink, contentLink.ToReferenceWithoutVersion()))).GetContents().FirstOrDefault();
+
+            if(result != null)
+            {
+                try
+                {
+                    var response = base.Delete(new DeleteRequest(IndexName, result.GetTypeName(), contentLink.ToReferenceWithoutVersion().ToString()));
+
+                    Logger.Debug("Vulcan (using direct content link) deleted " + contentLink.ToReferenceWithoutVersion().ToString() + " for language " + Language.GetCultureName() + ": " + response.DebugInformation);
+                }
+                catch (Exception e)
+                {
+                    Logger.Warning("Vulcan could not delete (using direct content link) content with content link " + contentLink.ToReferenceWithoutVersion().ToString() + " for language " + Language.GetCultureName() + ":", e);
+                }
+            }
+        }
+
         public virtual Dictionary<string, KeyValuePair<string[], bool>> GetSynonyms() => VulcanHelper.GetSynonyms(Language.Name);
 
         public virtual void IndexContent(IContent content)

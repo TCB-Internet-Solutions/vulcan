@@ -28,14 +28,14 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         void Service_DeletedContent(object sender, EPiServer.DeleteContentEventArgs e)
         {
-            VulcanHandler.Service.DeleteContentEveryLanguage(e.Content);
+            VulcanHandler.Service.DeleteContentEveryLanguage(e.ContentLink);
         }
 
         void Service_MovedContent(object sender, EPiServer.ContentEventArgs e)
         {
             if (e.TargetLink.CompareToIgnoreWorkID(SiteDefinition.Current.WasteBasket))
             {
-                VulcanHandler.Service.DeleteContentEveryLanguage(e.Content);
+                VulcanHandler.Service.DeleteContentEveryLanguage(e.ContentLink);
             }
             else
             {

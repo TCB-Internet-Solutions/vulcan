@@ -23,7 +23,7 @@ namespace TcbInternetSolutions.Vulcan.Core
 
         void DeleteContentByLanguage(IContent content);
 
-        void DeleteContentEveryLanguage(IContent content);
+        void DeleteContentEveryLanguage(ContentReference contentLink);
 
         void IndexContentByLanguage(IContent content);
 

@@ -19,6 +19,8 @@ namespace TcbInternetSolutions.Vulcan.Core
 
         void DeleteContent(IContent content);
 
+        void DeleteContent(ContentReference contentLink);
+
         string IndexName { get; }
 
         CultureInfo Language { get; }

@@ -63,22 +63,13 @@
             client.DeleteContent(content);
         }
 
-        public virtual void DeleteContentEveryLanguage(IContent content)
+        public virtual void DeleteContentEveryLanguage(ContentReference contentLink)
         {
-            if (!(content is ILocalizable))
-            {
-                var client = GetClient(CultureInfo.InvariantCulture);
+            // we don't know what language(s), or even if invariant, so send a delete request to all
 
-                client.DeleteContent(content);
-            }
-            else
+            foreach(var client in GetClients())
             {
-                foreach (var language in (content as ILocalizable).ExistingLanguages)
-                {
-                    var client = GetClient(language);
-
-                    client.DeleteContent(content);
-                }
+                client.DeleteContent(contentLink);
             }
         }
 
@@ -239,7 +230,6 @@
             if (!(content is ILocalizable))
             {
                 client = GetClient(CultureInfo.InvariantCulture);
-
             }
             else
             {
