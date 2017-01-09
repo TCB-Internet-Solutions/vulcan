@@ -22,6 +22,41 @@
     {
         <div data-dojo-type="dijit/layout/TabContainer" style="width: 100%;" id="tabContainer" dolayout="true">
             <div data-dojo-type="dijit/layout/ContentPane" title="Configuration" data-dojo-props="selected:true" style="">
+                @{
+                    var healthResponse = clients.FirstOrDefault().CatIndices();
+
+                    <h3>Index Information</h3>
+                    <table class="epi-default">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Health</th>
+                                <th>Status</th>
+                                <th>Shards</th>
+                                <th>Replicas</th>
+                                <th>Doc Count</th>
+                                <th>Size</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var record in healthResponse.Records)
+                            {
+                                if (record.Index.StartsWith(Model.VulcanHandler.Index))
+                                {
+                                    <tr>
+                                        <td>@record.Index</td>
+                                        <td>@record.Health</td>
+                                        <td>@record.Status</td>
+                                        <td>@record.Primary</td>
+                                        <td>@record.Replica</td>
+                                        <td>@record.DocsCount</td>
+                                        <td>@record.StoreSize</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                }
                 <h3>Indexing Modifiers</h3>
                 @if (Model.VulcanHandler.IndexingModifers == null || !Model.VulcanHandler.IndexingModifers.Any())
                 {

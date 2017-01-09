@@ -10,13 +10,26 @@ using System.Web.Configuration;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
+    /// <summary>
+    /// Default Vulcan Client Connection settings, using a single connection pool and app setting values
+    /// </summary>
     [ServiceConfiguration(typeof(IVulcanClientConnectionSettings), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanClientConnectionSettings : IVulcanClientConnectionSettings
-    { 
+    {
+        /// <summary>
+        /// Gets common settings from AppSetting keys 'VulcanUrl', 'VulcanIndex', 'VulcanUsername' (optional), 'VulcanPassword' (optional), 'VulcanEnableHttpCompression' (optional true/false)
+        /// </summary>
         public virtual ConnectionSettings ConnectionSettings => CommonSettings();
 
+        /// <summary>
+        /// Value of AppSetting 'VulcanIndex'
+        /// </summary>
         public virtual string Index => ConfigurationManager.AppSettings["VulcanIndex"];
 
+        /// <summary>
+        /// Common connection settings
+        /// </summary>
+        /// <returns></returns>
         protected virtual ConnectionSettings CommonSettings()
         {
             CompilationSection section = ConfigurationManager.GetSection("system.web/compilation") as CompilationSection;

@@ -1,10 +1,6 @@
-﻿using EPiServer;
-using EPiServer.Core;
+﻿using EPiServer.Core;
 using EPiServer.Editor;
 using EPiServer.Shell;
-using EPiServer.Shell.Modules;
-using EPiServer.Web;
-using System;
 using System.IO;
 using System.Linq;
 
