@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>$id$</id>    
-    <version>0.2.0-epi10</version>
+    <version>0.2.0</version>
     <authors>Dan Matthews</authors>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Support for indexing attachments</description>

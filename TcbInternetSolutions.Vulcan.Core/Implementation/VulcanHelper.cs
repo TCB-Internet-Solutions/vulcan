@@ -8,9 +8,9 @@ using System.Linq;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
-    internal static class VulcanHelper
+    public static class VulcanHelper
     {
-        internal static string GetIndexName(string IndexNameBase, CultureInfo language)
+        public static string GetIndexName(string IndexNameBase, CultureInfo language)
         {
             var suffix = "_";
 
@@ -36,7 +36,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 typeof(PageType)
             };
 
-        internal static string GetAnalyzer(CultureInfo cultureInfo)
+        public static string GetAnalyzer(CultureInfo cultureInfo)
         {
             if (cultureInfo != CultureInfo.InvariantCulture) // check if we have non-language data
             {

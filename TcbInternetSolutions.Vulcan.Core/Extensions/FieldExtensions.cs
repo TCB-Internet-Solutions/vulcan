@@ -6,7 +6,7 @@ using System.Linq.Expressions;
 namespace TcbInternetSolutions.Vulcan.Core.Extensions
 {
     public static class FieldExtensions
-    {        
+    {
         internal static DefaultContractResolver fallbackNameResolver = new CamelCasePropertyNamesContractResolver();
 
         /// <summary>
@@ -27,9 +27,9 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
         /// <param name="boost"></param>
         /// <param name="resolver">CamelCasePropertyNamesContractResolver by default</param>
         /// <returns></returns>
+        [Obsolete("Please use f => f.PropertyName.Suffix(VulcanFieldConstants.AnalyzedModifier) instead.", false)]
         public static FieldsDescriptor<T> FieldAnalyzed<T>(this FieldsDescriptor<T> descriptor, Expression<Func<T, object>> field, double? boost = null, DefaultContractResolver resolver = null) where T : class
         {
-            // TODO: Can we append analyzed to the name simpler than this?
             MemberExpression memberExpression = null;
 
             if (field.Body.NodeType == ExpressionType.Convert)
@@ -40,7 +40,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
             {
                 memberExpression = field.Body as MemberExpression;
             }
-            
+
             if (memberExpression != null)
             {
                 resolver = resolver ?? fallbackNameResolver;
