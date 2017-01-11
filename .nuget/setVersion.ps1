@@ -1,5 +1,5 @@
 # Sets AppVeyor variables for custom assembly info patching
-$path = 'src\**\AssemblyInfo.*'
+$path = '**\AssemblyInfo.*'
 $build = $env:APPVEYOR_BUILD_NUMBER
 $commit = $env:APPVEYOR_REPO_COMMIT
 $year = [System.DateTime]::Now.Year
