@@ -1,0 +1,11 @@
+configuration: Release
+before_build:
+- cmd: nuget restore
+- ps: .\.nuget\setVersion.ps1    
+build:
+  verbosity: minimal
+after_test:
+- ps: .\.nuget\pack.ps1    
+artifacts:
+  - path: '*.nupkg'
+    name: nuget

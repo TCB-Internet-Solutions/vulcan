@@ -6,9 +6,17 @@
     using System.Configuration;
     using System.Linq;
 
+    /// <summary>
+    /// Determines if attachment can be indexed
+    /// </summary>
     [ServiceConfiguration(typeof(IVulcanAttachmentInspector), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanAttachmentInspector : IVulcanAttachmentInspector
     {
+        /// <summary>
+        /// Determines if given mediadata is indexable
+        /// </summary>
+        /// <param name="media"></param>
+        /// <returns></returns>
         public virtual bool AllowIndexing(MediaData media)
         {
             if (media == null)

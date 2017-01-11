@@ -12,6 +12,9 @@
     using System.Web;
     using TcbInternetSolutions.Vulcan.Core;
 
+    /// <summary>
+    /// Init module to determine if mapper-attachments is available
+    /// </summary>
     [InitializableModule]
     [ModuleDependency(typeof(ServiceContainerInitialization))]
     public class VulcanAttachmentIndexerInitialization : IInitializableModule
@@ -20,6 +23,10 @@
 
         private ILogger _Logger = LogManager.GetLogger(typeof(VulcanAttachmentIndexerInitialization));
 
+        /// <summary>
+        /// Determines if elastic server has mapper-attachments installed
+        /// </summary>
+        /// <param name="context"></param>
         public void Initialize(InitializationEngine context)
         {
             CurrentHostType = HostType.WebApplication;
@@ -50,6 +57,10 @@
             }
         }
 
+        /// <summary>
+        /// Uninitialize
+        /// </summary>
+        /// <param name="context"></param>
         public void Uninitialize(InitializationEngine context)
         {
 

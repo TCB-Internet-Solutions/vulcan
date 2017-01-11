@@ -3,16 +3,22 @@ using EPiServer.Logging;
 using EPiServer.ServiceLocation;
 using System;
 using System.IO;
-using TcbInternetSolutions.Vulcan.Core;
-using TcbInternetSolutions.Vulcan.Core.Extensions;
 using static TcbInternetSolutions.Vulcan.Core.VulcanFieldConstants;
 
 namespace TcbInternetSolutions.Vulcan.AttachmentIndexer
 {
+    /// <summary>
+    /// Adds attachment content to serialized data
+    /// </summary>
     public class VulcanAttachmentIndexModifier : Core.IVulcanIndexingModifier
     {
         private ILogger _Logger = LogManager.GetLogger(typeof(VulcanAttachmentIndexModifier));
 
+        /// <summary>
+        /// Adds attachment content to serialized data
+        /// </summary>
+        /// <param name="content"></param>
+        /// <param name="writableStream"></param>
         public void ProcessContent(IContent content, Stream writableStream)
         {
             var media = content as MediaData;

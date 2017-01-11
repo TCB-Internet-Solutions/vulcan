@@ -10,16 +10,31 @@ using static TcbInternetSolutions.Vulcan.Core.VulcanFieldConstants;
 
 namespace TcbInternetSolutions.Vulcan.AttachmentIndexer.Implementation
 {
+    /// <summary>
+    /// Adds property mapping for attachments
+    /// </summary>
     public class VulcanAttachmentPropertyMapper
     {
         private static ILogger _Logger = LogManager.GetLogger(typeof(VulcanAttachmentPropertyMapper));
 
         internal static List<string> AddedMappings = new List<string>();
 
+        /// <summary>
+        /// Add mapping via IContent
+        /// </summary>
+        /// <param name="mediaType"></param>
         public static void AddMapping(IContent mediaType) => AddMapping(mediaType.GetTypeName());
 
+        /// <summary>
+        /// Add mapping by Type
+        /// </summary>
+        /// <param name="mediaType"></param>
         public static void AddMapping(Type mediaType) => AddMapping(mediaType.FullName);
 
+        /// <summary>
+        /// Add mapping by string
+        /// </summary>
+        /// <param name="typeName"></param>
         public static void AddMapping(string typeName)
         {
             if (AddedMappings?.Contains(typeName) == true) return;

@@ -1,12 +1,21 @@
 <?xml version="1.0"?>
 <package >
   <metadata>
-    <id>$id$</id>
-    <version>2.1.0</version>
-    <authors>Dan Matthews</authors>
+    <id>TcbInternetSolutions.Vulcan.Core</id>
+    <version>$version$</version>
+    <authors>Dan Matthews, Brad McDavid</authors>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Vulcan, the lightweight Elasticsearch client for Episerver</description>
-    <copyright>Copyright 2016</copyright>
+    <copyright>Copyright $year$</copyright>
     <tags>ElasticSearch Nest Search</tags>
+    <dependencies>
+      <dependency id="TcbInternetSolutions.Vulcan.Core" version="[1,3)" />
+      <dependency id="NEST" version="[2.3,3)" />
+    </dependencies>
   </metadata>
+  <files>
+    <file src="bin\Release\TcbInternetSolutions.Vulcan.Core.dll" target="lib\net45" />
+    <file src="bin\Release\TcbInternetSolutions.Vulcan.Core.pdb" target="lib\net45" />
+    <file src="bin\Release\TcbInternetSolutions.Vulcan.Core.xml" target="lib\net45" />
+  </files>
 </package>
