@@ -10,7 +10,7 @@
     <copyright>Copyright $year$</copyright>
     <tags>Vulcan UI Management ElasticSearch</tags>
     <dependencies>
-      <dependency id="TcbInternetSolutions.Vulcan.Core" version="[2,1,0)" />
+      <dependency id="TcbInternetSolutions.Vulcan.Core" version="[2,1)" />
     </dependencies>
   </metadata>
   <files>
