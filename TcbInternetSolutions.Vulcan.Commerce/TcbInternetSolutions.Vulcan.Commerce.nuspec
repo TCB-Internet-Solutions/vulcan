@@ -11,6 +11,7 @@
     <dependencies>
       <dependency id="EPiServer.Commerce.Core" version="[10,11)" />
       <dependency id="EPiServer.CMS.UI.Core" version="[10,11)" />
+      <dependency id="TcbInternetSolutions.Vulcan.Core" version="[2,1,0)" />
     </dependencies>
   </metadata>
   <files>
