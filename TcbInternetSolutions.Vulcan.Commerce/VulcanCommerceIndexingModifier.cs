@@ -1,5 +1,7 @@
 ﻿using EPiServer;
 using EPiServer.Commerce.Catalog.ContentTypes;
+using EPiServer.Commerce.Catalog.Linking;
+using EPiServer.Core;
 using EPiServer.Security;
 using EPiServer.ServiceLocation;
 using Mediachase.Commerce.Markets;
@@ -12,6 +14,8 @@ namespace TcbInternetSolutions.Vulcan.Commerce
 {
     public class VulcanCommerceIndexingModifier : IVulcanIndexingModifier
     {
+        public Injected<ILinksRepository> LinksRepository { get; set; }
+
         public void ProcessContent(EPiServer.Core.IContent content, System.IO.Stream writableStream)
         {
             var streamWriter = new StreamWriter(writableStream);
@@ -175,6 +179,46 @@ namespace TcbInternetSolutions.Vulcan.Commerce
             }
 
             return prices;
+        }
+
+        public IEnumerable<ContentReference> GetAncestors(IContent content)
+        {
+            var ancestors = new List<ContentReference>();
+
+            if (content is VariationContent)
+            {
+                var productAncestors = LinksRepository.Service.GetRelationsByTarget(content.ContentLink)?.OfType<ProductVariation>();
+
+                if (productAncestors != null && productAncestors.Any())
+                {
+                    ancestors.AddRange(productAncestors.Select(pa => pa.Source));
+
+                    ancestors.AddRange(productAncestors.SelectMany(pa => GetAncestorCategoriesIterative(pa.Source)));
+                }
+            }
+
+            // for these purposes, we assume that products cannot exist inside other products
+            // variant may also exist directly inside a category
+
+            ancestors.AddRange(GetAncestorCategoriesIterative(content.ContentLink));
+
+            return ancestors.Distinct();
+        }
+
+        private IEnumerable<ContentReference> GetAncestorCategoriesIterative(ContentReference contentLink)
+        {
+            var ancestors = new List<ContentReference>();
+
+            var categories = LinksRepository.Service.GetRelationsBySource(contentLink)?.OfType<NodeRelation>();
+
+            if(categories != null && categories.Any())
+            {
+                ancestors.AddRange(categories.Select(pa => pa.Target));
+
+                ancestors.AddRange(categories.SelectMany(c => GetAncestorCategoriesIterative(c.Target)));
+            }
+
+            return ancestors;
         }
     }
 }

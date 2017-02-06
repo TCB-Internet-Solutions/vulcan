@@ -15,14 +15,39 @@
     {
         public Injected<IContentLoader> ContentLoader { get; set; }
 
+        public Injected<IVulcanHandler> VulcanHandler { get; set; }
+
         public virtual void ProcessContent(EPiServer.Core.IContent content, System.IO.Stream writableStream)
         {
             var streamWriter = new StreamWriter(writableStream);
-            var ancestors = ContentLoader.Service.GetAncestors(content.ContentLink);
+
+            var ancestors = new List<ContentReference>();
+
+            if (VulcanHandler.Service.IndexingModifers != null && VulcanHandler.Service.IndexingModifers.Any())
+            {
+                foreach (var indexingModifier in VulcanHandler.Service.IndexingModifers)
+                {
+                    IEnumerable<ContentReference> ancestorsFound = null;
+
+                    try
+                    {
+                        ancestorsFound = indexingModifier.GetAncestors(content);
+                    }
+                    catch (Exception e)
+                    {
+                        if (!(e is NotImplementedException)) throw (e); // not implemented is OK for an indexing modifier
+                    }
+
+                    if (ancestorsFound != null && ancestorsFound.Any())
+                    {
+                        ancestors.AddRange(ancestorsFound);
+                    }
+                }
+            }
 
             // index ancestors
             streamWriter.Write(",\"" + VulcanFieldConstants.Ancestors + "\":[");
-            streamWriter.Write(string.Join(",", ancestors.Select(x => "\"" + x.ContentLink.ToReferenceWithoutVersion().ToString() + "\"")));
+            streamWriter.Write(string.Join(",", ancestors.Select(x => x.ToReferenceWithoutVersion()).Distinct().Select(x => "\"" + x.ToString() + "\"")));
             streamWriter.Write("]");
             
             // index read permission
@@ -70,6 +95,11 @@
             //streamWriter.Write("]");
 
             streamWriter.Flush();
+        }
+
+        public IEnumerable<ContentReference> GetAncestors(IContent content)
+        {
+            return ContentLoader.Service.GetAncestors(content.ContentLink)?.Select(c => c.ContentLink);
         }
     }
 }

@@ -265,6 +265,7 @@
   <ItemGroup>
     <Compile Include="Extensions\PriceExtensions.cs" />
     <Compile Include="VulcanCatalogSearchProvider.cs" />
+    <Compile Include="VulcanCommerceContentSynchronization.cs" />
     <Compile Include="VulcanFieldHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="VulcanCommerceIndexer.cs" />

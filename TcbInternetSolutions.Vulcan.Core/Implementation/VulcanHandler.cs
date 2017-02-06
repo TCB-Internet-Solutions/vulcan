@@ -271,6 +271,16 @@
             }
         }
 
+        public virtual void IndexContentEveryLanguage(ContentReference contentLink)
+        {
+            if (!ContentReference.IsNullOrEmpty(contentLink))
+            {
+                var content = ContentLoader.Service.Get<IContent>(contentLink);
+
+                if (content != null) IndexContentEveryLanguage(content);
+            }
+        }
+
         protected virtual IElasticClient CreateElasticClient(IConnectionSettingsValues settings) => new ElasticClient(settings);
 
         protected virtual IVulcanClient CreateVulcanClient(string index, ConnectionSettings settings, CultureInfo culture) =>

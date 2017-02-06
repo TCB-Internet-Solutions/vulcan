@@ -4,6 +4,7 @@ using EPiServer.ServiceLocation;
 using System;
 using System.IO;
 using static TcbInternetSolutions.Vulcan.Core.VulcanFieldConstants;
+using System.Collections.Generic;
 
 namespace TcbInternetSolutions.Vulcan.AttachmentIndexer
 {
@@ -13,6 +14,11 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer
     public class VulcanAttachmentIndexModifier : Core.IVulcanIndexingModifier
     {
         private ILogger _Logger = LogManager.GetLogger(typeof(VulcanAttachmentIndexModifier));
+
+        public IEnumerable<ContentReference> GetAncestors(IContent content)
+        {
+            throw new NotImplementedException();
+        }
 
         /// <summary>
         /// Adds attachment content to serialized data
