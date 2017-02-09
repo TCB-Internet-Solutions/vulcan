@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>TcbInternetSolutions.Vulcan.Commerce</id>
-    <version>$version$</version>B
+    <version>$version$</version>
     <authors>Dan Matthews, Brad McDavid</authors>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Commerce support for Vulcan, the lightweight Elasticsearch client for Episerver</description>
