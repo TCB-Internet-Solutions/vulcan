@@ -22,6 +22,10 @@
     using System.Web;
     using TcbInternetSolutions.Vulcan.Core.Extensions;
 
+    /// <summary>
+    /// Base class for UI search providers
+    /// </summary>
+    /// <typeparam name="TContent"></typeparam>
     public abstract class VulcanSearchProviderBase<TContent> :
         ISearchProvider, ISortable where TContent : class, IContent
     {
@@ -30,18 +34,45 @@
         /// </summary>
         public Func<IContent, ContentReference, string, string> EditPath;
 
+        /// <summary>
+        /// Content repository
+        /// </summary>
         protected IContentRepository _ContentRepository;
 
+        /// <summary>
+        /// Content type repository
+        /// </summary>
         protected IContentTypeRepository _ContentTypeRepository;
 
+        /// <summary>
+        /// Site definition resolver
+        /// </summary>
         protected ISiteDefinitionResolver _SiteDefinitionResolver;
 
+        /// <summary>
+        /// Localization service
+        /// </summary>
         protected LocalizationService _LocalizationService;
 
+        /// <summary>
+        /// UI descriptor registry
+        /// </summary>
         protected UIDescriptorRegistry _UIDescriptorRegistry;
 
+        /// <summary>
+        /// Vulcan handler
+        /// </summary>
         protected IVulcanHandler _VulcanHandler;
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="vulcanHandler"></param>
+        /// <param name="contentRepository"></param>
+        /// <param name="contentTypeRepository"></param>
+        /// <param name="localizationService"></param>
+        /// <param name="uiDescriptorRegistry"></param>
+        /// <param name="enterpriseSettings"></param>
         public VulcanSearchProviderBase(IVulcanHandler vulcanHandler, IContentRepository contentRepository, IContentTypeRepository contentTypeRepository, LocalizationService localizationService, UIDescriptorRegistry uiDescriptorRegistry, ISiteDefinitionResolver enterpriseSettings)
         {
             _VulcanHandler = vulcanHandler;
@@ -62,12 +93,24 @@
             };
         }
 
+        /// <summary>
+        /// UI search area
+        /// </summary>
         public abstract string Area { get; }
 
+        /// <summary>
+        /// UI search category
+        /// </summary>
         public abstract string Category { get; }
 
+        /// <summary>
+        /// Sort order
+        /// </summary>
         public virtual int SortOrder => 99;
 
+        /// <summary>
+        /// Include invariant results
+        /// </summary>
         public virtual bool IncludeInvariant => false;
 
         /// <summary>
@@ -152,14 +195,14 @@
         /// <summary>
         /// Builds result search information for IContent
         /// </summary>
-        /// <param name="content"></param>
+        /// <param name="searchHit"></param>
         /// <returns></returns>
-        protected virtual SearchResult CreateSearchResult(IHit<IContent> hit)
+        protected virtual SearchResult CreateSearchResult(IHit<IContent> searchHit)
         {
-            Validator.ThrowIfNull(nameof(hit), hit);
+            Validator.ThrowIfNull(nameof(searchHit), searchHit);
 
             // load the content from the given link
-            var referenceString = (hit.Fields["contentLink"] as JArray)?.FirstOrDefault();
+            var referenceString = (searchHit.Fields["contentLink"] as JArray)?.FirstOrDefault();
             ContentReference reference = null;
 
             if (referenceString != null)

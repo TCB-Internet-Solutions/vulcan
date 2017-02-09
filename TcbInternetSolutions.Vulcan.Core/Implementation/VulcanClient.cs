@@ -12,10 +12,19 @@
     using System.Security.Principal;
     using TcbInternetSolutions.Vulcan.Core.Extensions;
 
+    /// <summary>
+    /// Default vulcan client
+    /// </summary>
     public class VulcanClient : ElasticClient, IVulcanClient
     {
         private static ILogger Logger = LogManager.GetLogger();
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="index"></param>
+        /// <param name="settings"></param>
+        /// <param name="language"></param>
         public VulcanClient(string index, ConnectionSettings settings, CultureInfo language)
             : base(settings)
         {
@@ -28,19 +37,41 @@
             IndexName = VulcanHelper.GetIndexName(index, Language);
         }
 
+        /// <summary>
+        /// Vulcan index name
+        /// </summary>
         public virtual string IndexName { get; }
 
+        /// <summary>
+        /// Vulcan culture
+        /// </summary>
         public virtual CultureInfo Language { get; }
 
+        /// <summary>
+        /// Injected Content Loader
+        /// </summary>
         protected Injected<IContentLoader> ContentLoader { get; set; }
 
+        /// <summary>
+        /// Injected Vulcan Handler
+        /// </summary>
         protected Injected<IVulcanHandler> VulcanHandler { get; set; }
 
+        /// <summary>
+        /// Adds a synonym
+        /// </summary>
+        /// <param name="term"></param>
+        /// <param name="synonyms"></param>
+        /// <param name="biDirectional"></param>
         public virtual void AddSynonym(string term, string[] synonyms, bool biDirectional)
         {
             VulcanHelper.AddSynonym(Language.Name, term, synonyms, biDirectional);
         }
 
+        /// <summary>
+        /// Deletes content from index
+        /// </summary>
+        /// <param name="content"></param>
         public virtual void DeleteContent(IContent content)
         {
             var localizableContent = content as ILocalizable;
@@ -67,13 +98,17 @@
             }
         }
 
+        /// <summary>
+        /// Deletes content from index
+        /// </summary>
+        /// <param name="contentLink"></param>
         public virtual void DeleteContent(ContentReference contentLink)
         {
             // we don't know content type so try and find it in current language index
 
             var result = SearchContent<IContent>(s => s.Query(q => q.Term(c => c.ContentLink, contentLink.ToReferenceWithoutVersion()))).GetContents().FirstOrDefault();
 
-            if(result != null)
+            if (result != null)
             {
                 try
                 {
@@ -88,13 +123,21 @@
             }
         }
 
+        /// <summary>
+        /// Gets synonyms for language
+        /// </summary>
+        /// <returns></returns>
         public virtual Dictionary<string, KeyValuePair<string[], bool>> GetSynonyms() => VulcanHelper.GetSynonyms(Language.Name);
 
+        /// <summary>
+        /// Index given content
+        /// </summary>
+        /// <param name="content"></param>
         public virtual void IndexContent(IContent content)
         {
-            var localizableContent = content as ILocalizable;            
+            var localizableContent = content as ILocalizable;
 
-            if (localizableContent != null  && !localizableContent.Language.Equals(Language))
+            if (localizableContent != null && !localizableContent.Language.Equals(Language))
             {
                 throw new Exception("Cannot index content '" + GetId(content) + "' with language " + (content as ILocalizable).Language.Name + " with Vulcan client for language " + Language.GetCultureName());
             }
@@ -133,11 +176,25 @@
             }
         }
 
+        /// <summary>
+        /// Remove a synonym
+        /// </summary>
+        /// <param name="term"></param>
         public virtual void RemoveSynonym(string term)
         {
             VulcanHelper.DeleteSynonym(Language.Name, term);
         }
 
+        /// <summary>
+        /// Search for content
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="searchDescriptor"></param>
+        /// <param name="includeNeutralLanguage"></param>
+        /// <param name="rootReferences"></param>
+        /// <param name="typeFilter"></param>
+        /// <param name="principleReadFilter"></param>
+        /// <returns></returns>
         public virtual ISearchResponse<IContent> SearchContent<T>(
                 Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null,
                 bool includeNeutralLanguage = false,
@@ -172,7 +229,7 @@
             List<QueryContainer> filters = new List<QueryContainer>();
 
             if (validRootReferences?.Count > 0)
-            {                
+            {
                 var scopeDescriptor = new QueryContainerDescriptor<T>().
                     Terms(t => t.Field(VulcanFieldConstants.Ancestors).Terms(validRootReferences.Select(x => x.ToReferenceWithoutVersion().ToString())));
 
@@ -180,7 +237,7 @@
             }
 
             if (principleReadFilter != null)
-            {                
+            {
                 var permissionDescriptor = new QueryContainerDescriptor<T>().
                     Terms(t => t.Field(VulcanFieldConstants.ReadPermission).Terms(principleReadFilter.GetRoles()));
 
@@ -194,19 +251,29 @@
 
                 if (container.Query != null)
                 {
-                    filters.Insert(0, container.Query);    
+                    filters.Insert(0, container.Query);
                 }
 
                 resolvedDescriptor = resolvedDescriptor.Query(q => q.Bool(b => b.Must(filters.ToArray())));
             }
-            
-            var response =  base.Search<T, IContent>(resolvedDescriptor);
+
+            var response = base.Search<T, IContent>(resolvedDescriptor);
 
             return response;
         }
 
+        /// <summary>
+        /// Get ID without version for content
+        /// </summary>
+        /// <param name="content"></param>
+        /// <returns></returns>
         protected virtual string GetId(IContent content) => content.ContentLink.ToReferenceWithoutVersion().ToString();
 
+        /// <summary>
+        /// Gets name for content
+        /// </summary>
+        /// <param name="content"></param>
+        /// <returns></returns>
         protected virtual string GetTypeName(IContent content) => content.GetTypeName();
     }
 }

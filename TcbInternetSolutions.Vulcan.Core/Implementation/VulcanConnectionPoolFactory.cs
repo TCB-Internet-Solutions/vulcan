@@ -1,28 +1,34 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using Elasticsearch.Net;
+using EPiServer.ServiceLocation;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
-    public class VulcanConnectionPoolFactory
+    /// <summary>
+    /// Creates single and static node connection pools
+    /// </summary>
+    [ServiceConfiguration(typeof(IVulcanConnectionPoolFactory), Lifecycle = ServiceInstanceScope.Singleton)]
+    public class VulcanConnectionPoolFactory : IVulcanConnectionPoolFactory
     {
-        public static IConnectionPool CreateConnectionPool(string vulcanUrl)
+        /// <summary>
+        /// Creates single and static node connection pools from given url.
+        /// </summary>
+        public IConnectionPool CreateConnectionPool(string vulcanUrl)
         {
-            if (string.IsNullOrEmpty(vulcanUrl)) throw new ArgumentNullException(nameof(vulcanUrl));
+            if (string.IsNullOrWhiteSpace(vulcanUrl)) throw new ArgumentNullException(nameof(vulcanUrl));
 
             IConnectionPool connectionPool;
-            if (vulcanUrl.Contains(";"))
-            {
-                var urls = Regex.Split(vulcanUrl, ";");
+            var urls = vulcanUrl.Split(new char[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
 
-                var nodeUris = urls.Select(u => new Uri(u));
-                connectionPool = new StaticConnectionPool(nodeUris);
+            if (urls.Length == 1)
+            {
+                connectionPool = new SingleNodeConnectionPool(new Uri(vulcanUrl));
             }
             else
             {
-                connectionPool = new SingleNodeConnectionPool(new Uri(vulcanUrl));
+                var nodeUris = urls.Select(u => new Uri(u));
+                connectionPool = new StaticConnectionPool(nodeUris);
             }
 
             return connectionPool;

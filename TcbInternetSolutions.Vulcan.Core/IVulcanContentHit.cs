@@ -2,7 +2,8 @@
 
 namespace TcbInternetSolutions.Vulcan.Core
 {
-    public interface IVulcanContentHit : IContent
-    {
-    }
+    /// <summary>
+    /// Vulcan content hit
+    /// </summary>
+    public interface IVulcanContentHit : IContent { }
 }

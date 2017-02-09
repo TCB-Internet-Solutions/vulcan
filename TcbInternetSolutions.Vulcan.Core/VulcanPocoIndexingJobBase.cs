@@ -11,15 +11,28 @@
     {
         private bool _stopSignaled;
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
         public VulcanPocoIndexingJobBase()
         {
             IsStoppable = true;
         }
 
+        /// <summary>
+        /// Poco indexer
+        /// </summary>
         protected abstract IVulcanPocoIndexer PocoIndexer { get; set; }
 
+        /// <summary>
+        /// Poco indexing job
+        /// </summary>
         protected Injected<IVulcanPocoIndexingJob> VulcanPocoIndexHandler { get; set; }
 
+        /// <summary>
+        /// Execute poco indexing
+        /// </summary>
+        /// <returns></returns>
         public override string Execute()
         {
             if (PocoIndexer == null)
@@ -31,6 +44,9 @@
             return result;
         }
 
+        /// <summary>
+        /// Signal stop
+        /// </summary>
         public override void Stop()
         {
             _stopSignaled = true;

@@ -3,7 +3,6 @@
     using Core.Extensions;
     using EPiServer.Core;
     using EPiServer.ServiceLocation;
-    using System.Configuration;
     using System.Linq;
 
     /// <summary>
@@ -12,6 +11,17 @@
     [ServiceConfiguration(typeof(IVulcanAttachmentInspector), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanAttachmentInspector : IVulcanAttachmentInspector
     {
+        IVulcanAttachmentIndexerSettings _AttachmentSettings;
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="attachmentSettings"></param>
+        public VulcanAttachmentInspector(IVulcanAttachmentIndexerSettings attachmentSettings)
+        {
+            _AttachmentSettings = attachmentSettings;
+        }
+
         /// <summary>
         /// Determines if given mediadata is indexable
         /// </summary>
@@ -21,33 +31,31 @@
         {
             if (media == null)
                 return false;
-            
+
+            bool allowed = true;
             var ext = media.SearchFileExtension();
 
             if (!string.IsNullOrWhiteSpace(ext))
             {
-                var allowedExtensions = ConfigurationManager.AppSettings["VulcanIndexAttachmentFileExtensions"];
-
-                if (string.IsNullOrWhiteSpace(allowedExtensions))
-                    return false;
-
-                var extensions = allowedExtensions.Split(new char[] { ',', '|', ';' }, System.StringSplitOptions.RemoveEmptyEntries);
-
-                return extensions.Any(x => string.Compare(ext, x.Trim().TrimStart('.'), true) == 0);
+                allowed = _AttachmentSettings?.SupportedFileExtensions?.Any(x => string.Compare(ext, x.Trim().TrimStart('.'), true) == 0) == true;
             }
 
-            // TODO: Should we also allow for a file size restriction via application setting?
-            //long fileByteSize = -1;
+            if (allowed && _AttachmentSettings.EnableFileSizeLimit)
+            {
+                long fileByteSize = -1;
 
-            //if (media != null)
-            //{
-            //    using (var stream = media.BinaryData.OpenRead())
-            //    {
-            //        fileByteSize = stream.Length;
-            //    }
-            //}
+                if (media?.BinaryData != null)
+                {
+                    using (var stream = media.BinaryData.OpenRead())
+                    {
+                        fileByteSize = stream.Length;
+                    }
+                }
 
-            return false;
+                allowed = _AttachmentSettings.FileSizeLimit <= fileByteSize;
+            }
+
+            return allowed;
         }
     }
 }

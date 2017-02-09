@@ -5,6 +5,9 @@ using System.Linq.Expressions;
 
 namespace TcbInternetSolutions.Vulcan.Core.Extensions
 {
+    /// <summary>
+    /// Field Extensions
+    /// </summary>
     public static class FieldExtensions
     {
         internal static DefaultContractResolver fallbackNameResolver = new CamelCasePropertyNamesContractResolver();

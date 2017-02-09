@@ -9,18 +9,25 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Web;
+    using TcbInternetSolutions.Vulcan.Core.Extensions;
 
+    /// <summary>
+    /// Default CMS content indexing modifier
+    /// </summary>
     public class VulcanCmsIndexingModifier : IVulcanIndexingModifier
     {
-        public Injected<IContentLoader> ContentLoader { get; set; }
+        Injected<IContentLoader> ContentLoader;
 
-        public Injected<IVulcanHandler> VulcanHandler { get; set; }
+        Injected<IVulcanHandler> VulcanHandler;
 
-        public virtual void ProcessContent(EPiServer.Core.IContent content, System.IO.Stream writableStream)
+        /// <summary>
+        /// Writes additional IContent information to stream
+        /// </summary>
+        /// <param name="content"></param>
+        /// <param name="writableStream"></param>
+        public virtual void ProcessContent(IContent content, Stream writableStream)
         {
             var streamWriter = new StreamWriter(writableStream);
-
             var ancestors = new List<ContentReference>();
 
             if (VulcanHandler.Service.IndexingModifers != null && VulcanHandler.Service.IndexingModifers.Any())
@@ -33,10 +40,7 @@
                     {
                         ancestorsFound = indexingModifier.GetAncestors(content);
                     }
-                    catch (Exception e)
-                    {
-                        if (!(e is NotImplementedException)) throw (e); // not implemented is OK for an indexing modifier
-                    }
+                    catch (NotImplementedException) { }
 
                     if (ancestorsFound != null && ancestorsFound.Any())
                     {
@@ -62,7 +66,7 @@
                                 x.Access.HasFlag(AccessLevel.Read) ||
                                 x.Access.HasFlag(AccessLevel.Administer) ||
                                 x.Access.HasFlag(AccessLevel.FullAccess))
-                            .Select(x => "\"" + HttpUtility.JavaScriptStringEncode(x.Name) + "\"")
+                            .Select(x => "\"" + StringExtensions.JsonEscapeString(x.Name) + "\"")
                         ));
                 streamWriter.Write("]");
             }
@@ -78,7 +82,7 @@
                 // Property to string conversions
                 if (p.PropertyType == typeof(ContentArea))
                 {
-                    value = Extensions.ContentAreaExtensions.GetContentAreaContents(value as ContentArea);
+                    value = ContentAreaExtensions.GetContentAreaContents(value as ContentArea);
                 }
 
                 string v = value?.ToString();
@@ -90,13 +94,15 @@
             }
 
             streamWriter.Write(",\"" + VulcanFieldConstants.CustomContents + "\":\"" + string.Join(" ", contents) + "\"");
-            //streamWriter.Write(",\"" + VulcanFieldConstants.CustomContents + "\":[");
-            //streamWriter.Write(string.Join(",", contents.Select(value => "\"" + value.ToString() + "\"")));
-            //streamWriter.Write("]");
 
             streamWriter.Flush();
         }
 
+        /// <summary>
+        /// Gets IContent ancestors
+        /// </summary>
+        /// <param name="content"></param>
+        /// <returns></returns>
         public IEnumerable<ContentReference> GetAncestors(IContent content)
         {
             return ContentLoader.Service.GetAncestors(content.ContentLink)?.Select(c => c.ContentLink);

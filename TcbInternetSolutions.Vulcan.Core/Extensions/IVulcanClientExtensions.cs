@@ -17,14 +17,22 @@
     using TcbInternetSolutions.Vulcan.Core.Implementation;
     using static VulcanFieldConstants;
 
+    /// <summary>
+    /// Vulcan client extensions
+    /// </summary>
     public static class IVulcanClientExtensions
     {
         private static readonly UrlResolver urlResolver = ServiceLocator.Current.GetInstance<UrlResolver>();
 
-        public static Injected<IVulcanHandler> VulcanHandler { get; set; }
+        static Injected<IVulcanHandler> VulcanHandler;
 
         private static IEnumerable<IVulcanCustomizer> _Customizers;
 
+        // todo: setup configurable module to register
+
+        /// <summary>
+        /// Gets a list of Vulcan customizers
+        /// </summary>
         public static IEnumerable<IVulcanCustomizer> Customizers
         {
             get
@@ -158,13 +166,14 @@
         /// Provides quick search, filtered by current user
         /// </summary>
         /// <param name="client"></param>
-        /// <param name="query">Full text query against analyzed fields and uploaded assets if attachments are indexed.</param>
+        /// <param name="searchText">Full text query against analyzed fields and uploaded assets if attachments are indexed.</param>
         /// <param name="page"></param>
         /// <param name="pageSize"></param>
         /// <param name="searchRoots"></param>
         /// <param name="includeTypes"></param>
         /// <param name="excludeTypes"></param>
         /// <param name="buildSearchHit">Can be used to customize how VulcanSearchHit is populated. Default is IVulcanClientExtensions.DefaultBuildSearchHit</param>
+        /// <param name="requireIsSearchable"></param>
         /// <returns></returns>
         public static VulcanSearchHitList GetSearchHits(this IVulcanClient client,
                         string searchText,

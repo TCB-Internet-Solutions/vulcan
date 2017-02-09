@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>TcbInternetSolutions.Vulcan.Commerce</id>
-    <version>$version$</version>
+    <version>$version$</version>B
     <authors>Dan Matthews, Brad McDavid</authors>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Commerce support for Vulcan, the lightweight Elasticsearch client for Episerver</description>
@@ -15,6 +15,7 @@
     </dependencies>
   </metadata>
   <files>
+    <file src="**\*.cs" target="src" />
     <file src="bin\Release\TcbInternetSolutions.Vulcan.Commerce.dll" target="lib\net45" />
     <file src="bin\Release\TcbInternetSolutions.Vulcan.Commerce.pdb" target="lib\net45" />
     <file src="bin\Release\TcbInternetSolutions.Vulcan.Commerce.xml" target="lib\net45" />

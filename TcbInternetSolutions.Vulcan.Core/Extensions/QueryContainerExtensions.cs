@@ -5,8 +5,18 @@
     using Nest;
     using System;
 
+    /// <summary>
+    /// Query extensions
+    /// </summary>
     public static class QueryContainerExtensions
     {
+        /// <summary>
+        /// Adds published filter for expired, deleted, and optional searchable
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="query"></param>
+        /// <param name="requireIsSearchable"></param>
+        /// <returns></returns>
         public static QueryContainer FilterForPublished<T>(this QueryContainer query, bool requireIsSearchable = false) where T : class, IContent
         {
             var notDeleted = new QueryContainerDescriptor<T>().Term(t => t.Field(xf => xf.IsDeleted).Value(false));

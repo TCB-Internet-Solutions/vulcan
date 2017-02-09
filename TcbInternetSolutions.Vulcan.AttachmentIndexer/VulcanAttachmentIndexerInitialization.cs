@@ -23,6 +23,8 @@
 
         private ILogger _Logger = LogManager.GetLogger(typeof(VulcanAttachmentIndexerInitialization));
 
+        private Injected<IVulcanAttachmentIndexerSettings> _AttachmentSettings;
+
         /// <summary>
         /// Determines if elastic server has mapper-attachments installed
         /// </summary>
@@ -43,16 +45,22 @@
                 VulcanAttachmentPropertyMapper.AddedMappings.Clear();
             });
 
-            IVulcanClient client = handler.GetClient(CultureInfo.InvariantCulture);
-            var info = client.NodesInfo();
-
-            if (info?.Nodes?.Any(x => x.Value?.Plugins?.Any(y => string.Compare(y.Name, "mapper-attachments", true) == 0) == true) != true)
+            if (_AttachmentSettings.Service.EnableAttachmentPlugins)
             {
-                if (CurrentHostType != HostType.WebApplication ||
-                    (CurrentHostType == HostType.WebApplication && HttpContext.Current?.IsDebuggingEnabled == true))
+                //todo: future 5.x support uses https://www.elastic.co/guide/en/elasticsearch/plugins/5.2/ingest-attachment.html
+                // not which 2.x uses https://www.elastic.co/guide/en/elasticsearch/plugins/5.2/mapper-attachments.html
+
+                IVulcanClient client = handler.GetClient(CultureInfo.InvariantCulture);
+                var info = client.NodesInfo();
+
+                if (info?.Nodes?.Any(x => x.Value?.Plugins?.Any(y => string.Compare(y.Name, "mapper-attachments", true) == 0) == true) != true)
                 {
-                    // Only throw exception if not a web application or is a web application with debug turned on
-                    throw new Exception("No attachment plugin found, be sure to install the 'mapper-attachments' plugin on your Elastic Search Server!");
+                    if (CurrentHostType != HostType.WebApplication ||
+                        (CurrentHostType == HostType.WebApplication && HttpContext.Current?.IsDebuggingEnabled == true))
+                    {
+                        // Only throw exception if not a web application or is a web application with debug turned on
+                        throw new Exception("No attachment plugin found, be sure to install the 'mapper-attachments' plugin on your Elastic Search Server!");
+                    }
                 }
             }
         }

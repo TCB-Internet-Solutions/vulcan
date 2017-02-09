@@ -11,9 +11,15 @@
     using Implementation;
     using TcbInternetSolutions.Vulcan.Core;
 
+    /// <summary>
+    /// UI Search provider for blocks
+    /// </summary>
     [SearchProvider]
     public class VulcanBlockSearchProvider : VulcanSearchProviderBase<VulcanContentHit> // using VulcanContentHit due to IContent restriction
     {
+        /// <summary>
+        /// Constructor
+        /// </summary>
         public VulcanBlockSearchProvider()
               : this(
                     ServiceLocator.Current.GetInstance<IVulcanHandler>(),
@@ -25,6 +31,15 @@
                 )
         { }
 
+        /// <summary>
+        /// Injectable constructor
+        /// </summary>
+        /// <param name="vulcanHandler"></param>
+        /// <param name="localizationService"></param>
+        /// <param name="siteDefinitionResolver"></param>
+        /// <param name="contentRepository"></param>
+        /// <param name="contentTypeRepository"></param>
+        /// <param name="uiDescriptorRegistry"></param>
         public VulcanBlockSearchProvider(
             IVulcanHandler vulcanHandler,
             LocalizationService localizationService,
