@@ -67,7 +67,7 @@
 
                     if (!string.IsNullOrWhiteSpace(stringContents))
                     {
-                        streamWriter.Write(",\"" + MediaStringContents + "\":\"" + stringContents.JsonEscapeString() + "\"");
+                        streamWriter.Write(",\"" + MediaStringContents + "\": " + stringContents.JsonEscapeString()); // json escape adds quotes
                     }
                 }
 

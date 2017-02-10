@@ -6,7 +6,7 @@
     public static class StringExtensions
     {
         /// <summary>
-        /// Escapes given string as valid JSON
+        /// Escapes given string as valid JSON, important, this will add escaped quotes
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>

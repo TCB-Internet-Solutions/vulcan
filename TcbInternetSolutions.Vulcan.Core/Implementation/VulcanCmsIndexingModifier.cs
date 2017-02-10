@@ -66,7 +66,7 @@
                                 x.Access.HasFlag(AccessLevel.Read) ||
                                 x.Access.HasFlag(AccessLevel.Administer) ||
                                 x.Access.HasFlag(AccessLevel.FullAccess))
-                            .Select(x => "\"" + StringExtensions.JsonEscapeString(x.Name) + "\"")
+                            .Select(x => StringExtensions.JsonEscapeString(x.Name)) // json escape adds quotes
                         ));
                 streamWriter.Write("]");
             }
