@@ -102,7 +102,6 @@
                 }
             }
 
-            ISearchResponse<IContent> hits;
             List<Type> typeRestriction = typeof(TContent).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
 
             // Special condition for BlockData since it doesn't derive from BlockData
@@ -110,25 +109,43 @@
             {
                 typeRestriction = typeof(BlockData).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
             }
-            
-            hits = _VulcanHandler.GetClient().SearchContent<IContent>(d => d
-                    .Take(query.MaxResults)
-                    .Fields(fs => fs.Field(p => p.ContentLink)) // only return id for performance
-                    .Query(x =>
-                        x.SimpleQueryString(sqs =>
-                            sqs.Fields(f => f
-                                        .AllAnalyzed()
-                                        .Field($"{VulcanFieldConstants.MediaContents}.content")
-                                        .Field($"{VulcanFieldConstants.MediaContents}.content_type"))
-                                    .Query(searchText))
-                    ),
-                    includeNeutralLanguage: IncludeInvariant,
-                    rootReferences: searchRoots,
-                    typeFilter: typeRestriction,
-                    principleReadFilter: UserExtensions.GetUser()
-            );
 
-            var results = hits.Hits.Select(x => CreateSearchResult(x));
+            var hits = new List<ISearchResponse<IContent>>();
+
+            var clients = _VulcanHandler.GetClients();
+
+            if (clients != null)
+            {
+                foreach (var client in clients)
+                {
+                    if (client.Language != CultureInfo.InvariantCulture || IncludeInvariant)
+                    {
+                        var clientHits = client.SearchContent<IContent>(d => d
+                                .Take(query.MaxResults)
+                                .Fields(fs => fs.Field(p => p.ContentLink)) // only return id for performance
+                                .Query(x =>
+                                    x.SimpleQueryString(sqs =>
+                                        sqs.Fields(f => f
+                                                    .AllAnalyzed()
+                                                    .Field($"{VulcanFieldConstants.MediaContents}.content")
+                                                    .Field($"{VulcanFieldConstants.MediaContents}.content_type"))
+                                                .Query(searchText))
+                                ),
+                                includeNeutralLanguage: client.Language == CultureInfo.InvariantCulture,
+                                rootReferences: searchRoots,
+                                typeFilter: typeRestriction,
+                                principleReadFilter: UserExtensions.GetUser()
+                        );
+
+                        if (clientHits != null && clientHits.Total > 0)
+                        {
+                            hits.Add(clientHits);
+                        }
+                    }
+                }
+            }
+
+            var results = hits.SelectMany(h => h.Hits.Select(x => CreateSearchResult(x)));
 
             return results;
         }

@@ -6,6 +6,7 @@ using EPiServer.Security;
 using EPiServer.ServiceLocation;
 using Mediachase.Commerce.Markets;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using TcbInternetSolutions.Vulcan.Core;
@@ -141,7 +142,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                                 streamWriter.Write(",");
                             }
 
-                            streamWriter.Write("\"" + market.Key + "_" + price.Key + "\":" + price.Value.ToString());
+                            streamWriter.Write("\"" + market.Key + "_" + price.Key + "\":" + price.Value.ToString(CultureInfo.InvariantCulture.NumberFormat));
                         }
                     }
                 }
