@@ -10,9 +10,15 @@
     using EPiServer.Web;
     using TcbInternetSolutions.Vulcan.Core;
 
+    /// <summary>
+    /// UI Search provider for mediadata
+    /// </summary>
     [SearchProvider]
     public class VulcanMediaSearchProvider : VulcanSearchProviderBase<MediaData>
     {
+        /// <summary>
+        /// Constructor
+        /// </summary>
         public VulcanMediaSearchProvider()
               : this(
                     ServiceLocator.Current.GetInstance<IVulcanHandler>(),
@@ -24,6 +30,15 @@
                 )
         { }
 
+        /// <summary>
+        /// Injected contructor
+        /// </summary>
+        /// <param name="vulcanHandler"></param>
+        /// <param name="localizationService"></param>
+        /// <param name="siteDefinitionResolver"></param>
+        /// <param name="contentRepository"></param>
+        /// <param name="contentTypeRepository"></param>
+        /// <param name="uiDescriptorRegistry"></param>
         public VulcanMediaSearchProvider(
             IVulcanHandler vulcanHandler,
             LocalizationService localizationService,

@@ -2,7 +2,6 @@
 {
     using EPiServer;
     using EPiServer.Core;
-    using EPiServer.DataAbstraction.RuntimeModel;
     using EPiServer.DataAbstraction.RuntimeModel.Internal;
     using EPiServer.Logging;
     using EPiServer.ServiceLocation;
@@ -13,19 +12,41 @@
     using System.Globalization;
     using System.Linq;
 
+    /// <summary>
+    /// Default Vulcan handler
+    /// </summary>
     [ServiceConfiguration(typeof(IVulcanHandler), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanHandler : IVulcanHandler
     {
-        protected static ILogger Logger = LogManager.GetLogger();
+        /// <summary>
+        /// Vulcan logger
+        /// </summary>
+        protected static ILogger Logger = LogManager.GetLogger(typeof(VulcanHandler));
 
+        /// <summary>
+        /// List of vulcan clients
+        /// </summary>
         protected Dictionary<CultureInfo, IVulcanClient> clients = new Dictionary<CultureInfo, IVulcanClient>();
+
+        private Dictionary<Type, List<IVulcanConditionalContentIndexInstruction>> conditionalContentIndexInstructions = new Dictionary<Type, List<IVulcanConditionalContentIndexInstruction>>();
 
         private IEnumerable<IVulcanIndexingModifier> indexingModifiers = null;
 
         private object lockObject = new object();
 
+        /// <summary>
+        /// Deleted indices handler
+        /// </summary>
+        public IndexDeleteHandler DeletedIndices { get; set; }
+
+        /// <summary>
+        /// Index name
+        /// </summary>
         public virtual string Index => CommonConnectionSettings.Service.Index;
 
+        /// <summary>
+        /// Indexing modifiers
+        /// </summary>
         public virtual IEnumerable<IVulcanIndexingModifier> IndexingModifers
         {
             get
@@ -39,15 +60,64 @@
                 return indexingModifiers;
             }
         }
-
-        public IndexDeleteHandler DeletedIndices { get; set; }
-
+        /// <summary>
+        /// Inected connection settings
+        /// </summary>
         protected Injected<IVulcanClientConnectionSettings> CommonConnectionSettings { get; set; }
 
+        /// <summary>
+        /// Injected content loader
+        /// </summary>
         protected Injected<IContentLoader> ContentLoader { get; set; }
 
+        /// <summary>
+        /// Injected create index customizer
+        /// </summary>
         protected Injected<IVulcanCreateIndexCustomizer> CreateIndexCustomizer { get; }
+        /// <summary>
+        /// Adds index instruction
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="instruction"></param>
+        public void AddConditionalContentIndexInstruction<T>(Func<T, bool> instruction) where T : IContent
+        {
+            if (!conditionalContentIndexInstructions.ContainsKey(typeof(T)))
+            {
+                conditionalContentIndexInstructions.Add(typeof(T), new List<IVulcanConditionalContentIndexInstruction>());
+            }
 
+            conditionalContentIndexInstructions[typeof(T)].Add(new VulcanConditionalContentIndexInstruction<T>(instruction));
+        }
+
+        /// <summary>
+        /// Determines if content can be indexed
+        /// </summary>
+        /// <param name="objectToIndex"></param>
+        /// <returns></returns>
+        public bool AllowContentIndexing(IContent objectToIndex)
+        {
+            bool allowIndex = true; // default is true;
+
+            foreach (var kvp in conditionalContentIndexInstructions)
+            {
+                if (kvp.Key.IsAssignableFrom(objectToIndex.GetType()))
+                {
+                    foreach (var instruction in kvp.Value)
+                    {
+                        allowIndex = instruction.AllowContentIndexing(objectToIndex);
+
+                        if (!allowIndex) break; // we only care about first FALSE
+                    }
+                }
+            }
+
+            return allowIndex;
+        }
+
+        /// <summary>
+        /// Delete content by language
+        /// </summary>
+        /// <param name="content"></param>
         public virtual void DeleteContentByLanguage(IContent content)
         {
             IVulcanClient client;
@@ -65,16 +135,23 @@
             client.DeleteContent(content);
         }
 
+        /// <summary>
+        /// Delete content for all clients
+        /// </summary>
+        /// <param name="contentLink"></param>
         public virtual void DeleteContentEveryLanguage(ContentReference contentLink)
         {
             // we don't know what language(s), or even if invariant, so send a delete request to all
 
-            foreach(var client in GetClients())
+            foreach (var client in GetClients())
             {
                 client.DeleteContent(contentLink);
             }
         }
 
+        /// <summary>
+        /// Delete index
+        /// </summary>
         public virtual void DeleteIndex()
         {
             lock (lockObject)
@@ -217,6 +294,10 @@
             }
         }
 
+        /// <summary>
+        /// Gets all vulcan clients
+        /// </summary>
+        /// <returns></returns>
         public virtual IVulcanClient[] GetClients()
         {
             var clients = new List<IVulcanClient>();
@@ -236,6 +317,10 @@
             return clients.ToArray();
         }
 
+        /// <summary>
+        /// Index content for language
+        /// </summary>
+        /// <param name="content"></param>
         public virtual void IndexContentByLanguage(IContent content)
         {
             IVulcanClient client;
@@ -252,6 +337,10 @@
             client.IndexContent(content);
         }
 
+        /// <summary>
+        /// Index content for all langauges
+        /// </summary>
+        /// <param name="content"></param>
         public virtual void IndexContentEveryLanguage(IContent content)
         {
             if (!(content is ILocalizable))
@@ -271,6 +360,10 @@
             }
         }
 
+        /// <summary>
+        /// Index content for all languages
+        /// </summary>
+        /// <param name="contentLink"></param>
         public virtual void IndexContentEveryLanguage(ContentReference contentLink)
         {
             if (!ContentReference.IsNullOrEmpty(contentLink))
@@ -281,11 +374,28 @@
             }
         }
 
+        /// <summary>
+        /// Gets an elastic client
+        /// </summary>
+        /// <param name="settings"></param>
+        /// <returns></returns>
         protected virtual IElasticClient CreateElasticClient(IConnectionSettingsValues settings) => new ElasticClient(settings);
 
+        /// <summary>
+        /// Gets a vulcan client
+        /// </summary>
+        /// <param name="index"></param>
+        /// <param name="settings"></param>
+        /// <param name="culture"></param>
+        /// <returns></returns>
         protected virtual IVulcanClient CreateVulcanClient(string index, ConnectionSettings settings, CultureInfo culture) =>
             new VulcanClient(index, settings, culture);
 
+        /// <summary>
+        /// Get elision articles
+        /// </summary>
+        /// <param name="language"></param>
+        /// <returns></returns>
         protected virtual string[] GetElisionArticles(string language)
         {
             switch (language)
@@ -307,6 +417,11 @@
             }
         }
 
+        /// <summary>
+        /// Get filters for language
+        /// </summary>
+        /// <param name="language"></param>
+        /// <returns></returns>
         protected virtual string[] GetFilters(string language)
         {
             switch (language)
@@ -360,6 +475,11 @@
             }
         }
 
+        /// <summary>
+        /// Get stemmer language
+        /// </summary>
+        /// <param name="language"></param>
+        /// <returns></returns>
         protected virtual string GetStemmerLanguage(string language)
         {
             switch (language)
@@ -384,6 +504,11 @@
             }
         }
 
+        /// <summary>
+        /// Get stopwords
+        /// </summary>
+        /// <param name="language"></param>
+        /// <returns></returns>
         protected virtual string GetStopwordsLanguage(string language)
         {
             switch (language)
@@ -396,6 +521,11 @@
             }
         }
 
+        /// <summary>
+        /// Get synonyms
+        /// </summary>
+        /// <param name="client"></param>
+        /// <returns></returns>
         protected virtual string[] GetSynonyms(IVulcanClient client)
         {
             var resolved = new List<string>();
@@ -425,6 +555,10 @@
             return resolved.ToArray();
         }
 
+        /// <summary>
+        /// Initialize analyzer on elasticsearch
+        /// </summary>
+        /// <param name="client"></param>
         protected virtual void InitializeAnalyzer(IVulcanClient client)
         {
             var language = VulcanHelper.GetAnalyzer(client.Language);
@@ -568,38 +702,6 @@
                     Logger.Error("Could not set up char filters for " + client.IndexName + ": " + response.DebugInformation);
                 }
             }
-        }
-
-        private Dictionary<Type, List<IVulcanConditionalContentIndexInstruction>> conditionalContentIndexInstructions { get; set; } = new Dictionary<Type, List<IVulcanConditionalContentIndexInstruction>>();
-
-        public void AddConditionalContentIndexInstruction<T>(Func<T, bool> instruction) where T : IContent
-        {
-            if(!conditionalContentIndexInstructions.ContainsKey(typeof(T)))
-            {
-                conditionalContentIndexInstructions.Add(typeof(T), new List<IVulcanConditionalContentIndexInstruction>());
-            }
-
-            conditionalContentIndexInstructions[typeof(T)].Add(new VulcanConditionalContentIndexInstruction<T>(instruction));
-        }
-
-        public bool AllowContentIndexing(IContent objectToIndex)
-        {
-            bool allowIndex = true; // default is true;
-
-            foreach(var kvp in conditionalContentIndexInstructions)
-            {
-                if(kvp.Key.IsAssignableFrom(objectToIndex.GetType()))
-                {
-                    foreach(var instruction in kvp.Value)
-                    {
-                        allowIndex = instruction.AllowContentIndexing(objectToIndex);
-
-                        if (!allowIndex) break; // we only care about first FALSE
-                    }
-                }
-            }
-
-            return allowIndex;
         }
     }
 }

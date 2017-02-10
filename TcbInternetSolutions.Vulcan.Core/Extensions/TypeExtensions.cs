@@ -6,13 +6,28 @@
     using System.Collections.Generic;
     using System.Linq;
 
+    /// <summary>
+    /// Type extensions
+    /// </summary>
     public static class TypeExtensions
     {
         private static ConcurrentDictionary<Type, List<Type>> resolvedTypes = new ConcurrentDictionary<Type, List<Type>>();        
 
+        /// <summary>
+        /// Get search types for given T
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="filter"></param>
+        /// <returns></returns>
         public static List<Type> GetSearchTypesFor<T>(Func<Type, bool> filter = null) where T : class, IContent =>
             GetSearchTypesFor(typeof(T), filter);
 
+        /// <summary>
+        /// Get search types for given type
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="filter"></param>
+        /// <returns></returns>
         public static List<Type> GetSearchTypesFor(this Type type, Func<Type,bool> filter = null)
         {
             List<Type> allTypesForGiven;

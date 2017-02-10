@@ -8,14 +8,31 @@ using System.Web.Security;
 
 namespace TcbInternetSolutions.Vulcan.Core.Extensions
 {
+    /// <summary>
+    /// User extensions
+    /// </summary>
     public static class UserExtensions
     {
         private static Injected<IVirtualRoleRepository> _VirtualRoleRepository { get; }
 
+        /// <summary>
+        /// Gets current principal
+        /// </summary>
+        /// <returns></returns>
         public static IPrincipal GetUser() => PrincipalInfo.Current.Principal;
 
+        /// <summary>
+        /// Gets principal from username
+        /// </summary>
+        /// <param name="username"></param>
+        /// <returns></returns>
         public static IPrincipal GetUser(string username) => PrincipalInfo.CreatePrincipal(username);
-                
+            
+        /// <summary>
+        /// Gets roles for given principle
+        /// </summary>
+        /// <param name="principle"></param>
+        /// <returns></returns>
         public static IEnumerable<string> GetRoles(this IPrincipal principle)
         {
             if (principle == null)

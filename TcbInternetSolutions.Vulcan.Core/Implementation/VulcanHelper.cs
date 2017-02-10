@@ -8,8 +8,17 @@ using System.Linq;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
+    /// <summary>
+    /// Vulcan helper
+    /// </summary>
     public static class VulcanHelper
     {
+        /// <summary>
+        /// Get index name for language
+        /// </summary>
+        /// <param name="IndexNameBase"></param>
+        /// <param name="language"></param>
+        /// <returns></returns>
         public static string GetIndexName(string IndexNameBase, CultureInfo language)
         {
             var suffix = "_";
@@ -27,7 +36,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         }
 
         internal static Type[] IgnoredTypes =>
-            new Type[] 
+            new Type[]
             {
                 typeof(PropertyDataCollection),
                 typeof(ContentArea),
@@ -36,6 +45,11 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 typeof(PageType)
             };
 
+        /// <summary>
+        /// Get analyzer for cultureinfo
+        /// </summary>
+        /// <param name="cultureInfo"></param>
+        /// <returns></returns>
         public static string GetAnalyzer(CultureInfo cultureInfo)
         {
             if (cultureInfo != CultureInfo.InvariantCulture) // check if we have non-language data
@@ -56,65 +70,65 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 switch (cultureInfo.TwoLetterISOLanguageName.ToUpper())
                 {
                     case "AR":
-                        return "arabic";                            
+                        return "arabic";
                     case "HY":
-                        return "armenian";                            
+                        return "armenian";
                     case "EU":
-                        return "basque";                            
+                        return "basque";
                     case "BG":
-                        return "bulgarian";                            
+                        return "bulgarian";
                     case "CA":
-                        return "catalan";                            
+                        return "catalan";
                     case "ZH":
-                        return "chinese";                            
+                        return "chinese";
                     case "KO":
                         return "cjk"; // generic chinese-japanese-korean                            
                     case "JP":
                         return "cjk"; // generic chinese-japanese-korean                            
                     case "CS":
-                        return "czech";                            
+                        return "czech";
                     case "DA":
-                        return "danish";                            
+                        return "danish";
                     case "NL":
-                        return "dutch";                            
+                        return "dutch";
                     case "EN":
-                        return "english";                            
+                        return "english";
                     case "FI":
-                        return "finnish";                            
+                        return "finnish";
                     case "FR":
-                        return "french";                            
+                        return "french";
                     case "GL":
-                        return "galician";                            
+                        return "galician";
                     case "DE":
-                        return "german";                            
+                        return "german";
                     case "GR":
-                        return "greek";                            
+                        return "greek";
                     case "HI":
-                        return "hindi";                            
+                        return "hindi";
                     case "HU":
-                        return "hungarian";                            
+                        return "hungarian";
                     case "ID":
-                        return "indonesian";                            
+                        return "indonesian";
                     case "GA":
-                        return "irish";                            
+                        return "irish";
                     case "IT":
-                        return "italian";                            
+                        return "italian";
                     case "LV":
-                        return "latvian";                            
+                        return "latvian";
                     case "NO":
-                        return "norwegian";                            
+                        return "norwegian";
                     case "FA":
-                        return "persian";                            
+                        return "persian";
                     case "PT":
-                        return "portuguese";                            
+                        return "portuguese";
                     case "RO":
-                        return "romanian";                            
+                        return "romanian";
                     case "RU":
-                        return "russian";                            
+                        return "russian";
                     case "KU":
                         return "sorani"; // Kurdish                            
                     case "ES":
-                        return "spanish";                            
+                        return "spanish";
                     case "SV":
                         return "swedish";
                     case "TR":
@@ -222,12 +236,12 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         internal static void AddSynonym(string language, string term, string[] synonyms, bool biDirectional)
         {
-            if(string.IsNullOrWhiteSpace(term))
+            if (string.IsNullOrWhiteSpace(term))
             {
                 throw new Exception("Cannot add a blank synonym term");
             }
 
-            if(synonyms == null || synonyms.Length == 0)
+            if (synonyms == null || synonyms.Length == 0)
             {
                 throw new Exception("Cannot add a synonym term with no synonyms");
             }
@@ -238,7 +252,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             var synonym = store.LoadAll<VulcanSynonym>().Where(s => s.Term == term && s.Language == language).FirstOrDefault();
 
-            if(synonym == null)
+            if (synonym == null)
             {
                 synonym = new VulcanSynonym();
             }

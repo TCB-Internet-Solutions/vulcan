@@ -15,6 +15,7 @@
     </dependencies>
   </metadata>
   <files>
+    <file src="**\*.cs" target="src" />
     <file src="bin\Release\TcbInternetSolutions.Vulcan.Commerce.dll" target="lib\net45" />
     <file src="bin\Release\TcbInternetSolutions.Vulcan.Commerce.pdb" target="lib\net45" />
     <file src="bin\Release\TcbInternetSolutions.Vulcan.Commerce.xml" target="lib\net45" />

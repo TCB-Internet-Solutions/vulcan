@@ -1,14 +1,17 @@
 ﻿using EPiServer.Core;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
+    /// <summary>
+    /// Determines if content can be indexed
+    /// </summary>
     public interface IVulcanConditionalContentIndexInstruction
     {
+        /// <summary>
+        /// Determines if content can be indexed
+        /// </summary>
+        /// <param name="objectToIndex"></param>
+        /// <returns></returns>
         bool AllowContentIndexing(IContent objectToIndex);
     }
 }

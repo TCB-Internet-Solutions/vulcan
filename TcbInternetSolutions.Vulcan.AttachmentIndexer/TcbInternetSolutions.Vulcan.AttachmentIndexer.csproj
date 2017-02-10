@@ -176,6 +176,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Helpers.cs" />
+    <Compile Include="Implementation\VulcanAttachmentIndexerSettings.cs" />
+    <Compile Include="Implementation\VulcanMediaReader.cs" />
+    <Compile Include="IVulcanAttachmentIndexerSettings.cs" />
+    <Compile Include="IVulcanByteToStringConverter.cs" />
+    <Compile Include="IVulcanMediaReader.cs" />
     <Compile Include="Implementation\VulcanAttachmentInspector.cs" />
     <Compile Include="Implementation\VulcanAttachmentPropertyMapper.cs" />
     <Compile Include="IVulcanAttachmentInspector.cs" />

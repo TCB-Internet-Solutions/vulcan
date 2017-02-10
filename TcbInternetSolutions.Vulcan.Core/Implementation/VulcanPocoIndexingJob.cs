@@ -9,23 +9,44 @@
     using System.Globalization;
     using System.Linq;
 
+    /// <summary>
+    /// Poco indexing job
+    /// </summary>
     [ServiceConfiguration(typeof(IVulcanPocoIndexingJob), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanPocoIndexingJob : IVulcanPocoIndexingJob
     {
         private static ILogger Logger = LogManager.GetLogger(typeof(VulcanPocoIndexingJob));
 
+        /// <summary>
+        /// invariant client
+        /// </summary>
         protected IVulcanClient _InvariantClient;
 
+        /// <summary>
+        /// Vulcan handler
+        /// </summary>
         protected IVulcanHandler _VulcanHander;
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
         public VulcanPocoIndexingJob() : this(ServiceLocator.Current.GetInstance<IVulcanHandler>()){ }
 
+        /// <summary>
+        /// Injected constructor
+        /// </summary>
+        /// <param name="vulcanHandler"></param>
         public VulcanPocoIndexingJob(IVulcanHandler vulcanHandler)
         {
             _VulcanHander = vulcanHandler;
             _InvariantClient = _VulcanHander.GetClient(CultureInfo.InvariantCulture);
         }
 
+        /// <summary>
+        /// Delete item
+        /// </summary>
+        /// <param name="pocoIndexer"></param>
+        /// <param name="item"></param>
         public virtual void DeleteItem(IVulcanPocoIndexer pocoIndexer, object item)
         {
             var id = pocoIndexer.GetItemIdentifier(item);
@@ -42,6 +63,14 @@
             }
         }
 
+        /// <summary>
+        /// Index item
+        /// </summary>
+        /// <param name="pocoIndexer"></param>
+        /// <param name="updateStatus"></param>
+        /// <param name="count"></param>
+        /// <param name="stopSignaled"></param>
+        /// <returns></returns>
         public virtual string Index(IVulcanPocoIndexer pocoIndexer, Action<string> updateStatus, ref int count, ref bool stopSignaled)
         {
             if (pocoIndexer == null)
@@ -97,6 +126,11 @@
             return "Indexed " + internalCount + " of " + total + " items of " + pocoIndexer.IndexerName + " content!";
         }
 
+        /// <summary>
+        /// Index item
+        /// </summary>
+        /// <param name="pocoIndexer"></param>
+        /// <param name="item"></param>
         public virtual void IndexItem(IVulcanPocoIndexer pocoIndexer, object item)
         {
             var id = pocoIndexer.GetItemIdentifier(item);
@@ -113,6 +147,11 @@
             }            
         }
 
+        /// <summary>
+        /// Gets typename for poco
+        /// </summary>
+        /// <param name="o"></param>
+        /// <returns></returns>
         protected virtual string GetTypeName(object o) => o.GetType().FullName;
     }
 }

@@ -1,34 +1,39 @@
 ﻿using Elasticsearch.Net;
-using EPiServer;
 using EPiServer.Core;
-using EPiServer.Core.Html.StringParsing;
 using EPiServer.ServiceLocation;
 using Nest;
 using System;
-using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Web;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
+    /// <summary>
+    /// Serializer for Vulcan content
+    /// </summary>
     public class VulcanCustomJsonSerializer : JsonNetSerializer
     {
-        public Injected<IVulcanHandler> VulcanHandler { get; set; }
+        Injected<IVulcanHandler> VulcanHandler;
 
-        public VulcanCustomJsonSerializer(IConnectionSettingsValues settings)
-            : base(settings)
-        {}
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="settings"></param>
+        public VulcanCustomJsonSerializer(IConnectionSettingsValues settings) : base(settings) { }
 
-        public override Elasticsearch.Net.IPropertyMapping CreatePropertyMapping(System.Reflection.MemberInfo memberInfo)
+        /// <summary>
+        /// Creates property mapping
+        /// </summary>
+        /// <param name="memberInfo"></param>
+        /// <returns></returns>
+        public override IPropertyMapping CreatePropertyMapping(MemberInfo memberInfo)
         {
-            if (memberInfo.Name.Equals("PageName", StringComparison.InvariantCultureIgnoreCase) || 
+            if (memberInfo.Name.Equals("PageName", StringComparison.InvariantCultureIgnoreCase) ||
                 memberInfo.Name.Contains(".") || (
-                    memberInfo.MemberType == System.Reflection.MemberTypes.Property && 
-                    (IsSubclassOfRawGeneric(typeof(Injected<>), (memberInfo as System.Reflection.PropertyInfo).PropertyType)
-                    || VulcanHelper.IgnoredTypes.Contains((memberInfo as System.Reflection.PropertyInfo).PropertyType)
+                    memberInfo.MemberType == MemberTypes.Property &&
+                    (IsSubclassOfRawGeneric(typeof(Injected<>), (memberInfo as PropertyInfo).PropertyType)
+                    || VulcanHelper.IgnoredTypes.Contains((memberInfo as PropertyInfo).PropertyType)
                     || memberInfo.Name.Equals("DefaultMvcController", StringComparison.InvariantCultureIgnoreCase))))
             {
                 return new PropertyMapping() { Ignore = true };
@@ -39,9 +44,15 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             }
         }
 
-        public override void Serialize(object data, System.IO.Stream writableStream, SerializationFormatting formatting = SerializationFormatting.Indented)
+        /// <summary>
+        /// Serialize data 
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="writableStream"></param>
+        /// <param name="formatting"></param>
+        public override void Serialize(object data, Stream writableStream, SerializationFormatting formatting = SerializationFormatting.Indented)
         {
-            if (data is Nest.IndexDescriptor<IContent>)
+            if (data is IndexDescriptor<IContent>)
             {
                 var stream = new MemoryStream();
 
@@ -62,11 +73,11 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                 stream.Flush();
 
-                var content = data.GetType().GetProperty("Nest.IIndexRequest.UntypedDocument",BindingFlags.Instance | BindingFlags.NonPublic).GetValue(data) as IContent;
+                var content = data.GetType().GetProperty("Nest.IIndexRequest.UntypedDocument", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(data) as IContent;
 
                 if (VulcanHandler.Service.IndexingModifers != null)
                 {
-                    foreach(var indexingModifier in VulcanHandler.Service.IndexingModifers)
+                    foreach (var indexingModifier in VulcanHandler.Service.IndexingModifers)
                     {
                         indexingModifier.ProcessContent(content, writableStream);
                     }

@@ -179,9 +179,11 @@
     <Compile Include="Extensions\IVulcanClientExtensions.cs" />
     <Compile Include="Extensions\QueryContainerExtensions.cs" />
     <Compile Include="Extensions\SearchProviderExtensions.cs" />
+    <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="Extensions\TypeExtensions.cs" />
     <Compile Include="Extensions\ContentExtensions.cs" />
     <Compile Include="Extensions\UserExtensions.cs" />
+    <Compile Include="IVulcanConnectionPoolFactory.cs" />
     <Compile Include="IVulcanConditionalContentIndexInstruction.cs" />
     <Compile Include="Implementation\VulcanClientConnectionSettings.cs" />
     <Compile Include="Implementation\VulcanCmsIndexer.cs" />

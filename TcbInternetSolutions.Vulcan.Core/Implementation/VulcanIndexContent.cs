@@ -10,6 +10,9 @@
     using System;
     using System.Linq;
 
+    /// <summary>
+    /// Default index job
+    /// </summary>
     [ScheduledPlugIn(DisplayName = "Vulcan Index Content")]
     public class VulcanIndexContent : ScheduledJobBase
     {
@@ -17,22 +20,41 @@
 
         private bool _stopSignaled;
 
+        /// <summary>
+        /// Injected content loader
+        /// </summary>
         public Injected<IContentLoader> ContentLoader { get; set; }
 
+        /// <summary>
+        /// Injected vulcan handler
+        /// </summary>
         public Injected<IVulcanHandler> VulcanHandler { get; set; }
 
+        /// <summary>
+        /// Injected poco handler
+        /// </summary>
         public Injected<IVulcanPocoIndexingJob> VulcanPocoIndexHandler { get; set; }
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
         public VulcanIndexContent()
         {
             IsStoppable = true;
         }
 
+        /// <summary>
+        /// Signal stop
+        /// </summary>
         public override void Stop()
         {
             _stopSignaled = true;
         }
 
+        /// <summary>
+        /// Execute index job
+        /// </summary>
+        /// <returns></returns>
         public override string Execute()
         {
             OnStatusChanged(string.Format("Starting execution of {0}", GetType()));

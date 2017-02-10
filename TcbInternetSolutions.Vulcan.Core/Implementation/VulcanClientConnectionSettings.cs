@@ -1,11 +1,7 @@
-﻿using Elasticsearch.Net;
-using EPiServer.ServiceLocation;
+﻿using EPiServer.ServiceLocation;
 using Nest;
 using System;
 using System.Configuration;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Web;
 using System.Web.Configuration;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
@@ -16,6 +12,17 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     [ServiceConfiguration(typeof(IVulcanClientConnectionSettings), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanClientConnectionSettings : IVulcanClientConnectionSettings
     {
+        IVulcanConnectionPoolFactory _VulcanConnectionpoolFactory;
+
+        /// <summary>
+        /// Injected constructor
+        /// </summary>
+        /// <param name="connectionpoolFactory"></param>
+        public VulcanClientConnectionSettings(IVulcanConnectionPoolFactory connectionpoolFactory)
+        {
+            _VulcanConnectionpoolFactory = connectionpoolFactory;
+        }
+
         /// <summary>
         /// Gets common settings from AppSetting keys 'VulcanUrl', 'VulcanIndex', 'VulcanUsername' (optional), 'VulcanPassword' (optional), 'VulcanEnableHttpCompression' (optional true/false)
         /// </summary>
@@ -47,8 +54,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 throw new Exception("You need to specify the Vulcan Index in AppSettings");
             }
 
-            var connectionPool = VulcanConnectionPoolFactory.CreateConnectionPool(url);
-
+            var connectionPool = _VulcanConnectionpoolFactory.CreateConnectionPool(url);
             var settings = new ConnectionSettings(connectionPool, s => new VulcanCustomJsonSerializer(s));
             var username = ConfigurationManager.AppSettings["VulcanUsername"];
             var password = ConfigurationManager.AppSettings["VulcanPassword"];

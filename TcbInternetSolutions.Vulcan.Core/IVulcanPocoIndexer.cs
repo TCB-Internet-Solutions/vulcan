@@ -2,6 +2,9 @@
 {
     using System.Collections.Generic;
 
+    /// <summary>
+    /// Vulcan POCO indexer
+    /// </summary>
     public interface IVulcanPocoIndexer : IVulcanIndexer
     {
         /// <summary>

@@ -6,8 +6,16 @@ using System.Linq;
 
 namespace TcbInternetSolutions.Vulcan.Core.Extensions
 {
+    /// <summary>
+    /// Search extensions
+    /// </summary>
     public static class SearchProviderExtensions
     {
+        /// <summary>
+        /// Gets file extension for given media data.
+        /// </summary>
+        /// <param name="media"></param>
+        /// <returns></returns>
         public static string SearchFileExtension(this MediaData media)
         {            
             if (media == null)

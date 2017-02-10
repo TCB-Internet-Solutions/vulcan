@@ -6,13 +6,21 @@ using EPiServer.Web;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
+    /// <summary>
+    /// Setup events for content syncs to search
+    /// </summary>
     [InitializableModule]
     [ModuleDependency(typeof(EPiServer.Web.InitializationModule))]
     public class VulcanIndexSynchronization : IInitializableModule
     {
-        public Injected<IContentEvents> ContentEvents { get; set; }
-        public Injected<IVulcanHandler> VulcanHandler { get; set; }
+        Injected<IContentEvents> ContentEvents;
 
+        Injected<IVulcanHandler> VulcanHandler;
+
+        /// <summary>
+        /// Init event
+        /// </summary>
+        /// <param name="context"></param>
         public void Initialize(InitializationEngine context)
         {
             ContentEvents.Service.PublishedContent += Service_PublishedContent;
@@ -48,6 +56,10 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             VulcanHandler.Service.IndexContentByLanguage(e.Content);
         }
 
+        /// <summary>
+        /// Un-init event
+        /// </summary>
+        /// <param name="context"></param>
         public void Uninitialize(InitializationEngine context)
         {
             ContentEvents.Service.PublishedContent -= Service_PublishedContent;
