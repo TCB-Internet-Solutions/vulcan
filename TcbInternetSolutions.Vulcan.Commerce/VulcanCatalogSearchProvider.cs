@@ -1,5 +1,6 @@
 ﻿namespace TcbInternetSolutions.Vulcan.Commerce
 {
+    using Core.SearchProviders.Extensions;
     using EPiServer;
     using EPiServer.Commerce.Catalog.ContentTypes;
     using EPiServer.Core;

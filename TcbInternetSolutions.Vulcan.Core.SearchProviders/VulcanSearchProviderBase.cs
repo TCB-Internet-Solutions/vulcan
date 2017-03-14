@@ -12,6 +12,7 @@
     using EPiServer.Shell.Web.Mvc.Html;
     using EPiServer.SpecializedProperties;
     using EPiServer.Web;
+    using Extensions;
     using Implementation;
     using Nest;
     using Newtonsoft.Json.Linq;

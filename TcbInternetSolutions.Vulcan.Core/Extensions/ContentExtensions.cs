@@ -5,6 +5,7 @@ using EPiServer.ServiceLocation;
 using Nest;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace TcbInternetSolutions.Vulcan.Core.Extensions
 {
@@ -156,6 +157,21 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
             }
 
             return list;
+        }
+
+        public static string SearchFileExtension(this MediaData media)
+        {
+            if (media == null)
+                return string.Empty;
+
+            try
+            {
+                return Path.GetExtension(media.RouteSegment).Replace(".", string.Empty);
+            }
+            catch
+            {
+                return string.Empty;
+            }
         }
     }
 }

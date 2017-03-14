@@ -4,33 +4,13 @@ using EPiServer.Shell;
 using System.IO;
 using System.Linq;
 
-namespace TcbInternetSolutions.Vulcan.Core.Extensions
+namespace TcbInternetSolutions.Vulcan.Core.SearchProviders.Extensions
 {
     /// <summary>
     /// Search extensions
     /// </summary>
     public static class SearchProviderExtensions
     {
-        /// <summary>
-        /// Gets file extension for given media data.
-        /// </summary>
-        /// <param name="media"></param>
-        /// <returns></returns>
-        public static string SearchFileExtension(this MediaData media)
-        {            
-            if (media == null)
-                return string.Empty;
-
-            try
-            {
-                return Path.GetExtension(media.RouteSegment).Replace(".", string.Empty);
-            }
-            catch
-            {
-                return string.Empty;
-            }
-        }
-
         /// <summary>
         /// Gets the URI for this instance.
         /// </summary>

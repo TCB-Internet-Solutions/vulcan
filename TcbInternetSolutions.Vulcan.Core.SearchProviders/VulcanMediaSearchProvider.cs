@@ -1,5 +1,6 @@
 ﻿namespace TcbInternetSolutions.Vulcan.Core.SearchProviders
 {
+    using Core.Extensions;
     using EPiServer;
     using EPiServer.Core;
     using EPiServer.DataAbstraction;
@@ -84,6 +85,6 @@
         /// Gets the icon CSS class for pages.
         /// </summary>
         protected override string IconCssClass(IContent content) => 
-            "epi-resourceIcon epi-resourceIcon-" + Extensions.SearchProviderExtensions.SearchFileExtension(content as MediaData);
+            "epi-resourceIcon epi-resourceIcon-" + ContentExtensions.SearchFileExtension(content as MediaData);
     }
 }
