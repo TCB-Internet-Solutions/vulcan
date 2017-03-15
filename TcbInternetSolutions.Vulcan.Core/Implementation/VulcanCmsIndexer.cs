@@ -1,5 +1,7 @@
 ﻿using EPiServer.Web;
 using System.Collections.Generic;
+using System;
+using EPiServer;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
@@ -8,10 +10,17 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     /// </summary>
     public class VulcanCmsIndexer : IVulcanContentIndexer
     {
+        public int ClearCacheItemInterval => 100;
+
         /// <summary>
         /// Indexer Name
         /// </summary>
         public string IndexerName => "CMS Content";
+
+        public void ClearCache()
+        {
+            CacheManager.Clear();
+        }
 
         /// <summary>
         /// Indexer root

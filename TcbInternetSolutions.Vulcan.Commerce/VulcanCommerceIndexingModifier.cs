@@ -5,6 +5,7 @@ using EPiServer.Core;
 using EPiServer.Security;
 using EPiServer.ServiceLocation;
 using Mediachase.Commerce.Markets;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -16,6 +17,8 @@ namespace TcbInternetSolutions.Vulcan.Commerce
     public class VulcanCommerceIndexingModifier : IVulcanIndexingModifier
     {
         public Injected<ILinksRepository> LinksRepository { get; set; }
+
+        public Injected<IContentLoader> ContentLoader { get; set; }
 
         public void ProcessContent(EPiServer.Core.IContent content, System.IO.Stream writableStream)
         {
@@ -194,30 +197,55 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                 {
                     ancestors.AddRange(productAncestors.Select(pa => pa.Source));
 
-                    ancestors.AddRange(productAncestors.SelectMany(pa => GetAncestorCategoriesIterative(pa.Source)));
+                    ancestors.AddRange(productAncestors.SelectMany(pa => GetAncestorCategoriesIterative(pa.Source, false)));
                 }
             }
 
             // for these purposes, we assume that products cannot exist inside other products
             // variant may also exist directly inside a category
 
-            ancestors.AddRange(GetAncestorCategoriesIterative(content.ContentLink));
+            ancestors.AddRange(GetAncestorCategoriesIterative(content.ContentLink, false));
 
             return ancestors.Distinct();
         }
 
-        private IEnumerable<ContentReference> GetAncestorCategoriesIterative(ContentReference contentLink)
+        private IEnumerable<ContentReference> GetAncestorCategoriesIterative(ContentReference contentLink, bool checkCategoryParent)
         {
             var ancestors = new List<ContentReference>();
 
-            var categories = LinksRepository.Service.GetRelationsBySource(contentLink)?.OfType<NodeRelation>();
+            IEnumerable<Relation> categories = null;
+
+            try
+            {
+                categories = LinksRepository.Service.GetRelationsBySource(contentLink)?.OfType<NodeRelation>();
+            }
+            catch(Exception)
+            {
+                // probably not a valid category or node type to pull the relations of, so stop the iteration here
+
+                return ancestors;
+            }
 
             if(categories != null && categories.Any())
             {
                 ancestors.AddRange(categories.Select(pa => pa.Target));
 
-                ancestors.AddRange(categories.SelectMany(c => GetAncestorCategoriesIterative(c.Target)));
+                ancestors.AddRange(categories.SelectMany(c => GetAncestorCategoriesIterative(c.Target, true)));
             }
+
+            if (checkCategoryParent)
+            {
+                // there may be no categories related, but we still have a parent
+
+                var thisCat = ContentLoader.Service.Get<IContent>(contentLink) as NodeContent;
+
+                if (thisCat != null && !ancestors.Contains(thisCat.ParentLink))
+                {
+                    ancestors.Add(thisCat.ParentLink);
+
+                    ancestors.AddRange(GetAncestorCategoriesIterative(thisCat.ParentLink, true));
+                }
+           }
 
             return ancestors;
         }

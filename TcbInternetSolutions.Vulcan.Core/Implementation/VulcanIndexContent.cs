@@ -84,16 +84,59 @@
 
                     for (int cr = 0; cr < contentReferences.Count(); cr++)
                     {
-                        OnStatusChanged(indexer.IndexerName + " indexing item " + (cr + 1).ToString() + " of " + contentReferences.Count() + " items of " + cmsIndexer.GetRoot().Value + " content (indexer " + (i + 1).ToString() + " of " + indexers.Count.ToString() + ")...");
+                        if (cmsIndexer.ClearCacheItemInterval >= 0)
+                        {
+                            if (cr % cmsIndexer.ClearCacheItemInterval == 0) cmsIndexer.ClearCache();
+                        }
 
-                        VulcanHandler.Service.IndexContentEveryLanguage(ContentLoader.Service.Get<IContent>(contentReferences.ElementAt(cr)));
+                        // only update this every 100 records (reduce load on db)
+                        if (cr % 100 == 0) OnStatusChanged(indexer.IndexerName + " indexing item " + (cr + 1).ToString() + " of " + contentReferences.Count() + " items of " + cmsIndexer.GetRoot().Value + " content (indexer " + (i + 1).ToString() + " of " + indexers.Count.ToString() + ")...");
+
+                        IContent content = null;
+
+                        try
+                        {
+                            content = ContentLoader.Service.Get<IContent>(contentReferences.ElementAt(cr));
+                        }
+                        catch(OutOfMemoryException)
+                        {
+                            Logger.Warning("Vulcan encountered an OutOfMemory exception, attempting again to index content item " + contentReferences.ElementAt(cr).ToString() + "...");
+
+                            // try once more
+
+                            try
+                            {
+                                content = ContentLoader.Service.Get<IContent>(contentReferences.ElementAt(cr));
+                            }
+                            catch(Exception eNested)
+                            {
+                                Logger.Error("Vulcan could not recover from an out of memory exception when it tried again to index content item " + contentReferences.ElementAt(cr).ToString() + ": " + eNested.ToString());
+                            }
+                        }
+                        catch(Exception eOther)
+                        {
+                            Logger.Error("Vulcan could not index content item " + contentReferences.ElementAt(cr).ToString() + ": " + eOther.ToString());
+                        }
+
+                        if (content == null)
+                        {
+                            Logger.Error("Vulcan could not index content item " + contentReferences.ElementAt(cr).ToString() + ": content was null");
+                        }
+                        else
+                        {
+                            Logger.Information("Vulcan indexed content with reference: " + cr.ToString() + " and name: " + content.Name);
+
+                            VulcanHandler.Service.IndexContentEveryLanguage(content);
+
+                            content = null; // dispose
+
+                            count++;
+                        }
 
                         if (_stopSignaled)
                         {
                             return "Stop of job was called";
                         }
-
-                        count++;
                     }
                 }
             }
