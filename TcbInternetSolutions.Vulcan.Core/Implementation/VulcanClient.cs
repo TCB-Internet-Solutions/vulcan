@@ -106,13 +106,13 @@
         {
             // we don't know content type so try and find it in current language index
 
-            var result = SearchContent<IContent>(s => s.Query(q => q.Term(c => c.ContentLink, contentLink.ToReferenceWithoutVersion()))).GetContents().FirstOrDefault();
-
-            if (result != null)
+            var result = SearchContent<IContent>(s => s.Query(q => q.Term(c => c.ContentLink, contentLink.ToReferenceWithoutVersion())));
+            
+            if (result != null && result.Hits.Count() >= 0)
             {
                 try
                 {
-                    var response = base.Delete(new DeleteRequest(IndexName, result.GetTypeName(), contentLink.ToReferenceWithoutVersion().ToString()));
+                    var response = base.Delete(new DeleteRequest(IndexName, result.Hits.First().Type, contentLink.ToReferenceWithoutVersion().ToString()));
 
                     Logger.Debug("Vulcan (using direct content link) deleted " + contentLink.ToReferenceWithoutVersion().ToString() + " for language " + Language.GetCultureName() + ": " + response.DebugInformation);
                 }
