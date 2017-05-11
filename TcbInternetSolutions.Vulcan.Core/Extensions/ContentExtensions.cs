@@ -159,6 +159,11 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
             return list;
         }
 
+        /// <summary>
+        /// Gets file extension for mediadata
+        /// </summary>
+        /// <param name="media"></param>
+        /// <returns></returns>
         public static string SearchFileExtension(this MediaData media)
         {
             if (media == null)
