@@ -2,9 +2,11 @@
 using EPiServer.Commerce.Catalog.ContentTypes;
 using EPiServer.Commerce.Catalog.Linking;
 using EPiServer.Core;
+using EPiServer.Logging;
 using EPiServer.Security;
 using EPiServer.ServiceLocation;
 using Mediachase.Commerce.Markets;
+using Mediachase.Commerce.Pricing;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -19,6 +21,8 @@ namespace TcbInternetSolutions.Vulcan.Commerce
         public Injected<ILinksRepository> LinksRepository { get; set; }
 
         public Injected<IContentLoader> ContentLoader { get; set; }
+
+        private static readonly ILogger Logger = LogManager.GetLogger();
 
         public void ProcessContent(EPiServer.Core.IContent content, System.IO.Stream writableStream)
         {
@@ -156,15 +160,19 @@ namespace TcbInternetSolutions.Vulcan.Commerce
         {
             var prices = new Dictionary<string, Dictionary<string, decimal>>();
 
+            var priceDetailService = ServiceLocator.Current.GetInstance<IPriceDetailService>();
+
             foreach (var market in ServiceLocator.Current.GetInstance<IMarketService>().GetAllMarkets())
             {
                 if (variation.IsAvailableInMarket(market.MarketId)) // no point adding price if not available in that market
                 {
                     prices.Add(market.MarketId.Value, new Dictionary<string, decimal>());
 
-                    var variantPrices = variation.GetPrices(market.MarketId, Mediachase.Commerce.Pricing.CustomerPricing.AllCustomers);
+                    int totalCount;
 
-                    if (variantPrices != null)
+                    var variantPrices = priceDetailService.List(variation.ContentLink, market.MarketId, new PriceFilter() { Quantity = 0, CustomerPricing = new[] { CustomerPricing.AllCustomers } }, 0, 9999, out totalCount); // we are using 9,999 price values as the theoretical maximum
+
+                    if (variantPrices != null && totalCount > 0)
                     {
                         foreach (var price in variantPrices)
                         {
