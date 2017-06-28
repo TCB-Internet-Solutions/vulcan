@@ -30,7 +30,7 @@
             var streamWriter = new StreamWriter(writableStream);
             var ancestors = new List<ContentReference>();
 
-            if (VulcanHandler.Service.IndexingModifers != null && VulcanHandler.Service.IndexingModifers.Any())
+            if (VulcanHandler.Service.IndexingModifers?.Any() == true)
             {
                 foreach (var indexingModifier in VulcanHandler.Service.IndexingModifers)
                 {
@@ -93,7 +93,7 @@
                 }
             }
 
-            streamWriter.Write(",\"" + VulcanFieldConstants.CustomContents + "\":\"" + string.Join(" ", contents) + "\"");
+            streamWriter.Write(",\"" + VulcanFieldConstants.CustomContents + "\":" + StringExtensions.JsonEscapeString(string.Join(" ", contents)));
 
             streamWriter.Flush();
         }

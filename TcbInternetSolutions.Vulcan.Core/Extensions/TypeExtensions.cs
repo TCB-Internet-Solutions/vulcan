@@ -11,6 +11,8 @@
     /// </summary>
     public static class TypeExtensions
     {
+        // todo: refactor, replace GetSearchTypesFor to use the Structuremap container for anything that uses Activator.CreateInstance
+
         private static ConcurrentDictionary<Type, List<Type>> resolvedTypes = new ConcurrentDictionary<Type, List<Type>>();        
 
         /// <summary>

@@ -1,6 +1,5 @@
 ﻿namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
-    using EPiServer;
     using EPiServer.Core;
     using EPiServer.Logging;
     using EPiServer.PlugIn;
@@ -23,7 +22,7 @@
         /// <summary>
         /// Injected content loader
         /// </summary>
-        public Injected<IContentLoader> ContentLoader { get; set; }
+        public Injected<IVulcanSearchContentLoader> VulcanSearchContentLoader { get; set; }
 
         /// <summary>
         /// Injected vulcan handler
@@ -80,7 +79,7 @@
                 }
                 else if(cmsIndexer != null) // default episerver content
                 {
-                    var contentReferences = ContentLoader.Service.GetDescendents(cmsIndexer.GetRoot().Key);
+                    var contentReferences = VulcanSearchContentLoader.Service.GetSearchContentReferences(cmsIndexer);
 
                     for (int cr = 0; cr < contentReferences.Count(); cr++)
                     {
@@ -96,7 +95,7 @@
 
                         try
                         {
-                            content = ContentLoader.Service.Get<IContent>(contentReferences.ElementAt(cr));
+                            content = VulcanSearchContentLoader.Service.GetContent(contentReferences.ElementAt(cr));
                         }
                         catch(OutOfMemoryException)
                         {
@@ -106,7 +105,7 @@
 
                             try
                             {
-                                content = ContentLoader.Service.Get<IContent>(contentReferences.ElementAt(cr));
+                                content = VulcanSearchContentLoader.Service.GetContent(contentReferences.ElementAt(cr));
                             }
                             catch(Exception eNested)
                             {

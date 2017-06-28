@@ -10,6 +10,9 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     /// </summary>
     public class VulcanCmsIndexer : IVulcanContentIndexer
     {
+        /// <summary>
+        /// Default cache clear interval
+        /// </summary>
         public int ClearCacheItemInterval => 100;
 
         /// <summary>
@@ -17,6 +20,9 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// </summary>
         public string IndexerName => "CMS Content";
 
+        /// <summary>
+        /// Default clears Episerver cache manager cache.
+        /// </summary>
         public void ClearCache()
         {
             CacheManager.Clear();

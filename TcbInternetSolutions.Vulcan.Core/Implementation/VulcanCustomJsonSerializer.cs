@@ -52,6 +52,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <param name="formatting"></param>
         public override void Serialize(object data, Stream writableStream, SerializationFormatting formatting = SerializationFormatting.Indented)
         {
+            // todo: Can error catching be added here?, there have been instances where content fails to serialize and index job looks stalled.
             if (data is IndexDescriptor<IContent>)
             {
                 var stream = new MemoryStream();
@@ -76,7 +77,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 var content = data.GetType().GetProperty("Nest.IIndexRequest.UntypedDocument", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(data) as IContent;
 
                 if (VulcanHandler.Service.IndexingModifers != null)
-                {
+                {                    
                     foreach (var indexingModifier in VulcanHandler.Service.IndexingModifers)
                     {
                         indexingModifier.ProcessContent(content, writableStream);

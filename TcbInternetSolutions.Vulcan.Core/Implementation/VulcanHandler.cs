@@ -198,7 +198,7 @@
         /// <returns>A Vulcan client</returns>
         public virtual IVulcanClient GetClient(CultureInfo language = null)
         {
-            var cultureInfo = language == null ? CultureInfo.CurrentUICulture : language;
+            var cultureInfo = language ?? CultureInfo.CurrentUICulture;
 
             IVulcanClient storedClient;
 
