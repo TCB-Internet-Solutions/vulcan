@@ -1,8 +1,10 @@
-﻿using EPiServer.Core;
+﻿using EPiServer;
+using EPiServer.Core;
 using EPiServer.Framework;
 using EPiServer.Framework.Initialization;
 using EPiServer.ServiceLocation;
 using EPiServer.Web;
+using System.Linq;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
@@ -16,6 +18,8 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         Injected<IContentEvents> ContentEvents;
 
         Injected<IVulcanHandler> VulcanHandler;
+
+        Injected<IContentRepository> ContentRepository;
 
         /// <summary>
         /// Init event
@@ -53,7 +57,17 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         void Service_PublishedContent(object sender, EPiServer.ContentEventArgs e)
         {
+            // Update the index for the currently published content
             VulcanHandler.Service.IndexContentByLanguage(e.Content);
+
+            // See if there are references to the content and if so, update the index for them as well
+            var references = ContentRepository.Service.GetReferencesToContent(e.ContentLink, false);
+
+            foreach (var r in references.Where(x => !x.OwnerID.CompareToIgnoreWorkID(e.ContentLink)))
+            {
+                VulcanHandler.Service.IndexContentByLanguage(ContentRepository.Service.Get<IContent>(r.OwnerID));
+            }
+
         }
 
         /// <summary>
