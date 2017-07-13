@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed</id>
+    <version>$version$</version>
+    <authors>Dan Matthews</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Google Product Feed support for Vulcan, the lightweight Elasticsearch client for Episerver</description>
+    <copyright>Copyright $year$</copyright>
+    <tags>ElasticSearch Nest Commerce Google</tags>
+    <dependencies>
+      <dependency id="EPiServer.Commerce.Core" version="[10,11)" />
+      <dependency id="TcbInternetSolutions.Vulcan.Core" version="[2.3,3)" />
+      <dependency id="TcbInternetSolutions.Vulcan.Commerce" version="[1.3,2)" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="**\*.cs" target="src" />
+    <file src="bin\Release\TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed.dll" target="lib\net45" />
+    <file src="bin\Release\TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed.pdb" target="lib\net45" />
+    <file src="bin\Release\TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed.xml" target="lib\net45" />
+  </files>
+</package>
