@@ -17,8 +17,8 @@
     <file src="web.*.xdt" target="content" />
     <file src="**\*.cs" target="src" />
 
-    <file src="bin\Release\TcbInternetSolutions.Vulcan.AttachmentIndexer.dll" target="lib\net45" />
-    <file src="bin\Release\TcbInternetSolutions.Vulcan.AttachmentIndexer.pdb" target="lib\net45" />
-    <file src="bin\Release\TcbInternetSolutions.Vulcan.AttachmentIndexer.xml" target="lib\net45" />
+    <file src="bin\Release\TcbInternetSolutions.Vulcan.AttachmentIndexer.dll" target="lib\net461" />
+    <file src="bin\Release\TcbInternetSolutions.Vulcan.AttachmentIndexer.pdb" target="lib\net461" />
+    <file src="bin\Release\TcbInternetSolutions.Vulcan.AttachmentIndexer.xml" target="lib\net461" />
   </files>
 </package>

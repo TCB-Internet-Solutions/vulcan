@@ -16,8 +16,8 @@
     <file src="Resources\LanguageFiles\*.xml" target="content\Resources\LanguageFiles" />
     <file src="**\*.cs" target="src" />
     
-    <file src="bin\Release\TcbInternetSolutions.Vulcan.Core.dll" target="lib\net45" />
-    <file src="bin\Release\TcbInternetSolutions.Vulcan.Core.pdb" target="lib\net45" />
-    <file src="bin\Release\TcbInternetSolutions.Vulcan.Core.xml" target="lib\net45" />
+    <file src="bin\Release\TcbInternetSolutions.Vulcan.Core.dll" target="lib\net461" />
+    <file src="bin\Release\TcbInternetSolutions.Vulcan.Core.pdb" target="lib\net461" />
+    <file src="bin\Release\TcbInternetSolutions.Vulcan.Core.xml" target="lib\net461" />
   </files>
 </package>

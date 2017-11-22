@@ -1,6 +1,5 @@
 ﻿using EPiServer.Web;
 using System.Collections.Generic;
-using System;
 using EPiServer;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
@@ -25,7 +24,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// </summary>
         public void ClearCache()
         {
-            CacheManager.Clear();
+            CacheManager.Clear(); // todo: investigate alternative
         }
 
         /// <summary>

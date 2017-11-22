@@ -13,6 +13,7 @@
     using System.Collections.Generic;
     using System.Globalization;
     using System.Linq;
+    using System.Security.Principal;
     using TcbInternetSolutions.Vulcan.Core;
     using TcbInternetSolutions.Vulcan.Core.Implementation;
     using static VulcanFieldConstants;
@@ -22,9 +23,15 @@
     /// </summary>
     public static class IVulcanClientExtensions
     {
-        private static readonly UrlResolver urlResolver = ServiceLocator.Current.GetInstance<UrlResolver>();
+        /// <summary>
+        /// IUrlResolver dependency
+        /// </summary>
+        public static Injected<IUrlResolver> UrlResolver { get; set; }
 
-        static Injected<IVulcanHandler> VulcanHandler;
+        /// <summary>
+        /// IVulcanHandler dependency
+        /// </summary>
+        public static Injected<IVulcanHandler> VulcanHandler { get; set; }
 
         private static IEnumerable<IVulcanCustomizer> _Customizers;
 
@@ -152,7 +159,7 @@
                         Id = content.ContentLink,
                         Title = content.Name,
                         Summary = description,
-                        Url = urlResolver.GetUrl(contentReference)
+                        Url = UrlResolver.Service.GetUrl(contentReference)
                     };
 
                     return result;
@@ -173,7 +180,6 @@
         /// <param name="includeTypes"></param>
         /// <param name="excludeTypes"></param>
         /// <param name="buildSearchHit">Can be used to customize how VulcanSearchHit is populated. Default is IVulcanClientExtensions.DefaultBuildSearchHit</param>
-        /// <param name="requireIsSearchable"></param>
         /// <returns></returns>
         public static VulcanSearchHitList GetSearchHits(this IVulcanClient client,
                         string searchText,
@@ -182,8 +188,7 @@
                         IEnumerable<ContentReference> searchRoots = null,
                         IEnumerable<Type> includeTypes = null,
                         IEnumerable<Type> excludeTypes = null,
-                        Func<IHit<IContent>, IContentLoader, VulcanSearchHit> buildSearchHit = null,
-                        bool requireIsSearchable = false
+                        Func<IHit<IContent>, IContentLoader, VulcanSearchHit> buildSearchHit = null
             )
         {
             QueryContainer searchTextQuery = new QueryContainerDescriptor<IContent>();
@@ -200,7 +205,7 @@
                 );
             }
 
-            searchTextQuery = searchTextQuery.FilterForPublished<IContent>(requireIsSearchable);
+            searchTextQuery = searchTextQuery.FilterForPublished<IContent>();
 
             return GetSearchHits(client, searchTextQuery, page, pageSize, searchRoots, includeTypes, excludeTypes, buildSearchHit);
         }
@@ -216,6 +221,7 @@
         /// <param name="includeTypes"></param>
         /// <param name="excludeTypes"></param>
         /// <param name="buildSearchHit">Can be used to customize how VulcanSearchHit is populated. Default is IVulcanClientExtensions.DefaultBuildSearchHit</param>
+        /// <param name="currentPrincipal">Can be used to filter by permissions. Pass EPiServer.Security.PrincipalInfo.Current.Principal for current user.</param>
         /// <returns></returns>
         public static VulcanSearchHitList GetSearchHits(this IVulcanClient client,
                 QueryContainer query,
@@ -224,7 +230,8 @@
                 IEnumerable<ContentReference> searchRoots = null,
                 IEnumerable<Type> includeTypes = null,
                 IEnumerable<Type> excludeTypes = null,
-                Func<IHit<IContent>, IContentLoader, VulcanSearchHit> buildSearchHit = null
+                Func<IHit<IContent>, IContentLoader, VulcanSearchHit> buildSearchHit = null,
+                IPrincipal currentPrincipal = null
             )
         {
             if (includeTypes == null)
@@ -252,7 +259,7 @@
                     .Aggregations(agg => agg.Terms("types", t => t.Field(VulcanFieldConstants.TypeField))),
                     includeNeutralLanguage: true,
                     typeFilter: searchForTypes,
-                    principleReadFilter: PrincipalInfo.Current.Principal,
+                    principleReadFilter: currentPrincipal,
                     rootReferences: searchRoots
             );
 

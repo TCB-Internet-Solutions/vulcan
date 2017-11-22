@@ -9,7 +9,7 @@
     <copyright>Copyright $year$</copyright>
     <tags>ElasticSearch Nest Commerce</tags>
     <dependencies>
-      <dependency id="EPiServer.Commerce.Core" version="[10,11)" />
+      <dependency id="EPiServer.Commerce.Core" version="[10,)" />
       <dependency id="TcbInternetSolutions.Vulcan.Core" version="[2.3,3)" />
     </dependencies>
   </metadata>

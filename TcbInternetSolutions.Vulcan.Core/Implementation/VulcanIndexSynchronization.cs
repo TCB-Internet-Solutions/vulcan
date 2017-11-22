@@ -12,7 +12,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     /// Setup events for content syncs to search
     /// </summary>
     [InitializableModule]
-    [ModuleDependency(typeof(EPiServer.Web.InitializationModule))]
+    //[ModuleDependency(typeof(EPiServer.Web.InitializationModule))] // todo: evaluate if this is needed for content events
     public class VulcanIndexSynchronization : IInitializableModule
     {
         Injected<IContentEvents> ContentEvents;

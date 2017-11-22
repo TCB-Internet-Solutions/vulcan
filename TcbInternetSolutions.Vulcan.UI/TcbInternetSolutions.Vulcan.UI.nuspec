@@ -16,8 +16,8 @@
   <files>
     <file src="web.*.xdt" target="content" />    
     <file src="Content\**\*.*" target="content\modules\_protected\TcbInternetSolutions.Vulcan.UI" />
-    <file src="bin\Release\TcbInternetSolutions.Vulcan.UI.dll" target="lib\net45" />
-    <file src="bin\Release\TcbInternetSolutions.Vulcan.UI.pdb" target="lib\net45" />
-    <file src="bin\Release\TcbInternetSolutions.Vulcan.UI.xml" target="lib\net45" />
+    <file src="bin\Release\TcbInternetSolutions.Vulcan.UI.dll" target="lib\net461" />
+    <file src="bin\Release\TcbInternetSolutions.Vulcan.UI.pdb" target="lib\net461" />
+    <file src="bin\Release\TcbInternetSolutions.Vulcan.UI.xml" target="lib\net461" />
   </files>
 </package>
