@@ -168,9 +168,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                 {
                     prices.Add(market.MarketId.Value, new Dictionary<string, decimal>());
 
-                    int totalCount;
-
-                    var variantPrices = priceDetailService.List(variation.ContentLink, market.MarketId, new PriceFilter() { Quantity = 0, CustomerPricing = new[] { CustomerPricing.AllCustomers } }, 0, 9999, out totalCount); // we are using 9,999 price values as the theoretical maximum
+                    var variantPrices = priceDetailService.List(variation.ContentLink, market.MarketId, new PriceFilter() { Quantity = 0, CustomerPricing = new[] { CustomerPricing.AllCustomers } }, 0, 9999, out int totalCount); // we are using 9,999 price values as the theoretical maximum
 
                     if (variantPrices != null && totalCount > 0)
                     {
@@ -244,16 +242,13 @@ namespace TcbInternetSolutions.Vulcan.Commerce
             if (checkCategoryParent)
             {
                 // there may be no categories related, but we still have a parent
-
-                var thisCat = ContentLoader.Service.Get<IContent>(contentLink) as NodeContent;
-
-                if (thisCat != null && !ancestors.Contains(thisCat.ParentLink))
+                if (ContentLoader.Service.Get<IContent>(contentLink) is NodeContent thisCat && !ancestors.Contains(thisCat.ParentLink))
                 {
                     ancestors.Add(thisCat.ParentLink);
 
                     ancestors.AddRange(GetAncestorCategoriesIterative(thisCat.ParentLink, true));
                 }
-           }
+            }
 
             return ancestors;
         }
