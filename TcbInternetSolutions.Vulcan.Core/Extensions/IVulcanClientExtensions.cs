@@ -1,10 +1,8 @@
 ﻿namespace TcbInternetSolutions.Vulcan.Core.Extensions
 {
-
     using EPiServer;
     using EPiServer.Core;
     using EPiServer.Logging;
-    using EPiServer.Security;
     using EPiServer.ServiceLocation;
     using EPiServer.Web.Routing;
     using Nest;
@@ -13,7 +11,6 @@
     using System.Collections.Generic;
     using System.Globalization;
     using System.Linq;
-    using System.Security.Principal;
     using TcbInternetSolutions.Vulcan.Core;
     using TcbInternetSolutions.Vulcan.Core.Implementation;
     using static VulcanFieldConstants;
@@ -35,8 +32,6 @@
 
         private static IEnumerable<IVulcanCustomizer> _Customizers;
 
-        // todo: setup configurable module to register
-
         /// <summary>
         /// Gets a list of Vulcan customizers
         /// </summary>
@@ -46,6 +41,7 @@
             {
                 if (_Customizers == null)
                 {
+                    // todo: setup configurable module to register
                     var types = typeof(IVulcanCustomizer).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
 
                     _Customizers = types.Select(t => (IVulcanCustomizer)Activator.CreateInstance(t));
@@ -148,6 +144,7 @@
 
                 if (contentLoader.TryGet(contentReference, out content))
                 {
+                    ILocalizable localizable = content as ILocalizable;
                     var searchDescriptionCheck = contentHit.Fields.Where(x => x.Key == SearchDescriptionField).FirstOrDefault();
                     string storedDescription = searchDescriptionCheck.Value != null ? (searchDescriptionCheck.Value as JArray).FirstOrDefault().ToString() : null;
                     var fallbackDescription = content as IVulcanSearchHitDescription;
@@ -159,7 +156,7 @@
                         Id = content.ContentLink,
                         Title = content.Name,
                         Summary = description,
-                        Url = UrlResolver.Service.GetUrl(contentReference)
+                        Url = UrlResolver.Service.GetUrl(contentReference, localizable?.Language.Name ?? "", new UrlResolverArguments()) // fixes null ref exception caused by extension
                     };
 
                     return result;
@@ -221,7 +218,6 @@
         /// <param name="includeTypes"></param>
         /// <param name="excludeTypes"></param>
         /// <param name="buildSearchHit">Can be used to customize how VulcanSearchHit is populated. Default is IVulcanClientExtensions.DefaultBuildSearchHit</param>
-        /// <param name="currentPrincipal">Can be used to filter by permissions. Pass EPiServer.Security.PrincipalInfo.Current.Principal for current user.</param>
         /// <returns></returns>
         public static VulcanSearchHitList GetSearchHits(this IVulcanClient client,
                 QueryContainer query,
@@ -230,8 +226,7 @@
                 IEnumerable<ContentReference> searchRoots = null,
                 IEnumerable<Type> includeTypes = null,
                 IEnumerable<Type> excludeTypes = null,
-                Func<IHit<IContent>, IContentLoader, VulcanSearchHit> buildSearchHit = null,
-                IPrincipal currentPrincipal = null
+                Func<IHit<IContent>, IContentLoader, VulcanSearchHit> buildSearchHit = null
             )
         {
             if (includeTypes == null)
@@ -259,7 +254,7 @@
                     .Aggregations(agg => agg.Terms("types", t => t.Field(VulcanFieldConstants.TypeField))),
                     includeNeutralLanguage: true,
                     typeFilter: searchForTypes,
-                    principleReadFilter: currentPrincipal,
+                    principleReadFilter: UserExtensions.GetUser(),
                     rootReferences: searchRoots
             );
 

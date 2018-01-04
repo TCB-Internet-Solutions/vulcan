@@ -288,7 +288,7 @@
                 var openResponse = client.OpenIndex(indexName);
                 var initShards = client.ClusterHealth(x => x.WaitForActiveShards(CreateIndexCustomizer.Service.WaitForActiveShards)); // fixes empty results on first request
 
-                clients.Add(cultureInfo, client);
+                clients[cultureInfo] = client;
 
                 return client;
             }

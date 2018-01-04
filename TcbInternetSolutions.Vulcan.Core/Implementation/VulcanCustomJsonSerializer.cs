@@ -52,7 +52,6 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <param name="formatting"></param>
         public override void Serialize(object data, Stream writableStream, SerializationFormatting formatting = SerializationFormatting.Indented)
         {
-            // todo: Can error catching be added here?, there have been instances where content fails to serialize and index job looks stalled.
             if (data is IndexDescriptor<IContent>)
             {
                 var stream = new MemoryStream();
@@ -80,7 +79,14 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 {                    
                     foreach (var indexingModifier in VulcanHandler.Service.IndexingModifers)
                     {
-                        indexingModifier.ProcessContent(content, writableStream);
+                        try
+                        {
+                            indexingModifier.ProcessContent(content, writableStream);
+                        }
+                        catch(Exception e)
+                        {
+                            throw new Exception($"{indexingModifier.GetType().FullName} failed to process content ID {content.ContentLink.ID} with name {content.Name}!", e);
+                        }
                     }
                 }
 
