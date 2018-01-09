@@ -5,4 +5,9 @@
     <!--<add key="VulcanUrl" value="SET THIS" xdt:Transform="Remove" xdt:Locator="Match(key)" />-->
     <!--<add key="VulcanIndex" value="SET THIS" xdt:Transform="Remove" xdt:Locator="Match(key)" />-->
   </appSettings>
+  <episerver.shell>
+    <protectedModules>
+      <add name="TcbInternetSolutions.Vulcan.UI" xdt:Transform="Remove" xdt:Locator="Match(name)" />
+    </protectedModules>
+  </episerver.shell>
 </configuration>
