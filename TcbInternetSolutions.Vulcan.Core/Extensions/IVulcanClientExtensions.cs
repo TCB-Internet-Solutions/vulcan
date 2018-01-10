@@ -30,26 +30,10 @@
         /// </summary>
         public static Injected<IVulcanHandler> VulcanHandler { get; set; }
 
-        private static IEnumerable<IVulcanCustomizer> _Customizers;
-
         /// <summary>
         /// Gets a list of Vulcan customizers
         /// </summary>
-        public static IEnumerable<IVulcanCustomizer> Customizers
-        {
-            get
-            {
-                if (_Customizers == null)
-                {
-                    // todo: setup configurable module to register
-                    var types = typeof(IVulcanCustomizer).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
-
-                    _Customizers = types.Select(t => (IVulcanCustomizer)Activator.CreateInstance(t));
-                }
-
-                return _Customizers;
-            }
-        }
+        public static IEnumerable<IVulcanCustomizer> Customizers => ServiceLocator.Current.GetAllInstances<IVulcanCustomizer>();
 
         /// <summary>
         /// Allows for customizations on analyzers and mappings.
@@ -58,8 +42,10 @@
         /// <param name="logger"></param>
         public static void RunCustomizers(this IVulcanClient client, ILogger logger)
         {
+            var customizers = Customizers;
+
             // run index updaters first, incase they are creating analyzers the mapping need
-            foreach (var customizer in Customizers)
+            foreach (var customizer in customizers)
             {
                 try
                 {
@@ -74,7 +60,7 @@
             }
 
             // then run the mappings
-            foreach (var customizer in Customizers)
+            foreach (var customizer in customizers)
             {
                 try
                 {
@@ -136,13 +122,9 @@
         /// <returns></returns>
         public static VulcanSearchHit DefaultBuildSearchHit(IHit<IContent> contentHit, IContentLoader contentLoader)
         {
-            ContentReference contentReference = null;
-
-            if (ContentReference.TryParse(contentHit.Id, out contentReference))
+            if (ContentReference.TryParse(contentHit.Id, out ContentReference contentReference))
             {
-                IContent content;
-
-                if (contentLoader.TryGet(contentReference, out content))
+                if (contentLoader.TryGet(contentReference, out IContent content))
                 {
                     ILocalizable localizable = content as ILocalizable;
                     var searchDescriptionCheck = contentHit.Fields.Where(x => x.Key == SearchDescriptionField).FirstOrDefault();
@@ -248,7 +230,7 @@
             var hits = client.SearchContent<VulcanContentHit>(d => d
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
-                    .Fields(fs => fs.Field(SearchDescriptionField).Field(p => p.ContentLink)) // only return contentLink
+                    .FielddataFields(fs => fs.Field(SearchDescriptionField).Field(p => p.ContentLink)) // only return contentLink
                     .Query(q => query)
                     //.Highlight(h => h.Encoder("html").Fields(f => f.Field("*")))
                     .Aggregations(agg => agg.Terms("types", t => t.Field(VulcanFieldConstants.TypeField))),

@@ -19,59 +19,55 @@
     [ModuleDependency(typeof(ServiceContainerInitialization))]
     public class VulcanAttachmentIndexerInitialization : IInitializableModule
     {
-        private HostType CurrentHostType = HostType.Undefined;
+        // 5.x support uses https://www.elastic.co/guide/en/elasticsearch/plugins/5.2/ingest-attachment.html
+        // not which 2.x uses https://www.elastic.co/guide/en/elasticsearch/plugins/5.2/mapper-attachments.html
+        private const bool _isVersion5 = true;
+        private static readonly string _pluginName = _isVersion5 ? "ingest-attachment" : "mapper-attachments"; // older 2.x
 
         private ILogger _Logger = LogManager.GetLogger(typeof(VulcanAttachmentIndexerInitialization));
-
-        private Injected<IVulcanAttachmentIndexerSettings> _AttachmentSettings;
+        private HostType CurrentHostType = HostType.Undefined;
 
         /// <summary>
-        /// Determines if elastic server has mapper-attachments installed
+        /// Injectable attachment settings
         /// </summary>
-        /// <param name="context"></param>
-        public void Initialize(InitializationEngine context)
+        public Injected<IVulcanAttachmentIndexerSettings> AttachmentSettings { get; set; }
+
+        /// <summary>
+        /// Injectable IVulcanHandler
+        /// </summary>
+        public Injected<IVulcanHandler> VulcanHandler { get; set; }
+
+        void IInitializableModule.Initialize(InitializationEngine context)
         {
             CurrentHostType = HostType.WebApplication;
             context.InitComplete += Context_InitComplete;
         }
 
+        void IInitializableModule.Uninitialize(InitializationEngine context) { }
+
         private void Context_InitComplete(object sender, EventArgs e)
         {
-            IVulcanHandler handler = ServiceLocator.Current.GetInstance<IVulcanHandler>();
-
             // Clear static list so property mapping can be re-created.
-            handler.DeletedIndices += ((IEnumerable<string> deletedIndices) =>
+            VulcanHandler.Service.DeletedIndices += ((IEnumerable<string> deletedIndices) =>
             {
                 VulcanAttachmentPropertyMapper.AddedMappings.Clear();
             });
 
-            if (_AttachmentSettings.Service.EnableAttachmentPlugins)
+            if (AttachmentSettings.Service.EnableAttachmentPlugins)
             {
-                //todo: future 5.x support uses https://www.elastic.co/guide/en/elasticsearch/plugins/5.2/ingest-attachment.html
-                // not which 2.x uses https://www.elastic.co/guide/en/elasticsearch/plugins/5.2/mapper-attachments.html
-
-                IVulcanClient client = handler.GetClient(CultureInfo.InvariantCulture);
+                IVulcanClient client = VulcanHandler.Service.GetClient(CultureInfo.InvariantCulture);
                 var info = client.NodesInfo();
 
-                if (info?.Nodes?.Any(x => x.Value?.Plugins?.Any(y => string.Compare(y.Name, "mapper-attachments", true) == 0) == true) != true)
+                if (info?.Nodes?.Any(x => x.Value?.Plugins?.Any(y => string.Compare(y.Name, _pluginName, true) == 0) == true) != true)
                 {
                     if (CurrentHostType != HostType.WebApplication ||
                         (CurrentHostType == HostType.WebApplication && HttpContext.Current?.IsDebuggingEnabled == true))
                     {
                         // Only throw exception if not a web application or is a web application with debug turned on
-                        throw new Exception("No attachment plugin found, be sure to install the 'mapper-attachments' plugin on your Elastic Search Server!");
+                        throw new Exception($"No attachment plugin found, be sure to install the '{_pluginName}' plugin on your Elastic Search Server!");
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// Uninitialize
-        /// </summary>
-        /// <param name="context"></param>
-        public void Uninitialize(InitializationEngine context)
-        {
-
         }
     }
 }

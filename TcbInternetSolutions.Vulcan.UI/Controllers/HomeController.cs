@@ -12,13 +12,15 @@ namespace TcbInternetSolutions.Vulcan.UI.Controllers
     [Authorize(Roles = "Administrators,CmsAdmins,WebAdmins,VulcanAdmins")]
     public class HomeController : Base.BaseController
     {
+        public HomeController(IVulcanHandler vulcanHandler) : base(vulcanHandler) { }
+
         [MenuItem("/global/vulcan", Text = "Vulcan")]
         [HttpGet]
         public ActionResult Index()
         {
             var viewModel = new HomeViewModel()
             {
-                VulcanHandler = VulcanHandler.Service,
+                VulcanHandler = VulcanHandler,
                 PocoIndexers = typeof(IVulcanPocoIndexer)
                     .GetSearchTypesFor(VulcanFieldConstants.DefaultFilter).Select(x => Activator.CreateInstance(x) as IVulcanPocoIndexer)
             };

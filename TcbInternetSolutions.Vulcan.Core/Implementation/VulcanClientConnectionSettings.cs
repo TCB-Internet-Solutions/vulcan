@@ -1,6 +1,7 @@
 ﻿using EPiServer.ServiceLocation;
 using Nest;
 using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Web.Configuration;
 
@@ -13,14 +14,17 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     public class VulcanClientConnectionSettings : IVulcanClientConnectionSettings
     {
         IVulcanConnectionPoolFactory _VulcanConnectionpoolFactory;
+        IEnumerable<IVulcanIndexingModifier> _VulcanIndexerModifers;
 
         /// <summary>
         /// Injected constructor
         /// </summary>
         /// <param name="connectionpoolFactory"></param>
-        public VulcanClientConnectionSettings(IVulcanConnectionPoolFactory connectionpoolFactory)
+        /// <param name="vulcanIndexingModifiers"></param>
+        public VulcanClientConnectionSettings(IVulcanConnectionPoolFactory connectionpoolFactory, IEnumerable<IVulcanIndexingModifier> vulcanIndexingModifiers)
         {
             _VulcanConnectionpoolFactory = connectionpoolFactory;
+            _VulcanIndexerModifers = vulcanIndexingModifiers;
         }
 
         /// <summary>
@@ -55,7 +59,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             }
 
             var connectionPool = _VulcanConnectionpoolFactory.CreateConnectionPool(url);
-            var settings = new ConnectionSettings(connectionPool, s => new VulcanCustomJsonSerializer(s));
+            var settings = new ConnectionSettings(connectionPool, s => new VulcanCustomJsonSerializer(s, _VulcanIndexerModifers));
             var username = ConfigurationManager.AppSettings["VulcanUsername"];
             var password = ConfigurationManager.AppSettings["VulcanPassword"];
 

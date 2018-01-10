@@ -14,11 +14,21 @@
     /// <summary>
     /// Default CMS content indexing modifier
     /// </summary>
-    public class VulcanCmsIndexingModifier : IVulcanIndexingModifier
+    public class VulcanCmsIndexingModifier : IVulcanIndexingModifierWithAncestors
     {
-        Injected<IContentLoader> ContentLoader;
+        private readonly IContentLoader _ContentLoader;
+        private readonly IContentSecurityRepository _ContentSecurityDescriptor;
 
-        Injected<IVulcanHandler> VulcanHandler;
+        /// <summary>
+        /// DI Constructor
+        /// </summary>
+        /// <param name="contentLoader"></param>
+        /// <param name="contentSecurityRepository"></param>
+        public VulcanCmsIndexingModifier(IContentLoader contentLoader, IContentSecurityRepository contentSecurityRepository)
+        {
+            _ContentLoader = contentLoader;            
+            _ContentSecurityDescriptor = contentSecurityRepository;
+        }
 
         /// <summary>
         /// Writes additional IContent information to stream
@@ -30,21 +40,23 @@
             var streamWriter = new StreamWriter(writableStream);
             var ancestors = new List<ContentReference>();
 
-            if (VulcanHandler.Service.IndexingModifers?.Any() == true)
+            //hack: to avoid a circular dependency by injecting an IVulcanHandler, get it from service locator here
+            // to fix remove IEnumerable<IVulcanIndexingModifier> IndexingModifers { get; } from IVulcanHandler
+            var vulcanHandler = ServiceLocator.Current.GetInstance<IVulcanHandler>();
+
+            if (vulcanHandler.IndexingModifers?.Any() == true)
             {
-                foreach (var indexingModifier in VulcanHandler.Service.IndexingModifers)
+                foreach (var indexingModifier in vulcanHandler.IndexingModifers)
                 {
-                    IEnumerable<ContentReference> ancestorsFound = null;
-
-                    try
+                    if (indexingModifier is IVulcanIndexingModifierWithAncestors modifierWithAncestors)
                     {
-                        ancestorsFound = indexingModifier.GetAncestors(content);
-                    }
-                    catch (NotImplementedException) { }
+                        IEnumerable<ContentReference> ancestorsFound = modifierWithAncestors.GetAncestors(content);
 
-                    if (ancestorsFound != null && ancestorsFound.Any())
-                    {
-                        ancestors.AddRange(ancestorsFound);
+                        if (ancestorsFound?.Any() == true)
+                        {
+                            ancestors.AddRange(ancestorsFound);
+                        }
+
                     }
                 }
             }
@@ -53,10 +65,9 @@
             streamWriter.Write(",\"" + VulcanFieldConstants.Ancestors + "\":[");
             streamWriter.Write(string.Join(",", ancestors.Select(x => x.ToReferenceWithoutVersion()).Distinct().Select(x => "\"" + x.ToString() + "\"")));
             streamWriter.Write("]");
-            
-            // index read permission
-            var repo = ServiceLocator.Current.GetInstance<IContentSecurityRepository>();
-            var permissions = repo.Get(content.ContentLink);
+
+            // index read permission            
+            var permissions = _ContentSecurityDescriptor.Get(content.ContentLink);
 
             if (permissions != null) // will be null for commerce products, compatibility handled in commerce modifier
             {
@@ -105,7 +116,7 @@
         /// <returns></returns>
         public IEnumerable<ContentReference> GetAncestors(IContent content)
         {
-            return ContentLoader.Service.GetAncestors(content.ContentLink)?.Select(c => c.ContentLink);
+            return _ContentLoader.GetAncestors(content.ContentLink)?.Select(c => c.ContentLink);
         }
     }
 }

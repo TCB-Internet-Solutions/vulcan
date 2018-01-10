@@ -2,33 +2,43 @@
 {
     using EPiServer.Core;
     using EPiServer.Logging;
-    using EPiServer.ServiceLocation;
     using System;
     using System.IO;
-    using static TcbInternetSolutions.Vulcan.Core.VulcanFieldConstants;
-    using System.Collections.Generic;
     using TcbInternetSolutions.Vulcan.Core.Extensions;
+    using static TcbInternetSolutions.Vulcan.Core.VulcanFieldConstants;
 
     /// <summary>
     /// Adds attachment content to serialized data
     /// </summary>
     public class VulcanAttachmentIndexModifier : Core.IVulcanIndexingModifier
     {
+        private readonly IVulcanAttachmentInspector _AttachmentInspector;
+        private readonly IVulcanAttachmentIndexerSettings _AttachmentSettings;
+        private readonly IVulcanMediaReader _MediaReader;
+        private readonly IVulcanBytesToStringConverter _ByteConvertor;
         private ILogger _Logger = LogManager.GetLogger(typeof(VulcanAttachmentIndexModifier));
 
-        static Injected<IVulcanAttachmentInspector> _AttachmentInspector;
-
-        static Injected<IVulcanAttachmentIndexerSettings> _AttachmentSettings;
-
-        static Injected<IVulcanMediaReader> _MediaReader;
-
         /// <summary>
-        /// Gets ancestors
+        /// DI Constructor
         /// </summary>
-        /// <param name="content"></param>
-        /// <returns></returns>
-        public IEnumerable<ContentReference> GetAncestors(IContent content) => null;
-
+        /// <param name="vulcanAttachmentInspector"></param>
+        /// <param name="vulcanAttachmentIndexerSettings"></param>
+        /// <param name="vulcanMediaReader"></param>
+        /// <param name="vulcanBytesToStringConverter"></param>
+        public VulcanAttachmentIndexModifier
+            (
+                IVulcanAttachmentInspector vulcanAttachmentInspector,
+                IVulcanAttachmentIndexerSettings vulcanAttachmentIndexerSettings,
+                IVulcanMediaReader vulcanMediaReader,
+                IVulcanBytesToStringConverter vulcanBytesToStringConverter
+            )
+        {
+            _AttachmentInspector = vulcanAttachmentInspector;
+            _AttachmentSettings = vulcanAttachmentIndexerSettings;
+            _MediaReader = vulcanMediaReader;
+            _ByteConvertor = vulcanBytesToStringConverter;
+        }
+        
         /// <summary>
         /// Adds attachment content to serialized data
         /// </summary>
@@ -36,34 +46,32 @@
         /// <param name="writableStream"></param>
         public void ProcessContent(IContent content, Stream writableStream)
         {
-            var media = content as MediaData;
-
-            if (media != null && _AttachmentInspector.Service.AllowIndexing(media))
+            if (content is MediaData media && _AttachmentInspector.AllowIndexing(media))
             {
                 var streamWriter = new StreamWriter(writableStream);
-                byte[] mediaBytes = _MediaReader.Service.ReadToEnd(media);
+                byte[] mediaBytes = _MediaReader.ReadToEnd(media);
                 string mimeType = media.MimeType;
+                long fileByteSize = mediaBytes?.LongLength ?? 0;
 
-                if (mediaBytes?.LongLength > 0)
+                if (fileByteSize > 0)
                 {
-                    if (_AttachmentSettings.Service.EnableAttachmentPlugins)
+                    if (_AttachmentSettings.EnableAttachmentPlugins)
                     {
                         Implementation.VulcanAttachmentPropertyMapper.AddMapping(media);
-
-                        streamWriter.Write(",\"" + MediaContents + "\":{");
                         string base64contents = Convert.ToBase64String(mediaBytes);
-                        long fileByteSize = mediaBytes.LongLength;
 
-                        streamWriter.Write("\"_name\": \"" + media.Name + "\",");
-                        streamWriter.Write("\"_indexed_chars\": \"-1\","); // indexes entire document instead of first 100000 chars   
-                        streamWriter.Write("\"_content_type\": \"" + mimeType + "\",");
-                        streamWriter.Write("\"_content_length\": \"" + fileByteSize + "\",");
-                        streamWriter.Write("\"_content\": \"" + base64contents + "\"");
-                        streamWriter.Write("}");
+                        streamWriter.Write(",\"" + MediaContents + "\" : \"" + base64contents + "\"");
+
+                        //streamWriter.Write(",\"" + MediaContents + "\":{");
+                        //streamWriter.Write("\"_name\": \"" + media.Name + "\",");
+                        //streamWriter.Write("\"_indexed_chars\": \"-1\","); // indexes entire document instead of first 100000 chars   
+                        //streamWriter.Write("\"_content_type\": \"" + mimeType + "\",");
+                        //streamWriter.Write("\"_content_length\": \"" + fileByteSize + "\",");
+                        //streamWriter.Write("\"_content\": \"" + base64contents + "\"");
+                        //streamWriter.Write("}");
                     }
-
-                    var converter = Helpers.GetBytesToStringConverter();
-                    string stringContents = converter?.ConvertToString(mediaBytes, mimeType);
+                    
+                    string stringContents = _ByteConvertor.ConvertToString(mediaBytes, mimeType);
 
                     if (!string.IsNullOrWhiteSpace(stringContents))
                     {

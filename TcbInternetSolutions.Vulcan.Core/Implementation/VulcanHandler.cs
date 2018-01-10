@@ -28,11 +28,40 @@
         /// </summary>
         protected Dictionary<CultureInfo, IVulcanClient> clients = new Dictionary<CultureInfo, IVulcanClient>();
 
-        private Dictionary<Type, List<IVulcanConditionalContentIndexInstruction>> conditionalContentIndexInstructions = new Dictionary<Type, List<IVulcanConditionalContentIndexInstruction>>();
-
-        private IEnumerable<IVulcanIndexingModifier> indexingModifiers = null;
+        private Dictionary<Type, List<IVulcanConditionalContentIndexInstruction>> conditionalContentIndexInstructions;
 
         private object lockObject = new object();
+
+        /// <summary>
+        /// Default constructor
+        /// </summary>
+        public VulcanHandler() : this
+            (
+                ServiceLocator.Current.GetAllInstances<IVulcanIndexingModifier>(),
+                ServiceLocator.Current.GetInstance<IVulcanClientConnectionSettings>(),
+                ServiceLocator.Current.GetInstance<IContentLoader>(),
+                ServiceLocator.Current.GetInstance<IVulcanCreateIndexCustomizer>()
+            )
+        { }
+
+        /// <summary>
+        /// DI Constructor
+        /// </summary>
+        /// <param name="vulcanIndexingModifiers"></param>
+        /// <param name="vulcanClientConnectionSettings"></param>
+        /// <param name="contentLoader"></param>
+        /// <param name="vulcanCreateIndexCustomizer"></param>
+        public VulcanHandler(IEnumerable<IVulcanIndexingModifier> vulcanIndexingModifiers,
+            IVulcanClientConnectionSettings vulcanClientConnectionSettings,
+            IContentLoader contentLoader,
+            IVulcanCreateIndexCustomizer vulcanCreateIndexCustomizer)
+        {
+            IndexingModifers = vulcanIndexingModifiers;
+            CommonConnectionSettings = vulcanClientConnectionSettings;
+            ContentLoader = contentLoader;
+            CreateIndexCustomizer = vulcanCreateIndexCustomizer;
+            conditionalContentIndexInstructions = new Dictionary<Type, List<IVulcanConditionalContentIndexInstruction>>();
+        }
 
         /// <summary>
         /// Deleted indices handler
@@ -42,38 +71,27 @@
         /// <summary>
         /// Index name
         /// </summary>
-        public virtual string Index => CommonConnectionSettings.Service.Index;
+        public virtual string Index => CommonConnectionSettings.Index;
 
         /// <summary>
         /// Indexing modifiers
         /// </summary>
-        public virtual IEnumerable<IVulcanIndexingModifier> IndexingModifers
-        {
-            get
-            {
-                if (indexingModifiers == null)
-                {
-                    var typeModifiers = typeof(IVulcanIndexingModifier).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
-                    indexingModifiers = typeModifiers.Select(t => (IVulcanIndexingModifier)Activator.CreateInstance(t));
-                }
-
-                return indexingModifiers;
-            }
-        }
+        public virtual IEnumerable<IVulcanIndexingModifier> IndexingModifers { get; }
         /// <summary>
         /// Inected connection settings
         /// </summary>
-        protected Injected<IVulcanClientConnectionSettings> CommonConnectionSettings { get; set; }
+        protected IVulcanClientConnectionSettings CommonConnectionSettings { get; set; }
 
         /// <summary>
         /// Injected content loader
         /// </summary>
-        protected Injected<IContentLoader> ContentLoader { get; set; }
+        protected IContentLoader ContentLoader { get; set; }
 
         /// <summary>
         /// Injected create index customizer
         /// </summary>
-        protected Injected<IVulcanCreateIndexCustomizer> CreateIndexCustomizer { get; }
+        protected IVulcanCreateIndexCustomizer CreateIndexCustomizer { get; }
+
         /// <summary>
         /// Adds index instruction
         /// </summary>
@@ -156,7 +174,7 @@
         {
             lock (lockObject)
             {
-                var client = CreateElasticClient(CommonConnectionSettings.Service.ConnectionSettings); // use a raw elasticclient because we just need this to be quick
+                var client = CreateElasticClient(CommonConnectionSettings.ConnectionSettings); // use a raw elasticclient because we just need this to be quick
                 var indices = client.CatIndices();
 
                 if (indices != null && indices.Records != null && indices.Records.Any())
@@ -200,9 +218,7 @@
         {
             var cultureInfo = language ?? CultureInfo.CurrentUICulture;
 
-            IVulcanClient storedClient;
-
-            if (clients.TryGetValue(cultureInfo, out storedClient))
+            if (clients.TryGetValue(cultureInfo, out IVulcanClient storedClient))
                 return storedClient;
 
             lock (lockObject)
@@ -210,7 +226,7 @@
                 // we now know what our culture is (current culture or invariant), but we need to choose the language analyzer                
                 var languageAnalyzer = VulcanHelper.GetAnalyzer(cultureInfo);
                 var indexName = VulcanHelper.GetIndexName(Index, cultureInfo);
-                var settings = CommonConnectionSettings.Service.ConnectionSettings;
+                var settings = CommonConnectionSettings.ConnectionSettings;
                 settings.InferMappingFor<ContentMixin>(pd => pd.Ignore(p => p.MixinInstance));
                 settings.DefaultIndex(indexName);
 
@@ -250,12 +266,12 @@
                             dyn => dyn.DynamicTemplate("analyzer_template", dt => dt
                                 .Match("*") //matches all fields
                                 .MatchMappingType("string") //that are a string
-                                .Mapping(dynmap => dynmap.String(s => s
-                                    .NotAnalyzed()
-                                    .IgnoreAbove(CreateIndexCustomizer.Service.IgnoreAbove) // needed for: document contains at least one immense term in field
+                                .Mapping(dynmap => dynmap.Keyword(s => s
+                                    //.NotAnalyzed() // todo: confirm this isn't needed, https://www.elastic.co/guide/en/elasticsearch/reference/5.5/breaking_50_mapping_changes.html
+                                    .IgnoreAbove(CreateIndexCustomizer.IgnoreAbove) // needed for: document contains at least one immense term in field
                                     .IncludeInAll(false)
                                     .Fields(f => f
-                                        .String(ana => ana
+                                        .Text(ana => ana
                                             .Name(VulcanFieldConstants.AnalyzedModifier)
                                             .IncludeInAll(false)
                                             .Store(true)
@@ -266,7 +282,7 @@
 
                 if (!client.IndexExists(indexName).Exists)
                 {
-                    var response = client.CreateIndex(indexName, CreateIndexCustomizer.Service.CustomizeIndex);
+                    var response = client.CreateIndex(indexName, CreateIndexCustomizer.CustomizeIndex);
 
                     if (!response.IsValid)
                     {
@@ -286,7 +302,7 @@
                 client.RunCustomizers(Logger); // allows for customizations
 
                 var openResponse = client.OpenIndex(indexName);
-                var initShards = client.ClusterHealth(x => x.WaitForActiveShards(CreateIndexCustomizer.Service.WaitForActiveShards)); // fixes empty results on first request
+                var initShards = client.ClusterHealth(x => x.WaitForActiveShards(CreateIndexCustomizer.WaitForActiveShards.ToString())); // fixes empty results on first request
 
                 clients[cultureInfo] = client;
 
@@ -301,7 +317,7 @@
         public virtual IVulcanClient[] GetClients()
         {
             var clients = new List<IVulcanClient>();
-            var client = CreateElasticClient(CommonConnectionSettings.Service.ConnectionSettings);
+            var client = CreateElasticClient(CommonConnectionSettings.ConnectionSettings);
             var indices = client.CatIndices();
 
             if (indices != null && indices.Records != null && indices.Records.Any())
@@ -355,7 +371,7 @@
                 {
                     var client = GetClient(language);
 
-                    client.IndexContent(ContentLoader.Service.Get<IContent>(content.ContentLink.ToReferenceWithoutVersion(), language));
+                    client.IndexContent(ContentLoader.Get<IContent>(content.ContentLink.ToReferenceWithoutVersion(), language));
                 }
             }
         }
@@ -368,7 +384,7 @@
         {
             if (!ContentReference.IsNullOrEmpty(contentLink))
             {
-                var content = ContentLoader.Service.Get<IContent>(contentLink);
+                var content = ContentLoader.Get<IContent>(contentLink);
 
                 if (content != null) IndexContentEveryLanguage(content);
             }

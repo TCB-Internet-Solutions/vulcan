@@ -166,7 +166,7 @@
                     {
                         var clientHits = client.SearchContent<IContent>(d => d
                                 .Take(query.MaxResults)
-                                .Fields(fs => fs.Field(p => p.ContentLink)) // only return id for performance
+                                .FielddataFields(fs => fs.Field(p => p.ContentLink)) // only return id for performance
                                 .Query(x =>
                                     x.SimpleQueryString(sqs =>
                                         sqs.Fields(f => f

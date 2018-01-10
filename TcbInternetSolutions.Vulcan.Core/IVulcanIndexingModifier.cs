@@ -15,10 +15,13 @@ namespace TcbInternetSolutions.Vulcan.Core
         /// <param name="content"></param>
         /// <param name="writableStream"></param>
         void ProcessContent(IContent content, Stream writableStream);
+    }
 
-        // todo: Refactor GetAncestors to a new interface and adjust VulcanCmsIndexingModifier to see any modifiers also implements the new interface, shouldn't have to catch a not implemented exception
-        // this will result in a breaking change
-
+    /// <summary>
+    /// Indexing modifier that supports ancestors
+    /// </summary>
+    public interface IVulcanIndexingModifierWithAncestors : IVulcanIndexingModifier
+    {
         /// <summary>
         /// Gets ancestors for given content
         /// </summary>

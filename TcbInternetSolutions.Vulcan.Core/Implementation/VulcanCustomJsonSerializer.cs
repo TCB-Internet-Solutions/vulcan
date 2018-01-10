@@ -3,6 +3,7 @@ using EPiServer.Core;
 using EPiServer.ServiceLocation;
 using Nest;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -14,13 +15,23 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     /// </summary>
     public class VulcanCustomJsonSerializer : JsonNetSerializer
     {
-        Injected<IVulcanHandler> VulcanHandler;
+        private readonly IEnumerable<IVulcanIndexingModifier> _VulcanModifiers;
 
         /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="settings"></param>
-        public VulcanCustomJsonSerializer(IConnectionSettingsValues settings) : base(settings) { }
+        public VulcanCustomJsonSerializer(IConnectionSettingsValues settings) : this(settings, ServiceLocator.Current.GetAllInstances<IVulcanIndexingModifier>()) { }
+
+        /// <summary>
+        /// DI
+        /// </summary>
+        /// <param name="settings"></param>
+        /// <param name="modifiers"></param>
+        public VulcanCustomJsonSerializer(IConnectionSettingsValues settings, IEnumerable<IVulcanIndexingModifier> modifiers) : base(settings)
+        {
+            _VulcanModifiers = modifiers;
+        }
 
         /// <summary>
         /// Creates property mapping
@@ -29,12 +40,12 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <returns></returns>
         public override IPropertyMapping CreatePropertyMapping(MemberInfo memberInfo)
         {
-            if (memberInfo.Name.Equals("PageName", StringComparison.InvariantCultureIgnoreCase) ||
+            if (memberInfo.Name.Equals("PageName", StringComparison.OrdinalIgnoreCase) ||
                 memberInfo.Name.Contains(".") || (
                     memberInfo.MemberType == MemberTypes.Property &&
                     (IsSubclassOfRawGeneric(typeof(Injected<>), (memberInfo as PropertyInfo).PropertyType)
                     || VulcanHelper.IgnoredTypes.Contains((memberInfo as PropertyInfo).PropertyType)
-                    || memberInfo.Name.Equals("DefaultMvcController", StringComparison.InvariantCultureIgnoreCase))))
+                    || memberInfo.Name.Equals("DefaultMvcController", StringComparison.OrdinalIgnoreCase))))
             {
                 return new PropertyMapping() { Ignore = true };
             }
@@ -52,7 +63,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <param name="formatting"></param>
         public override void Serialize(object data, Stream writableStream, SerializationFormatting formatting = SerializationFormatting.Indented)
         {
-            if (data is IndexDescriptor<IContent>)
+            if (data is IIndexRequest<IContent> descriptedData)
             {
                 var stream = new MemoryStream();
 
@@ -73,17 +84,17 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                 stream.Flush();
 
-                var content = data.GetType().GetProperty("Nest.IIndexRequest.UntypedDocument", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(data) as IContent;
+                var content = descriptedData.Document;
 
-                if (VulcanHandler.Service.IndexingModifers != null)
-                {                    
-                    foreach (var indexingModifier in VulcanHandler.Service.IndexingModifers)
+                if (_VulcanModifiers != null)
+                {
+                    foreach (var indexingModifier in _VulcanModifiers)
                     {
                         try
                         {
                             indexingModifier.ProcessContent(content, writableStream);
                         }
-                        catch(Exception e)
+                        catch (Exception e)
                         {
                             throw new Exception($"{indexingModifier.GetType().FullName} failed to process content ID {content.ContentLink.ID} with name {content.Name}!", e);
                         }

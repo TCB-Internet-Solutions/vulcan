@@ -58,9 +58,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
 
             foreach (string name in VirtualRoleRepository.Service.GetAllRoles())
             {
-                VirtualRoleProviderBase virtualRoleProvider;
-
-                if (VirtualRoleRepository.Service.TryGetRole(name, out virtualRoleProvider) && virtualRoleProvider.IsInVirtualRole(principle, null))
+                if (VirtualRoleRepository.Service.TryGetRole(name, out VirtualRoleProviderBase virtualRoleProvider) && virtualRoleProvider.IsInVirtualRole(principle, null))
                     list.Add(name);
 
             }

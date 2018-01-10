@@ -40,8 +40,8 @@
     <Reference Include="Castle.Windsor, Version=4.0.0.0, Culture=neutral, PublicKeyToken=407dd0808d44fbdc, processorArchitecture=MSIL">
       <HintPath>..\packages\Castle.Windsor.4.1.0\lib\net45\Castle.Windsor.dll</HintPath>
     </Reference>
-    <Reference Include="Elasticsearch.Net, Version=2.0.0.0, Culture=neutral, PublicKeyToken=96c599bbe3e70f5d, processorArchitecture=MSIL">
-      <HintPath>..\packages\Elasticsearch.Net.2.4.1\lib\net46\Elasticsearch.Net.dll</HintPath>
+    <Reference Include="Elasticsearch.Net, Version=5.0.0.0, Culture=neutral, PublicKeyToken=96c599bbe3e70f5d, processorArchitecture=MSIL">
+      <HintPath>..\packages\Elasticsearch.Net.5.0.1\lib\net46\Elasticsearch.Net.dll</HintPath>
     </Reference>
     <Reference Include="EPiServer, Version=11.1.0.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
       <HintPath>..\packages\EPiServer.CMS.Core.11.1.0\lib\net461\EPiServer.dll</HintPath>
@@ -70,8 +70,8 @@
     <Reference Include="EPiServer.LinkAnalyzer, Version=11.1.0.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
       <HintPath>..\packages\EPiServer.CMS.Core.11.1.0\lib\net461\EPiServer.LinkAnalyzer.dll</HintPath>
     </Reference>
-    <Reference Include="Nest, Version=2.0.0.0, Culture=neutral, PublicKeyToken=96c599bbe3e70f5d, processorArchitecture=MSIL">
-      <HintPath>..\packages\NEST.2.4.1\lib\net46\Nest.dll</HintPath>
+    <Reference Include="Nest, Version=5.0.0.0, Culture=neutral, PublicKeyToken=96c599bbe3e70f5d, processorArchitecture=MSIL">
+      <HintPath>..\packages\NEST.5.0.1\lib\net46\Nest.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
@@ -129,6 +129,8 @@
     <Compile Include="Extensions\ContentExtensions.cs" />
     <Compile Include="Extensions\UserExtensions.cs" />
     <Compile Include="Implementation\VulcanSearchContentLoader.cs" />
+    <Compile Include="Initialization\RegisterIndexingModifiers.cs" />
+    <Compile Include="Initialization\RegisterVulcanCustomizers.cs" />
     <Compile Include="IVulcanConnectionPoolFactory.cs" />
     <Compile Include="IVulcanConditionalContentIndexInstruction.cs" />
     <Compile Include="Implementation\VulcanClientConnectionSettings.cs" />
@@ -145,7 +147,7 @@
     <Compile Include="Implementation\VulcanClient.cs" />
     <Compile Include="Implementation\VulcanContentHit.cs" />
     <Compile Include="Implementation\VulcanHandler.cs" />
-    <Compile Include="Implementation\VulcanIndexSynchronization.cs" />
+    <Compile Include="Initialization\VulcanIndexSynchronization.cs" />
     <Compile Include="Implementation\VulcanPocoIndexingJob.cs" />
     <Compile Include="Implementation\VulcanSearchHit.cs" />
     <Compile Include="Implementation\VulcanSearchHitList.cs" />
@@ -161,6 +163,7 @@
     <Compile Include="IVulcanIndexingModifier.cs" />
     <Compile Include="IVulcanPocoIndexer.cs" />
     <Compile Include="IVulcanPocoIndexingJob.cs" />
+    <Compile Include="IVulcanSearchable.cs" />
     <Compile Include="IVulcanSearchContentLoader.cs" />
     <Compile Include="IVulcanSearchHitDescription.cs" />
     <Compile Include="VulcanPocoIndexingJobBase.cs" />

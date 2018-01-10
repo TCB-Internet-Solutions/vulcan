@@ -25,16 +25,24 @@
         /// <param name="index"></param>
         /// <param name="settings"></param>
         /// <param name="language"></param>
-        public VulcanClient(string index, ConnectionSettings settings, CultureInfo language)
-            : base(settings)
-        {
-            if (language == null)
-            {
-                throw new Exception("Vulcan client requires a language (you may use CultureInfo.InvariantCulture if needed for non-language specific data)");
-            }
+        public VulcanClient(string index, ConnectionSettings settings, CultureInfo language) : 
+            this(index, settings, language, ServiceLocator.Current.GetInstance<IContentLoader>(), ServiceLocator.Current.GetInstance<IVulcanHandler>())            
+        { }
 
-            Language = language;
+        /// <summary>
+        /// DI Constructor
+        /// </summary>
+        /// <param name="index"></param>
+        /// <param name="settings"></param>
+        /// <param name="language"></param>
+        /// <param name="contentLoader"></param>
+        /// <param name="vulcanHandler"></param>
+        public VulcanClient(string index, ConnectionSettings settings, CultureInfo language, IContentLoader contentLoader, IVulcanHandler vulcanHandler) : base(settings)
+        {
+            Language = language ?? throw new Exception("Vulcan client requires a language (you may use CultureInfo.InvariantCulture if needed for non-language specific data)");
             IndexName = VulcanHelper.GetIndexName(index, Language);
+            ContentLoader = contentLoader;
+            VulcanHandler = vulcanHandler;
         }
 
         /// <summary>
@@ -50,12 +58,12 @@
         /// <summary>
         /// Injected Content Loader
         /// </summary>
-        protected Injected<IContentLoader> ContentLoader { get; set; }
+        protected IContentLoader ContentLoader { get; set; }
 
         /// <summary>
         /// Injected Vulcan Handler
         /// </summary>
-        protected Injected<IVulcanHandler> VulcanHandler { get; set; }
+        protected IVulcanHandler VulcanHandler { get; set; }
 
         /// <summary>
         /// Adds a synonym
@@ -152,12 +160,12 @@
             if (versionableContent == null || versionableContent.Status == VersionStatus.Published)
             {
                 // see if we should index this content
-
-                if (VulcanHandler.Service.AllowContentIndexing(content))
+                if (VulcanHandler.AllowContentIndexing(content))
                 {
                     try
                     {
-                        var response = base.Index(content, c => c.Id(GetId(content)).Type(GetTypeName(content)));
+                        // todo: need to conditionally enable pipeline when its an indexable type
+                        var response = base.Index(content, c => c.Id(GetId(content)).Type(GetTypeName(content)));//.Pipeline("attachment"));
 
                         if (response.IsValid)
                         {
@@ -221,7 +229,7 @@
 
             if (Language != CultureInfo.InvariantCulture && includeNeutralLanguage)
             {
-                indexName += "," + VulcanHelper.GetIndexName(VulcanHandler.Service.Index, CultureInfo.InvariantCulture);
+                indexName += "," + VulcanHelper.GetIndexName(VulcanHandler.Index, CultureInfo.InvariantCulture);
             }
 
             resolvedDescriptor = resolvedDescriptor.Index(indexName);

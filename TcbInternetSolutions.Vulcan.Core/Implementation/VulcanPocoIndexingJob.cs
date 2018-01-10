@@ -115,8 +115,8 @@
                 // https://www.elastic.co/guide/en/elasticsearch/client/net-api/1.x/bulk.html
                 var request = new BulkRequest()
                 {
-                    Refresh = true,
-                    Consistency = Consistency.One,
+                    Refresh = Refresh.True,
+                    //Consistency = Consistency.One, // removed in nest 5
                     Operations = operations
                 };
 

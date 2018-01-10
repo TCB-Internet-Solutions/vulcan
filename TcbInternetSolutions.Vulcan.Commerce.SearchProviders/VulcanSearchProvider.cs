@@ -1,4 +1,5 @@
-﻿using EPiServer;
+﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+using EPiServer;
 using EPiServer.Commerce.Catalog.ContentTypes;
 using EPiServer.Core;
 using EPiServer.ServiceLocation;
