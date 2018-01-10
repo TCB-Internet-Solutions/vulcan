@@ -53,18 +53,20 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
 
             // todo: is PrincipalInfo needed for roleslist
             //var userPrinciple = new PrincipalInfo(principle);
-
-            var list = new List<string>();// userPrinciple.RoleList);           
+            var list = new List<string>();
 
             foreach (string name in VirtualRoleRepository.Service.GetAllRoles())
             {
                 if (VirtualRoleRepository.Service.TryGetRole(name, out VirtualRoleProviderBase virtualRoleProvider) && virtualRoleProvider.IsInVirtualRole(principle, null))
+                {
                     list.Add(name);
-
+                }
             }
 
             if (Roles.Enabled)
+            {
                 list.AddRange(Roles.GetRolesForUser(principle.Identity.Name));
+            }
 
             return list.Distinct();
         }

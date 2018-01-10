@@ -1,6 +1,5 @@
 ﻿namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
-    using EPiServer;
     using EPiServer.Core;
     using EPiServer.DataAbstraction;
     using EPiServer.Security;
@@ -14,20 +13,21 @@
     /// <summary>
     /// Default CMS content indexing modifier
     /// </summary>
-    public class VulcanCmsIndexingModifier : IVulcanIndexingModifierWithAncestors
-    {
-        private readonly IContentLoader _ContentLoader;
+    [ServiceConfiguration(typeof(IVulcanIndexingModifier), Lifecycle = ServiceInstanceScope.Singleton)]
+    public class VulcanCmsIndexingModifier : IVulcanIndexingModifier
+    {        
         private readonly IContentSecurityRepository _ContentSecurityDescriptor;
+        private readonly IEnumerable<IVulcanContentAncestorLoader> _VulcanContentAncestorLoaders;
 
         /// <summary>
         /// DI Constructor
         /// </summary>
-        /// <param name="contentLoader"></param>
         /// <param name="contentSecurityRepository"></param>
-        public VulcanCmsIndexingModifier(IContentLoader contentLoader, IContentSecurityRepository contentSecurityRepository)
+        /// <param name="vulcanContentAncestorLoader"></param>
+        public VulcanCmsIndexingModifier(IContentSecurityRepository contentSecurityRepository, IEnumerable<IVulcanContentAncestorLoader> vulcanContentAncestorLoader)
         {
-            _ContentLoader = contentLoader;            
             _ContentSecurityDescriptor = contentSecurityRepository;
+            _VulcanContentAncestorLoaders = vulcanContentAncestorLoader;
         }
 
         /// <summary>
@@ -38,30 +38,23 @@
         public virtual void ProcessContent(IContent content, Stream writableStream)
         {
             var streamWriter = new StreamWriter(writableStream);
+
+            // index ancestors
             var ancestors = new List<ContentReference>();
 
-            //hack: to avoid a circular dependency by injecting an IVulcanHandler, get it from service locator here
-            // to fix remove IEnumerable<IVulcanIndexingModifier> IndexingModifers { get; } from IVulcanHandler
-            var vulcanHandler = ServiceLocator.Current.GetInstance<IVulcanHandler>();
-
-            if (vulcanHandler.IndexingModifers?.Any() == true)
+            if (_VulcanContentAncestorLoaders?.Any() == true)
             {
-                foreach (var indexingModifier in vulcanHandler.IndexingModifers)
+                foreach (var ancestorLoader in _VulcanContentAncestorLoaders)
                 {
-                    if (indexingModifier is IVulcanIndexingModifierWithAncestors modifierWithAncestors)
+                    IEnumerable<ContentReference> ancestorsFound = ancestorLoader.GetAncestors(content);
+
+                    if (ancestorsFound?.Any() == true)
                     {
-                        IEnumerable<ContentReference> ancestorsFound = modifierWithAncestors.GetAncestors(content);
-
-                        if (ancestorsFound?.Any() == true)
-                        {
-                            ancestors.AddRange(ancestorsFound);
-                        }
-
+                        ancestors.AddRange(ancestorsFound);
                     }
                 }
             }
 
-            // index ancestors
             streamWriter.Write(",\"" + VulcanFieldConstants.Ancestors + "\":[");
             streamWriter.Write(string.Join(",", ancestors.Select(x => x.ToReferenceWithoutVersion()).Distinct().Select(x => "\"" + x.ToString() + "\"")));
             streamWriter.Write("]");
@@ -107,16 +100,6 @@
             streamWriter.Write(",\"" + VulcanFieldConstants.CustomContents + "\":" + StringExtensions.JsonEscapeString(string.Join(" ", contents)));
 
             streamWriter.Flush();
-        }
-
-        /// <summary>
-        /// Gets IContent ancestors
-        /// </summary>
-        /// <param name="content"></param>
-        /// <returns></returns>
-        public IEnumerable<ContentReference> GetAncestors(IContent content)
-        {
-            return _ContentLoader.GetAncestors(content.ContentLink)?.Select(c => c.ContentLink);
         }
     }
 }

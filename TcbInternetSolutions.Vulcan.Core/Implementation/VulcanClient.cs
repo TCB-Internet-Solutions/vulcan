@@ -20,16 +20,6 @@
         private static ILogger Logger = LogManager.GetLogger();
 
         /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="index"></param>
-        /// <param name="settings"></param>
-        /// <param name="language"></param>
-        public VulcanClient(string index, ConnectionSettings settings, CultureInfo language) : 
-            this(index, settings, language, ServiceLocator.Current.GetInstance<IContentLoader>(), ServiceLocator.Current.GetInstance<IVulcanHandler>())            
-        { }
-
-        /// <summary>
         /// DI Constructor
         /// </summary>
         /// <param name="index"></param>

@@ -1,13 +1,11 @@
 ﻿using EPiServer;
 using EPiServer.Commerce.Catalog.ContentTypes;
-using EPiServer.Commerce.Catalog.Linking;
 using EPiServer.Core;
 using EPiServer.Logging;
 using EPiServer.Security;
 using EPiServer.ServiceLocation;
 using Mediachase.Commerce.Markets;
 using Mediachase.Commerce.Pricing;
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -16,15 +14,20 @@ using TcbInternetSolutions.Vulcan.Core;
 
 namespace TcbInternetSolutions.Vulcan.Commerce
 {
+    [ServiceConfiguration(typeof(IVulcanIndexingModifier), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanCommerceIndexingModifier : IVulcanIndexingModifier
     {
-        public Injected<ILinksRepository> LinksRepository { get; set; }
-
-        public Injected<IContentLoader> ContentLoader { get; set; }
-
         private static readonly ILogger Logger = LogManager.GetLogger();
+        private readonly IMarketService _MarketService;
+        private readonly IPriceDetailService _PriceDetailService;
 
-        public void ProcessContent(EPiServer.Core.IContent content, System.IO.Stream writableStream)
+        public VulcanCommerceIndexingModifier(IPriceDetailService priceDetailService, IMarketService marketService)
+        {
+            _PriceDetailService = priceDetailService;
+            _MarketService = marketService;
+        }
+
+        public void ProcessContent(IContent content, Stream writableStream)
         {
             var streamWriter = new StreamWriter(writableStream);
 
@@ -117,6 +120,39 @@ namespace TcbInternetSolutions.Vulcan.Commerce
             streamWriter.Flush();
         }
 
+        private Dictionary<string, Dictionary<string, decimal>> GetDefaultPrices(VariationContent variation)
+        {
+            var prices = new Dictionary<string, Dictionary<string, decimal>>();
+
+            foreach (var market in _MarketService.GetAllMarkets())
+            {
+                if (variation.IsAvailableInMarket(market.MarketId)) // no point adding price if not available in that market
+                {
+                    prices.Add(market.MarketId.Value, new Dictionary<string, decimal>());
+
+                    var variantPrices = _PriceDetailService.List(variation.ContentLink, market.MarketId, new PriceFilter() { Quantity = 0, CustomerPricing = new[] { CustomerPricing.AllCustomers } }, 0, 9999, out int totalCount); // we are using 9,999 price values as the theoretical maximum
+
+                    if (variantPrices != null && totalCount > 0)
+                    {
+                        foreach (var price in variantPrices)
+                        {
+                            if (price.MinQuantity == 0 && price.CustomerPricing == Mediachase.Commerce.Pricing.CustomerPricing.AllCustomers) // this is a default price
+                            {
+                                if (!prices.ContainsKey(price.UnitPrice.Currency.CurrencyCode))
+                                {
+                                    prices[market.MarketId.Value].Add(price.UnitPrice.Currency.CurrencyCode, 0);
+                                }
+
+                                prices[market.MarketId.Value][price.UnitPrice.Currency.CurrencyCode] = price.UnitPrice.Amount;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return prices;
+        }
+
         private void WritePrices(StreamWriter streamWriter, Dictionary<string, Dictionary<string, decimal>> markets)
         {
             if (markets != null)
@@ -154,103 +190,6 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                     }
                 }
             }
-        }
-
-        private Dictionary<string, Dictionary<string, decimal>> GetDefaultPrices(VariationContent variation)
-        {
-            var prices = new Dictionary<string, Dictionary<string, decimal>>();
-
-            var priceDetailService = ServiceLocator.Current.GetInstance<IPriceDetailService>();
-
-            foreach (var market in ServiceLocator.Current.GetInstance<IMarketService>().GetAllMarkets())
-            {
-                if (variation.IsAvailableInMarket(market.MarketId)) // no point adding price if not available in that market
-                {
-                    prices.Add(market.MarketId.Value, new Dictionary<string, decimal>());
-
-                    var variantPrices = priceDetailService.List(variation.ContentLink, market.MarketId, new PriceFilter() { Quantity = 0, CustomerPricing = new[] { CustomerPricing.AllCustomers } }, 0, 9999, out int totalCount); // we are using 9,999 price values as the theoretical maximum
-
-                    if (variantPrices != null && totalCount > 0)
-                    {
-                        foreach (var price in variantPrices)
-                        {
-                            if (price.MinQuantity == 0 && price.CustomerPricing == Mediachase.Commerce.Pricing.CustomerPricing.AllCustomers) // this is a default price
-                            {
-                                if (!prices.ContainsKey(price.UnitPrice.Currency.CurrencyCode))
-                                {
-                                    prices[market.MarketId.Value].Add(price.UnitPrice.Currency.CurrencyCode, 0);
-                                }
-
-                                prices[market.MarketId.Value][price.UnitPrice.Currency.CurrencyCode] = price.UnitPrice.Amount;
-                            }
-                        }
-                    }
-                }
-            }
-
-            return prices;
-        }
-
-        public IEnumerable<ContentReference> GetAncestors(IContent content)
-        {
-            var ancestors = new List<ContentReference>();
-
-            if (content is VariationContent)
-            {
-                var productAncestors = LinksRepository.Service.GetRelationsByTarget(content.ContentLink)?.OfType<ProductVariation>();
-
-                if (productAncestors != null && productAncestors.Any())
-                {
-                    ancestors.AddRange(productAncestors.Select(pa => pa.Source));
-
-                    ancestors.AddRange(productAncestors.SelectMany(pa => GetAncestorCategoriesIterative(pa.Source, false)));
-                }
-            }
-
-            // for these purposes, we assume that products cannot exist inside other products
-            // variant may also exist directly inside a category
-
-            ancestors.AddRange(GetAncestorCategoriesIterative(content.ContentLink, false));
-
-            return ancestors.Distinct();
-        }
-
-        private IEnumerable<ContentReference> GetAncestorCategoriesIterative(ContentReference contentLink, bool checkCategoryParent)
-        {
-            var ancestors = new List<ContentReference>();
-
-            IEnumerable<Relation> categories = null;
-
-            try
-            {
-                categories = LinksRepository.Service.GetRelationsBySource(contentLink)?.OfType<NodeRelation>();
-            }
-            catch(Exception)
-            {
-                // probably not a valid category or node type to pull the relations of, so stop the iteration here
-
-                return ancestors;
-            }
-
-            if(categories != null && categories.Any())
-            {
-                ancestors.AddRange(categories.Select(pa => pa.Target));
-
-                ancestors.AddRange(categories.SelectMany(c => GetAncestorCategoriesIterative(c.Target, true)));
-            }
-
-            if (checkCategoryParent)
-            {
-                // there may be no categories related, but we still have a parent
-                if (ContentLoader.Service.Get<IContent>(contentLink) is NodeContent thisCat && !ancestors.Contains(thisCat.ParentLink))
-                {
-                    ancestors.Add(thisCat.ParentLink);
-
-                    ancestors.AddRange(GetAncestorCategoriesIterative(thisCat.ParentLink, true));
-                }
-            }
-
-            return ancestors;
         }
     }
 }

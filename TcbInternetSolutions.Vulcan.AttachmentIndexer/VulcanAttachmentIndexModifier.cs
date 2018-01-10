@@ -2,15 +2,18 @@
 {
     using EPiServer.Core;
     using EPiServer.Logging;
+    using EPiServer.ServiceLocation;
     using System;
     using System.IO;
+    using TcbInternetSolutions.Vulcan.Core;
     using TcbInternetSolutions.Vulcan.Core.Extensions;
     using static TcbInternetSolutions.Vulcan.Core.VulcanFieldConstants;
 
     /// <summary>
     /// Adds attachment content to serialized data
     /// </summary>
-    public class VulcanAttachmentIndexModifier : Core.IVulcanIndexingModifier
+    [ServiceConfiguration(typeof(IVulcanIndexingModifier), Lifecycle = ServiceInstanceScope.Singleton)]
+    public class VulcanAttachmentIndexModifier : IVulcanIndexingModifier
     {
         private readonly IVulcanAttachmentInspector _AttachmentInspector;
         private readonly IVulcanAttachmentIndexerSettings _AttachmentSettings;
@@ -46,6 +49,8 @@
         /// <param name="writableStream"></param>
         public void ProcessContent(IContent content, Stream writableStream)
         {
+            // todo: This needs to use a pipeline for ingesting attachments, need to figure out a way to enable during Index in IVulcanClient
+
             if (content is MediaData media && _AttachmentInspector.AllowIndexing(media))
             {
                 var streamWriter = new StreamWriter(writableStream);

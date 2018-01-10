@@ -1,6 +1,6 @@
-﻿using EPiServer.Web;
+﻿using EPiServer.Framework.Cache;
+using EPiServer.Web;
 using System.Collections.Generic;
-using EPiServer;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
@@ -9,6 +9,17 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     /// </summary>
     public class VulcanCmsIndexer : IVulcanContentIndexer
     {
+        private readonly ISynchronizedObjectInstanceCache _SynchronizedObjectInstanceCache;
+
+        /// <summary>
+        /// DI Constructor
+        /// </summary>
+        /// <param name="synchronizedObjectInstanceCache"></param>
+        public VulcanCmsIndexer(ISynchronizedObjectInstanceCache synchronizedObjectInstanceCache)
+        {
+            _SynchronizedObjectInstanceCache = synchronizedObjectInstanceCache;
+        }
+
         /// <summary>
         /// Default cache clear interval
         /// </summary>
@@ -24,7 +35,14 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// </summary>
         public void ClearCache()
         {
-            CacheManager.Clear(); // todo: investigate alternative
+            //CacheManager.Clear(); //this has been deprecated
+            var cacheKeys = GetCacheKeys();
+
+            foreach(var key in cacheKeys)
+            {
+                _SynchronizedObjectInstanceCache.RemoveLocal(key);
+                _SynchronizedObjectInstanceCache.RemoveRemote(key);
+            }
         }
 
         /// <summary>
@@ -33,5 +51,18 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <returns></returns>
         public virtual KeyValuePair<EPiServer.Core.ContentReference, string> GetRoot() =>
             new KeyValuePair<EPiServer.Core.ContentReference, string>(SiteDefinition.Current.RootPage, "CMS");
+
+        private IEnumerable<string> GetCacheKeys()
+        {
+            var enumerator = System.Web.HttpRuntime.Cache.GetEnumerator();
+            List<string> cacheKeys = new List<string>();
+
+            while (enumerator.MoveNext())
+            {
+                cacheKeys.Add(enumerator.Key.ToString());
+            }
+
+            return cacheKeys;
+        }
     }
 }

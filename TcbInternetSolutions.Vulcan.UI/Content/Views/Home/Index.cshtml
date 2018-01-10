@@ -86,7 +86,7 @@
                     </ul>
                 }
             </div>
-            @foreach (var client in clients)
+            @foreach (var client in clients.OrderBy(x => x.Language.EnglishName))
             {
                 <div data-dojo-type="dijit/layout/ContentPane" title="Client: @(client.Language == System.Globalization.CultureInfo.InvariantCulture ? "non-specific" : client.Language.EnglishName + " (" + client.Language.Name + ")")" data-dojo-props="selected:false" style="">
                     <h3 style="float:left;">Synonyms</h3>
@@ -125,23 +125,22 @@
                     <hr />
 
                     @{
-                        var typeCount = client.Search<object>(m => m.AllTypes().SearchType(Elasticsearch.Net.SearchType.Count).Aggregations(aggs => aggs.Terms("typeCount", t => t.Field("_type")))).Aggregations["typeCount"] as Nest.BucketAggregate;
+                        var typeCount = client.Search<object>(m => m.AllTypes().SearchType(Elasticsearch.Net.SearchType.DfsQueryThenFetch).Aggregations(aggs => aggs.Terms("typeCount", t => t.Field("_type")))).Aggregations["typeCount"] as Nest.BucketAggregate;
                     }
-
-                    <h3>Contents (@typeCount.Items.Sum(i => (i as Nest.KeyedBucket).DocCount))</h3>
+                    <h3>Contents (@typeCount.Items.Sum(i => (i as Nest.KeyedBucket<object>).DocCount))</h3>
 
                     <ul>
-                        @foreach (Nest.KeyedBucket type in typeCount.Items)
+                        @foreach (Nest.KeyedBucket<object> type in typeCount.Items)
                         {
                             <li>&gt; @type.Key (@type.DocCount)</li>
                         }
                     </ul>
                 </div>
 
-                        }
+            }
         </div>
 
-                        }
+    }
 </div>
 
 @if (clients != null && clients.Any())

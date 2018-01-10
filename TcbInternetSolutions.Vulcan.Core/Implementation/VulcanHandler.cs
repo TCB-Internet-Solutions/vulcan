@@ -33,18 +33,6 @@
         private object lockObject = new object();
 
         /// <summary>
-        /// Default constructor
-        /// </summary>
-        public VulcanHandler() : this
-            (
-                ServiceLocator.Current.GetAllInstances<IVulcanIndexingModifier>(),
-                ServiceLocator.Current.GetInstance<IVulcanClientConnectionSettings>(),
-                ServiceLocator.Current.GetInstance<IContentLoader>(),
-                ServiceLocator.Current.GetInstance<IVulcanCreateIndexCustomizer>()
-            )
-        { }
-
-        /// <summary>
         /// DI Constructor
         /// </summary>
         /// <param name="vulcanIndexingModifiers"></param>
@@ -209,7 +197,7 @@
             }
         }
 
-        /// <summary>
+        /// <summary> 
         /// Get a Vulcan client
         /// </summary>
         /// <param name="language">Pass in null for current culture, a specific culture or CultureInfo.InvariantCulture to get a client for non-language specific data</param>
@@ -258,6 +246,8 @@
 
                 client.RunCustomIndexTemplates(Index, Logger);
 
+                // note: strings are no more in ES5, for not analyzed text use Keyword and for analyzed use Text
+
                 // keep our base last with lowest possible Order
                 client.PutIndexTemplate($"{Index}_analyzer_disabling", ad => ad
                         .Order(0)
@@ -267,7 +257,6 @@
                                 .Match("*") //matches all fields
                                 .MatchMappingType("string") //that are a string
                                 .Mapping(dynmap => dynmap.Keyword(s => s
-                                    //.NotAnalyzed() // todo: confirm this isn't needed, https://www.elastic.co/guide/en/elasticsearch/reference/5.5/breaking_50_mapping_changes.html
                                     .IgnoreAbove(CreateIndexCustomizer.IgnoreAbove) // needed for: document contains at least one immense term in field
                                     .IncludeInAll(false)
                                     .Fields(f => f
@@ -405,7 +394,7 @@
         /// <param name="culture"></param>
         /// <returns></returns>
         protected virtual IVulcanClient CreateVulcanClient(string index, ConnectionSettings settings, CultureInfo culture) =>
-            new VulcanClient(index, settings, culture);
+            new VulcanClient(index, settings, culture, ContentLoader, this);
 
         /// <summary>
         /// Get elision articles

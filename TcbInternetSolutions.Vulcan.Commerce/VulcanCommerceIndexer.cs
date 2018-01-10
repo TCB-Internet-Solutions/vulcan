@@ -1,19 +1,22 @@
-﻿using EPiServer.ServiceLocation;
-using Mediachase.Commerce.Catalog;
+﻿using Mediachase.Commerce.Catalog;
+using Mediachase.Commerce.Engine.Caching;
 using System.Collections.Generic;
 using TcbInternetSolutions.Vulcan.Core;
-using System;
-using Mediachase.Commerce.Engine.Caching;
 
 namespace TcbInternetSolutions.Vulcan.Commerce
 {
     public class VulcanCommerceIndexer : IVulcanContentIndexer
     {
+        private readonly ReferenceConverter _ReferenceConverter;
+
+        public VulcanCommerceIndexer(ReferenceConverter referenceConverter)
+        {
+            _ReferenceConverter = referenceConverter;
+        }
+
         public int ClearCacheItemInterval => 100;
 
         public string IndexerName => "Commerce Content";
-
-        public Injected<ReferenceConverter> ReferenceConverter { get; set; }
 
         public void ClearCache()
         {
@@ -21,6 +24,6 @@ namespace TcbInternetSolutions.Vulcan.Commerce
         }
 
         public KeyValuePair<EPiServer.Core.ContentReference, string> GetRoot() =>
-            new KeyValuePair<EPiServer.Core.ContentReference, string>(ReferenceConverter.Service.GetRootLink(), "Commerce");
+            new KeyValuePair<EPiServer.Core.ContentReference, string>(_ReferenceConverter.GetRootLink(), "Commerce");
     }
 }

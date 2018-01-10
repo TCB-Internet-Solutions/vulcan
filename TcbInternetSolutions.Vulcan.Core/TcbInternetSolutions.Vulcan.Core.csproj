@@ -128,9 +128,10 @@
     <Compile Include="Extensions\TypeExtensions.cs" />
     <Compile Include="Extensions\ContentExtensions.cs" />
     <Compile Include="Extensions\UserExtensions.cs" />
+    <Compile Include="Implementation\VulcanCmsContentAncestorLoader.cs" />
     <Compile Include="Implementation\VulcanSearchContentLoader.cs" />
-    <Compile Include="Initialization\RegisterIndexingModifiers.cs" />
-    <Compile Include="Initialization\RegisterVulcanCustomizers.cs" />
+    <Compile Include="Initialization\RegisterImplementations.cs" />
+    <Compile Include="IVulcanContentAncestorLoader.cs" />
     <Compile Include="IVulcanConnectionPoolFactory.cs" />
     <Compile Include="IVulcanConditionalContentIndexInstruction.cs" />
     <Compile Include="Implementation\VulcanClientConnectionSettings.cs" />
@@ -141,7 +142,7 @@
     <Compile Include="Implementation\VulcanConnectionPoolFactory.cs" />
     <Compile Include="Implementation\VulcanCustomJsonSerializer.cs" />
     <Compile Include="Implementation\VulcanHelper.cs" />
-    <Compile Include="Implementation\VulcanIndexContent.cs">
+    <Compile Include="Implementation\VulcanIndexContentJob.cs">
       <ExcludeFromStyleCop>True</ExcludeFromStyleCop>
     </Compile>
     <Compile Include="Implementation\VulcanClient.cs" />
