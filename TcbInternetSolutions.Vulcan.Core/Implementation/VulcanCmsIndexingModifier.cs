@@ -33,11 +33,10 @@
         /// <summary>
         /// Writes additional IContent information to stream
         /// </summary>
-        /// <param name="content"></param>
-        /// <param name="writableStream"></param>
-        public virtual void ProcessContent(IContent content, Stream writableStream)
+        /// <param name="args"></param>
+        public virtual void ProcessContent(IVulcanIndexingModifierArgs args)//, Stream writableStream)
         {
-            var streamWriter = new StreamWriter(writableStream);
+            //var streamWriter = new StreamWriter(writableStream);
 
             // index ancestors
             var ancestors = new List<ContentReference>();
@@ -46,7 +45,7 @@
             {
                 foreach (var ancestorLoader in _VulcanContentAncestorLoaders)
                 {
-                    IEnumerable<ContentReference> ancestorsFound = ancestorLoader.GetAncestors(content);
+                    IEnumerable<ContentReference> ancestorsFound = ancestorLoader.GetAncestors(args.Content);
 
                     if (ancestorsFound?.Any() == true)
                     {
@@ -55,33 +54,41 @@
                 }
             }
 
-            streamWriter.Write(",\"" + VulcanFieldConstants.Ancestors + "\":[");
-            streamWriter.Write(string.Join(",", ancestors.Select(x => x.ToReferenceWithoutVersion()).Distinct().Select(x => "\"" + x.ToString() + "\"")));
-            streamWriter.Write("]");
+            args.AdditionalItems[VulcanFieldConstants.Ancestors] = ancestors.Select(x => x.ToReferenceWithoutVersion()).Distinct();
+
+            //streamWriter.Write(",\"" + VulcanFieldConstants.Ancestors + "\":[");
+            //streamWriter.Write(string.Join(",", ancestors.Select(x => x.ToReferenceWithoutVersion()).Distinct().Select(x => "\"" + x.ToString() + "\"")));
+            //streamWriter.Write("]");
 
             // index read permission            
-            var permissions = _ContentSecurityDescriptor.Get(content.ContentLink);
+            var permissions = _ContentSecurityDescriptor.Get(args.Content.ContentLink);
 
             if (permissions != null) // will be null for commerce products, compatibility handled in commerce modifier
             {
-                streamWriter.Write(",\"" + VulcanFieldConstants.ReadPermission + "\":[");
-                streamWriter.Write(string.Join(",", permissions.Entries.
+                args.AdditionalItems[VulcanFieldConstants.ReadPermission] = permissions.Entries.
                             Where(x =>
                                 x.Access.HasFlag(AccessLevel.Read) ||
                                 x.Access.HasFlag(AccessLevel.Administer) ||
-                                x.Access.HasFlag(AccessLevel.FullAccess))
-                            .Select(x => StringExtensions.JsonEscapeString(x.Name)) // json escape adds quotes
-                        ));
-                streamWriter.Write("]");
+                                x.Access.HasFlag(AccessLevel.FullAccess)).Select(x => x.Name);
+                
+                //streamWriter.Write(",\"" + VulcanFieldConstants.ReadPermission + "\":[");
+                //streamWriter.Write(string.Join(",", permissions.Entries.
+                //            Where(x =>
+                //                x.Access.HasFlag(AccessLevel.Read) ||
+                //                x.Access.HasFlag(AccessLevel.Administer) ||
+                //                x.Access.HasFlag(AccessLevel.FullAccess))
+                //            .Select(x => StringExtensions.JsonEscapeString(x.Name)) // json escape adds quotes
+                //        ));
+                //streamWriter.Write("]");
             }
 
             // index VulcanSearchableAttribute
             List<string> contents = new List<string>();
-            var properties = content.GetType().GetProperties().Where(prop => Attribute.IsDefined(prop, typeof(VulcanSearchableAttribute)));
+            var properties = args.Content.GetType().GetProperties().Where(prop => Attribute.IsDefined(prop, typeof(VulcanSearchableAttribute)));
 
             foreach (var p in properties)
             {
-                object value = p.GetValue(content);
+                object value = p.GetValue(args.Content);
 
                 // Property to string conversions
                 if (p.PropertyType == typeof(ContentArea))
@@ -97,9 +104,11 @@
                 }
             }
 
-            streamWriter.Write(",\"" + VulcanFieldConstants.CustomContents + "\":" + StringExtensions.JsonEscapeString(string.Join(" ", contents)));
+            args.AdditionalItems[VulcanFieldConstants.CustomContents] = string.Join(" ", contents);
 
-            streamWriter.Flush();
+            //streamWriter.Write(",\"" + VulcanFieldConstants.CustomContents + "\":" + StringExtensions.JsonEscapeString(string.Join(" ", contents)));
+
+            //streamWriter.Flush();
         }
     }
 }

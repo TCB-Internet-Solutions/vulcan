@@ -2,6 +2,7 @@
 using EPiServer.Core;
 using EPiServer.ServiceLocation;
 using Nest;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -18,17 +19,17 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         private readonly IEnumerable<IVulcanIndexingModifier> _VulcanModifiers;
 
         /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="settings"></param>
-        public VulcanCustomJsonSerializer(IConnectionSettingsValues settings) : this(settings, ServiceLocator.Current.GetAllInstances<IVulcanIndexingModifier>()) { }
-
-        /// <summary>
         /// DI
         /// </summary>
         /// <param name="settings"></param>
         /// <param name="modifiers"></param>
-        public VulcanCustomJsonSerializer(IConnectionSettingsValues settings, IEnumerable<IVulcanIndexingModifier> modifiers) : base(settings)
+        /// <param name="settingsModifier"></param>
+        public VulcanCustomJsonSerializer
+            (
+                IConnectionSettingsValues settings,
+                IEnumerable<IVulcanIndexingModifier> modifiers,
+                Action<JsonSerializerSettings, IConnectionSettingsValues> settingsModifier
+            ) : base(settings, settingsModifier)
         {
             _VulcanModifiers = modifiers;
         }
@@ -63,48 +64,51 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <param name="formatting"></param>
         public override void Serialize(object data, Stream writableStream, SerializationFormatting formatting = SerializationFormatting.Indented)
         {
-            if (data is IIndexRequest<IContent> descriptedData)
+            if (data is IndexDescriptor<IContent> descriptedData)
             {
-                var stream = new MemoryStream();
+                // write all but ending }
+                CopyDataToStream(data, writableStream, formatting, trimLast: true);
 
-                base.Serialize(data, stream, formatting);
+                var content = (descriptedData as IIndexRequest<IContent>)?.Document;
 
-                stream.Seek(0, SeekOrigin.Begin);
-
-                var bytes = Convert.ToInt32(stream.Length) - 1; // trim the closing brace
-
-                var buffer = new byte[32768];
-                int read;
-                while (bytes > 0 &&
-                       (read = stream.Read(buffer, 0, Math.Min(buffer.Length, bytes))) > 0)
+                if (content != null && _VulcanModifiers != null)
                 {
-                    writableStream.Write(buffer, 0, read);
-                    bytes -= read;
-                }
+                    // try to inspect to see if a pipeline was enabled
+                    var requestAccessor = data as IRequest<IndexRequestParameters>;
 
-                stream.Flush();
+                    if (requestAccessor == null)
+                    {
+                        throw new NotSupportedException($"{data.GetType().FullName} doesn't implement {typeof(IRequest<IndexRequestParameters>).FullName}!");
+                    }
 
-                var content = descriptedData.Document;
+                    string pipelineId = requestAccessor.RequestParameters?.GetQueryStringValue<string>("pipeline") ?? null; // returns null if key not found                    
+                    var args = new VulcanIndexingModifierArgs(content, pipelineId);
 
-                if (_VulcanModifiers != null)
-                {
                     foreach (var indexingModifier in _VulcanModifiers)
                     {
                         try
                         {
-                            indexingModifier.ProcessContent(content, writableStream);
+                            indexingModifier.ProcessContent(args);
                         }
                         catch (Exception e)
                         {
                             throw new Exception($"{indexingModifier.GetType().FullName} failed to process content ID {content.ContentLink.ID} with name {content.Name}!", e);
                         }
                     }
+
+                    // add separator for additional items if any
+                    if (args.AdditionalItems.Any())
+                    {
+                        WriteToStream(" , " , writableStream); 
+                    }
+
+                    // copy all but starting {
+                    CopyDataToStream(args.AdditionalItems, writableStream, formatting, trimLast: false);
                 }
-
-                var streamWriter = new StreamWriter(writableStream);
-                streamWriter.Write("}");
-
-                streamWriter.Flush();
+                else
+                {
+                    WriteToStream( "}", writableStream); // add back closing
+                }
             }
             else
             {
@@ -124,6 +128,38 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 toCheck = toCheck.BaseType;
             }
             return false;
+        }
+
+        static void WriteToStream(string data, Stream writeableStream)
+        {
+            var streamWriter = new StreamWriter(writeableStream);
+
+            streamWriter.Write(data);
+
+            streamWriter.Flush();
+        }
+
+        //copies all but first or last byte
+        void CopyDataToStream(object data, Stream writableStream, SerializationFormatting formatting, bool trimLast = true)
+        {
+            var stream = new MemoryStream();
+            base.Serialize(data, stream, formatting);
+            stream.Seek(trimLast ? 0 : 1, SeekOrigin.Begin);
+            var bytes = Convert.ToInt32(stream.Length);
+            var buffer = new byte[32768];
+            int read = 0;
+
+            if (trimLast)
+                bytes--;
+
+            while (bytes > 0 &&
+                   (read = stream.Read(buffer, 0, Math.Min(buffer.Length, bytes))) > 0)
+            {
+                writableStream.Write(buffer, 0, read);
+                bytes -= read;
+            }
+
+            stream.Flush();
         }
     }
 }

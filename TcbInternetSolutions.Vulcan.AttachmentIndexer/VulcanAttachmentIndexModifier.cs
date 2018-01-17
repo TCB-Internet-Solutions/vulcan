@@ -4,9 +4,7 @@
     using EPiServer.Logging;
     using EPiServer.ServiceLocation;
     using System;
-    using System.IO;
     using TcbInternetSolutions.Vulcan.Core;
-    using TcbInternetSolutions.Vulcan.Core.Extensions;
     using static TcbInternetSolutions.Vulcan.Core.VulcanFieldConstants;
 
     /// <summary>
@@ -16,7 +14,6 @@
     public class VulcanAttachmentIndexModifier : IVulcanIndexingModifier
     {
         private readonly IVulcanAttachmentInspector _AttachmentInspector;
-        private readonly IVulcanAttachmentIndexerSettings _AttachmentSettings;
         private readonly IVulcanMediaReader _MediaReader;
         private readonly IVulcanBytesToStringConverter _ByteConvertor;
         private ILogger _Logger = LogManager.GetLogger(typeof(VulcanAttachmentIndexModifier));
@@ -25,66 +22,60 @@
         /// DI Constructor
         /// </summary>
         /// <param name="vulcanAttachmentInspector"></param>
-        /// <param name="vulcanAttachmentIndexerSettings"></param>
         /// <param name="vulcanMediaReader"></param>
         /// <param name="vulcanBytesToStringConverter"></param>
         public VulcanAttachmentIndexModifier
-            (
-                IVulcanAttachmentInspector vulcanAttachmentInspector,
-                IVulcanAttachmentIndexerSettings vulcanAttachmentIndexerSettings,
-                IVulcanMediaReader vulcanMediaReader,
-                IVulcanBytesToStringConverter vulcanBytesToStringConverter
-            )
+        (
+            IVulcanAttachmentInspector vulcanAttachmentInspector,
+            IVulcanMediaReader vulcanMediaReader,
+            IVulcanBytesToStringConverter vulcanBytesToStringConverter
+        )
         {
             _AttachmentInspector = vulcanAttachmentInspector;
-            _AttachmentSettings = vulcanAttachmentIndexerSettings;
             _MediaReader = vulcanMediaReader;
             _ByteConvertor = vulcanBytesToStringConverter;
         }
-        
+
         /// <summary>
         /// Adds attachment content to serialized data
         /// </summary>
-        /// <param name="content"></param>
-        /// <param name="writableStream"></param>
-        public void ProcessContent(IContent content, Stream writableStream)
+        /// <param name="args"></param>
+        public void ProcessContent(IVulcanIndexingModifierArgs args)//, Stream writableStream)
         {
-            // todo: This needs to use a pipeline for ingesting attachments, need to figure out a way to enable during Index in IVulcanClient
-
-            if (content is MediaData media && _AttachmentInspector.AllowIndexing(media))
+            if (args.Content is MediaData media)
             {
-                var streamWriter = new StreamWriter(writableStream);
+                //var streamWriter = new StreamWriter(writableStream);
                 byte[] mediaBytes = _MediaReader.ReadToEnd(media);
                 string mimeType = media.MimeType;
-                long fileByteSize = mediaBytes?.LongLength ?? 0;
 
-                if (fileByteSize > 0)
+                // only send base64 content if pipeline is enabled
+                if (args.PipelineId == Implementation.VulcanAttachmentPipelineInstaller.PipelineId)
                 {
-                    if (_AttachmentSettings.EnableAttachmentPlugins)
-                    {
-                        Implementation.VulcanAttachmentPropertyMapper.AddMapping(media);
-                        string base64contents = Convert.ToBase64String(mediaBytes);
+                    string base64contents = Convert.ToBase64String(mediaBytes);
+                    args.AdditionalItems[MediaContents] = base64contents;
+                    //streamWriter.Write(",\"" + MediaContents + "\" : \"" + base64contents + "\"");
 
-                        streamWriter.Write(",\"" + MediaContents + "\" : \"" + base64contents + "\"");
+                    // v2x
+                    //streamWriter.Write(",\"" + MediaContents + "\":{");                    
+                    //long fileByteSize = mediaBytes.LongLength;
 
-                        //streamWriter.Write(",\"" + MediaContents + "\":{");
-                        //streamWriter.Write("\"_name\": \"" + media.Name + "\",");
-                        //streamWriter.Write("\"_indexed_chars\": \"-1\","); // indexes entire document instead of first 100000 chars   
-                        //streamWriter.Write("\"_content_type\": \"" + mimeType + "\",");
-                        //streamWriter.Write("\"_content_length\": \"" + fileByteSize + "\",");
-                        //streamWriter.Write("\"_content\": \"" + base64contents + "\"");
-                        //streamWriter.Write("}");
-                    }
-                    
-                    string stringContents = _ByteConvertor.ConvertToString(mediaBytes, mimeType);
-
-                    if (!string.IsNullOrWhiteSpace(stringContents))
-                    {
-                        streamWriter.Write(",\"" + MediaStringContents + "\": " + stringContents.JsonEscapeString()); // json escape adds quotes
-                    }
+                    //streamWriter.Write("\"_name\": \"" + media.Name + "\",");
+                    //streamWriter.Write("\"_indexed_chars\": \"-1\","); // indexes entire document instead of first 100000 chars   
+                    //streamWriter.Write("\"_content_type\": \"" + mimeType + "\",");
+                    //streamWriter.Write("\"_content_length\": \"" + fileByteSize + "\",");
+                    //streamWriter.Write("\"_content\": \"" + base64contents + "\"");
+                    //streamWriter.Write("}");
                 }
 
-                streamWriter.Flush();
+                string stringContents = _ByteConvertor.ConvertToString(mediaBytes, mimeType);
+
+                if (!string.IsNullOrWhiteSpace(stringContents))
+                {
+                    args.AdditionalItems[MediaStringContents] = stringContents;
+                    //streamWriter.Write(",\"" + MediaStringContents + "\": " + stringContents.JsonEscapeString()); // json escape adds quotes
+                }
+
+                //streamWriter.Flush();
             }
         }
     }

@@ -1,4 +1,4 @@
-﻿namespace TcbInternetSolutions.Vulcan.AttachmentIndexer.Implementation
+﻿namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
     using EPiServer.ServiceLocation;
 

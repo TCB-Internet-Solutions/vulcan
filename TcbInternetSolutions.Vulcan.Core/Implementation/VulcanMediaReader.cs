@@ -1,9 +1,9 @@
-﻿using EPiServer.Core;
-using EPiServer.ServiceLocation;
-using System;
-
-namespace TcbInternetSolutions.Vulcan.AttachmentIndexer.Implementation
+﻿namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
+    using EPiServer.Core;
+    using EPiServer.ServiceLocation;
+    using System;
+
     /// <summary>
     /// Converts media data to byte array
     /// </summary>

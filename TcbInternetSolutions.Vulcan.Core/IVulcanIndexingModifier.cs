@@ -1,5 +1,4 @@
-﻿using EPiServer.Core;
-using System.IO;
+﻿using System.IO;
 
 namespace TcbInternetSolutions.Vulcan.Core
 {
@@ -11,8 +10,7 @@ namespace TcbInternetSolutions.Vulcan.Core
         /// <summary>
         /// Process modifier and flush customization to stream
         /// </summary>
-        /// <param name="content"></param>
-        /// <param name="writableStream"></param>
-        void ProcessContent(IContent content, Stream writableStream);
+        /// <param name="modifierArgs"></param>
+        void ProcessContent(IVulcanIndexingModifierArgs modifierArgs);//, Stream writableStream);
     }
 }

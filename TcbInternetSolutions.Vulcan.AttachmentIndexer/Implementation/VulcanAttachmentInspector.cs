@@ -29,7 +29,7 @@
         /// <returns></returns>
         public virtual bool AllowIndexing(MediaData media)
         {
-            if (media == null)
+            if (media == null || !_AttachmentSettings.EnableAttachmentPlugins)
                 return false;
 
             bool allowed = true;
@@ -53,6 +53,11 @@
                 }
 
                 allowed = _AttachmentSettings.FileSizeLimit <= fileByteSize;
+
+                if (fileByteSize < 1)
+                {
+                    allowed = false;
+                }
             }
 
             return allowed;

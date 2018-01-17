@@ -43,32 +43,32 @@
     <Reference Include="Elasticsearch.Net, Version=5.0.0.0, Culture=neutral, PublicKeyToken=96c599bbe3e70f5d, processorArchitecture=MSIL">
       <HintPath>..\packages\Elasticsearch.Net.5.0.1\lib\net46\Elasticsearch.Net.dll</HintPath>
     </Reference>
-    <Reference Include="EPiServer, Version=11.1.0.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
-      <HintPath>..\packages\EPiServer.CMS.Core.11.1.0\lib\net461\EPiServer.dll</HintPath>
+    <Reference Include="EPiServer, Version=11.2.1.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
+      <HintPath>..\packages\EPiServer.CMS.Core.11.2.1\lib\net461\EPiServer.dll</HintPath>
     </Reference>
-    <Reference Include="EPiServer.ApplicationModules, Version=11.1.0.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
-      <HintPath>..\packages\EPiServer.Framework.11.1.0\lib\net461\EPiServer.ApplicationModules.dll</HintPath>
+    <Reference Include="EPiServer.ApplicationModules, Version=11.2.1.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
+      <HintPath>..\packages\EPiServer.Framework.11.2.1\lib\net461\EPiServer.ApplicationModules.dll</HintPath>
     </Reference>
-    <Reference Include="EPiServer.Data, Version=11.1.0.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
-      <HintPath>..\packages\EPiServer.Framework.11.1.0\lib\net461\EPiServer.Data.dll</HintPath>
+    <Reference Include="EPiServer.Data, Version=11.2.1.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
+      <HintPath>..\packages\EPiServer.Framework.11.2.1\lib\net461\EPiServer.Data.dll</HintPath>
     </Reference>
-    <Reference Include="EPiServer.Data.Cache, Version=11.1.0.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
-      <HintPath>..\packages\EPiServer.Framework.11.1.0\lib\net461\EPiServer.Data.Cache.dll</HintPath>
+    <Reference Include="EPiServer.Data.Cache, Version=11.2.1.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
+      <HintPath>..\packages\EPiServer.Framework.11.2.1\lib\net461\EPiServer.Data.Cache.dll</HintPath>
     </Reference>
-    <Reference Include="EPiServer.Enterprise, Version=11.1.0.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
-      <HintPath>..\packages\EPiServer.CMS.Core.11.1.0\lib\net461\EPiServer.Enterprise.dll</HintPath>
+    <Reference Include="EPiServer.Enterprise, Version=11.2.1.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
+      <HintPath>..\packages\EPiServer.CMS.Core.11.2.1\lib\net461\EPiServer.Enterprise.dll</HintPath>
     </Reference>
-    <Reference Include="EPiServer.Events, Version=11.1.0.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
-      <HintPath>..\packages\EPiServer.Framework.11.1.0\lib\net461\EPiServer.Events.dll</HintPath>
+    <Reference Include="EPiServer.Events, Version=11.2.1.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
+      <HintPath>..\packages\EPiServer.Framework.11.2.1\lib\net461\EPiServer.Events.dll</HintPath>
     </Reference>
-    <Reference Include="EPiServer.Framework, Version=11.1.0.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
-      <HintPath>..\packages\EPiServer.Framework.11.1.0\lib\net461\EPiServer.Framework.dll</HintPath>
+    <Reference Include="EPiServer.Framework, Version=11.2.1.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
+      <HintPath>..\packages\EPiServer.Framework.11.2.1\lib\net461\EPiServer.Framework.dll</HintPath>
     </Reference>
-    <Reference Include="EPiServer.Licensing, Version=11.1.0.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
-      <HintPath>..\packages\EPiServer.Framework.11.1.0\lib\net461\EPiServer.Licensing.dll</HintPath>
+    <Reference Include="EPiServer.Licensing, Version=11.2.1.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
+      <HintPath>..\packages\EPiServer.Framework.11.2.1\lib\net461\EPiServer.Licensing.dll</HintPath>
     </Reference>
-    <Reference Include="EPiServer.LinkAnalyzer, Version=11.1.0.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
-      <HintPath>..\packages\EPiServer.CMS.Core.11.1.0\lib\net461\EPiServer.LinkAnalyzer.dll</HintPath>
+    <Reference Include="EPiServer.LinkAnalyzer, Version=11.2.1.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
+      <HintPath>..\packages\EPiServer.CMS.Core.11.2.1\lib\net461\EPiServer.LinkAnalyzer.dll</HintPath>
     </Reference>
     <Reference Include="Nest, Version=5.0.0.0, Culture=neutral, PublicKeyToken=96c599bbe3e70f5d, processorArchitecture=MSIL">
       <HintPath>..\packages\NEST.5.0.1\lib\net46\Nest.dll</HintPath>
@@ -119,6 +119,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Implementation\DefaultVulcanBytesToStringConverter.cs" />
+    <Compile Include="Implementation\DefaultVulcanModifySerializerSettings.cs" />
     <Compile Include="Extensions\ContentAreaExtensions.cs" />
     <Compile Include="Extensions\CultureExtensions.cs" />
     <Compile Include="Extensions\FieldExtensions.cs" />
@@ -129,8 +131,11 @@
     <Compile Include="Extensions\ContentExtensions.cs" />
     <Compile Include="Extensions\UserExtensions.cs" />
     <Compile Include="Implementation\VulcanCmsContentAncestorLoader.cs" />
+    <Compile Include="Implementation\VulcanIndexingModifierArgs.cs" />
+    <Compile Include="Implementation\VulcanMediaReader.cs" />
     <Compile Include="Implementation\VulcanSearchContentLoader.cs" />
     <Compile Include="Initialization\RegisterImplementations.cs" />
+    <Compile Include="IVulcanByteToStringConverter.cs" />
     <Compile Include="IVulcanContentAncestorLoader.cs" />
     <Compile Include="IVulcanConnectionPoolFactory.cs" />
     <Compile Include="IVulcanConditionalContentIndexInstruction.cs" />
@@ -162,11 +167,18 @@
     <Compile Include="IVulcanHandler.cs" />
     <Compile Include="IVulcanIndexer.cs" />
     <Compile Include="IVulcanIndexingModifier.cs" />
+    <Compile Include="IVulcanIndexingModifierArgs.cs" />
+    <Compile Include="IVulcanMediaReader.cs" />
+    <Compile Include="IVulcanModfiySerializerSettings.cs" />
+    <Compile Include="IVulcanPipeline.cs" />
+    <Compile Include="IVulcanPipelineInstaller.cs" />
+    <Compile Include="IVulcanPipelineSelector.cs" />
     <Compile Include="IVulcanPocoIndexer.cs" />
     <Compile Include="IVulcanPocoIndexingJob.cs" />
     <Compile Include="IVulcanSearchable.cs" />
     <Compile Include="IVulcanSearchContentLoader.cs" />
     <Compile Include="IVulcanSearchHitDescription.cs" />
+    <Compile Include="Implementation\VulcanPipelineSelector.cs" />
     <Compile Include="VulcanPocoIndexingJobBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="VulcanFieldConstants.cs" />

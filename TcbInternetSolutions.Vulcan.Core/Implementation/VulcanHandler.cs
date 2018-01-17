@@ -29,7 +29,8 @@
         protected Dictionary<CultureInfo, IVulcanClient> clients = new Dictionary<CultureInfo, IVulcanClient>();
 
         private Dictionary<Type, List<IVulcanConditionalContentIndexInstruction>> conditionalContentIndexInstructions;
-
+        private readonly IVulcanPipelineSelector _VulcanPipelineSelector;
+        private readonly IEnumerable<IVulcanPipelineInstaller> _VulcanPipelineInstallers;
         private object lockObject = new object();
 
         /// <summary>
@@ -39,15 +40,25 @@
         /// <param name="vulcanClientConnectionSettings"></param>
         /// <param name="contentLoader"></param>
         /// <param name="vulcanCreateIndexCustomizer"></param>
-        public VulcanHandler(IEnumerable<IVulcanIndexingModifier> vulcanIndexingModifiers,
+        /// <param name="vulcanPipelineSelector"></param>
+        /// <param name="vulcanPipelineInstallers"></param>
+        public VulcanHandler
+        (
+            IEnumerable<IVulcanIndexingModifier> vulcanIndexingModifiers,
             IVulcanClientConnectionSettings vulcanClientConnectionSettings,
             IContentLoader contentLoader,
-            IVulcanCreateIndexCustomizer vulcanCreateIndexCustomizer)
+            IVulcanCreateIndexCustomizer vulcanCreateIndexCustomizer,
+            IVulcanPipelineSelector vulcanPipelineSelector,
+            IEnumerable<IVulcanPipelineInstaller> vulcanPipelineInstallers
+        )
         {
             IndexingModifers = vulcanIndexingModifiers;
             CommonConnectionSettings = vulcanClientConnectionSettings;
             ContentLoader = contentLoader;
-            CreateIndexCustomizer = vulcanCreateIndexCustomizer;
+            CreateIndexCustomizer = vulcanCreateIndexCustomizer;            
+            _VulcanPipelineSelector = vulcanPipelineSelector;
+            _VulcanPipelineInstallers = vulcanPipelineInstallers;
+
             conditionalContentIndexInstructions = new Dictionary<Type, List<IVulcanConditionalContentIndexInstruction>>();
         }
 
@@ -288,6 +299,13 @@
                 }
 
                 InitializeAnalyzer(client);
+
+                // run installers
+                foreach(var installer in _VulcanPipelineInstallers)
+                {
+                    installer.Install(client);
+                }
+
                 client.RunCustomizers(Logger); // allows for customizations
 
                 var openResponse = client.OpenIndex(indexName);
@@ -394,7 +412,7 @@
         /// <param name="culture"></param>
         /// <returns></returns>
         protected virtual IVulcanClient CreateVulcanClient(string index, ConnectionSettings settings, CultureInfo culture) =>
-            new VulcanClient(index, settings, culture, ContentLoader, this);
+            new VulcanClient(index, settings, culture, ContentLoader, this, _VulcanPipelineSelector);
 
         /// <summary>
         /// Get elision articles

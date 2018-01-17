@@ -27,12 +27,21 @@
         /// <param name="language"></param>
         /// <param name="contentLoader"></param>
         /// <param name="vulcanHandler"></param>
-        public VulcanClient(string index, ConnectionSettings settings, CultureInfo language, IContentLoader contentLoader, IVulcanHandler vulcanHandler) : base(settings)
+        /// <param name="vulcanPipelineSelector"></param>
+        public VulcanClient
+        (
+            string index,
+            ConnectionSettings settings,
+            CultureInfo language,
+            IContentLoader contentLoader,
+            IVulcanHandler vulcanHandler,
+            IVulcanPipelineSelector vulcanPipelineSelector) : base(settings)
         {
             Language = language ?? throw new Exception("Vulcan client requires a language (you may use CultureInfo.InvariantCulture if needed for non-language specific data)");
             IndexName = VulcanHelper.GetIndexName(index, Language);
             ContentLoader = contentLoader;
             VulcanHandler = vulcanHandler;
+            _VulcanPipelineSelector = vulcanPipelineSelector;
         }
 
         /// <summary>
@@ -54,6 +63,8 @@
         /// Injected Vulcan Handler
         /// </summary>
         protected IVulcanHandler VulcanHandler { get; set; }
+
+        private readonly IVulcanPipelineSelector _VulcanPipelineSelector;
 
         /// <summary>
         /// Adds a synonym
@@ -103,9 +114,8 @@
         public virtual void DeleteContent(ContentReference contentLink)
         {
             // we don't know content type so try and find it in current language index
-
             var result = SearchContent<IContent>(s => s.Query(q => q.Term(c => c.ContentLink, contentLink.ToReferenceWithoutVersion())));
-            
+
             if (result != null && result.Hits.Count() >= 0)
             {
                 try
@@ -137,12 +147,12 @@
 
             if (localizableContent != null && !localizableContent.Language.Equals(Language))
             {
-                throw new Exception("Cannot index content '" + GetId(content) + "' with language " + (content as ILocalizable).Language.Name + " with Vulcan client for language " + Language.GetCultureName());
+                throw new Exception($"Cannot index content '{GetId(content)}' with language {(content as ILocalizable).Language.Name} with Vulcan client for language {Language.GetCultureName()}");
             }
 
             if (localizableContent == null && !Language.Equals(CultureInfo.InvariantCulture))
             {
-                throw new Exception("Cannot index content '" + GetId(content) + "' with no language with Vulcan client for language " + Language.Name);
+                throw new Exception($"Cannot index content '{GetId(content)}' with no language with Vulcan client for language {Language.Name}");
             }
 
             var versionableContent = content as IVersionable;
@@ -154,12 +164,12 @@
                 {
                     try
                     {
-                        // todo: need to conditionally enable pipeline when its an indexable type
-                        var response = base.Index(content, c => c.Id(GetId(content)).Type(GetTypeName(content)));//.Pipeline("attachment"));
+                        // todo: find a way to pass the pipeline to the custom serializer...
+                        IIndexResponse response = base.Index(content, ModifyContentIndexRequest);
 
                         if (response.IsValid)
                         {
-                            Logger.Debug("Vulcan indexed " + GetId(content) + " for language " + Language.GetCultureName() + ": " + response.DebugInformation);
+                            Logger.Debug($"Vulcan indexed {GetId(content)} for language {Language.GetCultureName()}: {response.DebugInformation}");
                         }
                         else
                         {
@@ -168,10 +178,35 @@
                     }
                     catch (Exception e)
                     {
-                        Logger.Error("Vulcan could not index content with content link " + GetId(content) + " for language " + Language.GetCultureName() + ": ", e);
+                        Logger.Error($"Vulcan could not index content with content link {GetId(content)} for language {Language.GetCultureName()}: {e}");
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Assigns Id, Type, and Pipeline (if available) on index request
+        /// </summary>
+        /// <param name="indexDescriptor"></param>
+        /// <returns></returns>
+        protected virtual IIndexRequest ModifyContentIndexRequest(IndexDescriptor<IContent> indexDescriptor)
+        {
+            if (indexDescriptor is IIndexRequest<IContent> descriptedContent)
+            {
+                var content = descriptedContent.Document;
+                var pipeline = _VulcanPipelineSelector.GetPipelineForContent(descriptedContent.Document);
+
+                indexDescriptor = indexDescriptor
+                    .Id(GetId(content))
+                    .Type(GetTypeName(content));
+
+                if (pipeline != null)
+                {
+                    indexDescriptor = indexDescriptor.Pipeline(pipeline.Id);
+                }
+            }
+
+            return indexDescriptor;
         }
 
         /// <summary>

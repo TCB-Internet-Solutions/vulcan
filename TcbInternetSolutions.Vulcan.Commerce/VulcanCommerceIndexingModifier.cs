@@ -27,22 +27,42 @@ namespace TcbInternetSolutions.Vulcan.Commerce
             _MarketService = marketService;
         }
 
-        public void ProcessContent(IContent content, Stream writableStream)
+        public void ProcessContent(IVulcanIndexingModifierArgs args)//, Stream writableStream)
         {
-            var streamWriter = new StreamWriter(writableStream);
+            //var streamWriter = new StreamWriter(writableStream);
 
-            if (content is VariationContent)
+            if (args.Content is VariationContent variationContent)
             {
-                streamWriter.Write(",\"__prices\":{");
-                WritePrices(streamWriter, GetDefaultPrices(content as VariationContent));
-                streamWriter.Write("}");
+                //streamWriter.Write(",\"__prices\":{");
+                //WritePrices(streamWriter, GetDefaultPrices(variationContent));
+                //streamWriter.Write("}");
+
+                // todo: verify that this equivalent to WritePrices
+                var marketPrices = GetDefaultPrices(variationContent);
+                var prices = new Dictionary<string, string>();
+
+                if (marketPrices?.Any() == true)
+                {
+                    foreach (var market in marketPrices)
+                    {
+                        foreach (var price in market.Value)
+                        {
+                            prices[market.Key + "_" + price.Key] = price.Value.ToString(CultureInfo.InvariantCulture.NumberFormat);
+                        }
+                    }
+                }
+
+                if (prices.Any())
+                {
+                    args.AdditionalItems["__prices"] = prices;
+                }
             }
-            else if(content is ProductContent)
+            else if (args.Content is ProductContent productContent)
             {
                 var pricesLow = new Dictionary<string, Dictionary<string, decimal>>();
                 var pricesHigh = new Dictionary<string, Dictionary<string, decimal>>();
                 var variants = ServiceLocator.Current.GetInstance<IContentLoader>()
-                    .GetItems((content as ProductContent).GetVariants(), (content as ProductContent).Language);
+                    .GetItems((productContent).GetVariants(), (productContent).Language);
 
                 if (variants != null)
                 {
@@ -50,11 +70,11 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                     {
                         var markets = GetDefaultPrices(variant);
 
-                        if(markets != null)
+                        if (markets != null)
                         {
-                            foreach(var market in markets)
+                            foreach (var market in markets)
                             {
-                                if(!pricesLow.ContainsKey(market.Key))
+                                if (!pricesLow.ContainsKey(market.Key))
                                 {
                                     pricesLow.Add(market.Key, new Dictionary<string, decimal>());
                                 }
@@ -64,17 +84,17 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                                     pricesHigh.Add(market.Key, new Dictionary<string, decimal>());
                                 }
 
-                                if(market.Value.Any())
+                                if (market.Value.Any())
                                 {
-                                    foreach(var price in market.Value)
+                                    foreach (var price in market.Value)
                                     {
-                                        if(!pricesLow[market.Key].ContainsKey(price.Key))
+                                        if (!pricesLow[market.Key].ContainsKey(price.Key))
                                         {
                                             pricesLow[market.Key].Add(price.Key, price.Value);
                                         }
                                         else
                                         {
-                                            if(price.Value < pricesLow[market.Key][price.Key])
+                                            if (price.Value < pricesLow[market.Key][price.Key])
                                             {
                                                 pricesLow[market.Key][price.Key] = price.Value;
                                             }
@@ -98,12 +118,15 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                     }
                 }
 
-                streamWriter.Write(",\"__pricesLow\":{");
-                WritePrices(streamWriter, pricesLow);
-                streamWriter.Write("}");
-                streamWriter.Write(",\"__pricesHigh\":{");
-                WritePrices(streamWriter, pricesHigh);
-                streamWriter.Write("}");
+                args.AdditionalItems["__pricesLow"] = pricesLow;
+                args.AdditionalItems["__pricesHigh"] = pricesHigh;
+
+                //streamWriter.Write(",\"__pricesLow\":{");
+                //WritePrices(streamWriter, pricesLow);
+                //streamWriter.Write("}");
+                //streamWriter.Write(",\"__pricesHigh\":{");
+                //WritePrices(streamWriter, pricesHigh);
+                //streamWriter.Write("}");
             }
 
             // read permission compatibility for commerce content, since markets handle access
@@ -113,11 +136,12 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                     new AccessControlEntry(AnonymousRole.RoleName, AccessLevel.Read)
             };
 
-            streamWriter.Write(",\"" + VulcanFieldConstants.ReadPermission + "\":[");
-            streamWriter.Write(string.Join(",", commercePermissionEntries.Select(x => "\"" + x.Name + "\"")));
-            streamWriter.Write("]");
+            args.AdditionalItems[VulcanFieldConstants.ReadPermission] = commercePermissionEntries.Select(x => x.Name);
+            //streamWriter.Write(",\"" + VulcanFieldConstants.ReadPermission + "\":[");
+            //streamWriter.Write(string.Join(",", commercePermissionEntries.Select(x => "\"" + x.Name + "\"")));
+            //streamWriter.Write("]");
 
-            streamWriter.Flush();
+            //streamWriter.Flush();
         }
 
         private Dictionary<string, Dictionary<string, decimal>> GetDefaultPrices(VariationContent variation)
