@@ -1,6 +1,5 @@
 ﻿namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
-    using Elasticsearch.Net;
     using EPiServer.Logging;
     using EPiServer.ServiceLocation;
     using Nest;
@@ -20,17 +19,12 @@
         /// <summary>
         /// invariant client
         /// </summary>
-        protected IVulcanClient _InvariantClient;
+        protected IVulcanClient _InvariantClient => _VulcanHander.GetClient(CultureInfo.InvariantCulture);
 
         /// <summary>
         /// Vulcan handler
         /// </summary>
         protected IVulcanHandler _VulcanHander;
-
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        public VulcanPocoIndexingJob() : this(ServiceLocator.Current.GetInstance<IVulcanHandler>()){ }
 
         /// <summary>
         /// Injected constructor
@@ -39,7 +33,6 @@
         public VulcanPocoIndexingJob(IVulcanHandler vulcanHandler)
         {
             _VulcanHander = vulcanHandler;
-            _InvariantClient = _VulcanHander.GetClient(CultureInfo.InvariantCulture);
         }
 
         /// <summary>
@@ -114,8 +107,9 @@
 
                 // https://www.elastic.co/guide/en/elasticsearch/client/net-api/1.x/bulk.html
                 var request = new BulkRequest()
-                {
-                    Refresh = Refresh.True,
+                {                    
+                    // todo: nest 5 to 2 difference
+                    Refresh = true,// Refresh.True,
                     //Consistency = Consistency.One, // removed in nest 5
                     Operations = operations
                 };

@@ -9,12 +9,7 @@
 
 <div style="margin:10px;" class="clientContainer" style="overflow:scroll;">
     <h2>Vulcan Configuration for @Model.VulcanHandler.Index</h2>
-
-    @{
-        var clients = Model.VulcanHandler.GetClients();
-    }
-
-    @if (clients == null || !clients.Any())
+    @if (!Model.HasClients)
     {
         <h3>No clients found (is your Elasticsearch started and accessible?)</h3>
     }
@@ -22,57 +17,51 @@
     {
         <div data-dojo-type="dijit/layout/TabContainer" style="width: 100%;" id="tabContainer" dolayout="true">
             <div data-dojo-type="dijit/layout/ContentPane" title="Configuration" data-dojo-props="selected:true" style="">
-                @{
-                    var healthResponse = clients.FirstOrDefault().CatIndices();
-
-                    <h3>Index Information</h3>
-                    <table class="epi-default">
-                        <thead>
+                <h3>Index Information</h3>
+                <table class="epi-default">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Health</th>
+                            <th>Status</th>
+                            <th>Shards</th>
+                            <th>Replicas</th>
+                            <th>Doc Count</th>
+                            <th>Size</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var record in Model.IndexHealthDescriptor)
+                        {
                             <tr>
-                                <th>Name</th>
-                                <th>Health</th>
-                                <th>Status</th>
-                                <th>Shards</th>
-                                <th>Replicas</th>
-                                <th>Doc Count</th>
-                                <th>Size</th>
+                                <td>@record.Index</td>
+                                <td>@record.Health</td>
+                                <td>@record.Status</td>
+                                <td>@record.Primary</td>
+                                <td>@record.Replica</td>
+                                <td>@record.DocsCount</td>
+                                <td>@record.StoreSize</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var record in healthResponse.Records)
-                            {
-                                if (record.Index.StartsWith(Model.VulcanHandler.Index))
-                                {
-                                    <tr>
-                                        <td>@record.Index</td>
-                                        <td>@record.Health</td>
-                                        <td>@record.Status</td>
-                                        <td>@record.Primary</td>
-                                        <td>@record.Replica</td>
-                                        <td>@record.DocsCount</td>
-                                        <td>@record.StoreSize</td>
-                                    </tr>
-                                }
-                            }
-                        </tbody>
-                    </table>
-                }
+                        }
+                    </tbody>
+                </table>
+
                 <h3>Indexing Modifiers</h3>
-                @if (Model.VulcanHandler.IndexingModifers == null || !Model.VulcanHandler.IndexingModifers.Any())
+                @if (!Model.HasIndexModifiers)
                 {
                     <strong>None configured</strong>
                 }
                 else
                 {
                     <ul>
-                        @foreach (var indexingModifier in Model.VulcanHandler.IndexingModifers)
+                        @foreach (var indexingModifier in Model.VulcanIndexModifiers)
                         {
                             <li>&gt; @indexingModifier.GetType().FullName</li>
                         }
                     </ul>
                 }
                 <h3>POCO Indexers</h3>
-                @if (Model.PocoIndexers == null || !Model.PocoIndexers.Any())
+                @if (!Model.HasPocoIndexers)
                 {
                     <strong>None configured</strong>
                 }
@@ -86,9 +75,9 @@
                     </ul>
                 }
             </div>
-            @foreach (var client in clients.OrderBy(x => x.Language.EnglishName))
+            @foreach (var client in Model.VulcanClients)
             {
-                <div data-dojo-type="dijit/layout/ContentPane" title="Client: @(client.Language == System.Globalization.CultureInfo.InvariantCulture ? "non-specific" : client.Language.EnglishName + " (" + client.Language.Name + ")")" data-dojo-props="selected:false" style="">
+                <div data-dojo-type="dijit/layout/ContentPane" title="Client: @(Model.ClientViewInfo[client.IndexName].Item2)" data-dojo-props="selected:false" style="">
                     <h3 style="float:left;">Synonyms</h3>
                     <button data-dojo-type="dijit/form/Button" type="button" class="epi-danger" style="float:right;padding-top:10px;">
                         Remove selected Synonyms
@@ -100,8 +89,6 @@
                         var synonyms = client.GetSynonyms();
                     }
                     <div id="@("grid" + client.Language.Name)" style="height:200px;clear:both;"></div>
-
-
                     <br />
                     @using (Html.BeginForm("AddSynonym", null, new { Language = client.Language.Name }, FormMethod.Post, null))
                     {
@@ -123,32 +110,26 @@
                     }
                     <div style="clear:both;"></div>
                     <hr />
-
-                    @{
-                        var typeCount = client.Search<object>(m => m.AllTypes().SearchType(Elasticsearch.Net.SearchType.DfsQueryThenFetch).Aggregations(aggs => aggs.Terms("typeCount", t => t.Field("_type")))).Aggregations["typeCount"] as Nest.BucketAggregate;
-                    }
-                    <h3>Contents (@typeCount.Items.Sum(i => (i as Nest.KeyedBucket<object>).DocCount))</h3>
-
+                    <h3>Contents (@Model.ClientViewInfo[client.IndexName].Item1)</h3>
                     <ul>
-                        @foreach (Nest.KeyedBucket<object> type in typeCount.Items)
+                        @foreach (string countInfo in Model.ClientViewInfo[client.IndexName].Item3)
                         {
-                            <li>&gt; @type.Key (@type.DocCount)</li>
+                            <li>&gt; @countInfo</li>
                         }
                     </ul>
                 </div>
 
             }
         </div>
-
     }
 </div>
 
-@if (clients != null && clients.Any())
+@if (Model.HasClients)
 {
     <script language="javascript">
 
         require(["dojo/parser", "dijit/layout/TabContainer", "dijit/layout/ContentPane", "dojo/domReady!", "dijit/form/Button"], function () {
-            @foreach(var client in clients)
+            @foreach(var client in Model.VulcanClients)
             {
                 <text>populateSynonyms('@client.Language.Name');</text>
             }
@@ -193,7 +174,6 @@
                     });
                 });
             });
-
         }
 
         function populateSynonyms(language) {
@@ -218,7 +198,7 @@
                     });
 
                     if (!grid) {
-                        require(["dojo/_base/declare", "dgrid/Grid", "dgrid/Selection", "@(Paths.ProtectedRootPath)TcbInternetSolutions.Vulcan.UI/Scripts/DijitRegistry.js"], function (declare, Grid, Selection, DijitRegistry) {
+                        require(["dojo/_base/declare", "dgrid/Grid", "dgrid/Selection", "@(Model.ProtectedUiPath)TcbInternetSolutions.Vulcan.UI/Scripts/DijitRegistry.js"], function (declare, Grid, Selection, DijitRegistry) {
                             grid = new (declare([Grid, Selection, DijitRegistry]))({
                                 selectionMode: 'toggle',
                                 columns: {
@@ -235,6 +215,5 @@
                 });
             });
         }
-
     </script>
 }

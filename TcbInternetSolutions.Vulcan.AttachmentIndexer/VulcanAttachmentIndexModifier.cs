@@ -4,6 +4,7 @@
     using EPiServer.Logging;
     using EPiServer.ServiceLocation;
     using System;
+    using System.Collections.Generic;
     using TcbInternetSolutions.Vulcan.Core;
     using static TcbInternetSolutions.Vulcan.Core.VulcanFieldConstants;
 
@@ -16,6 +17,7 @@
         private readonly IVulcanAttachmentInspector _AttachmentInspector;
         private readonly IVulcanMediaReader _MediaReader;
         private readonly IVulcanBytesToStringConverter _ByteConvertor;
+        private readonly IVulcanPipelineSelector _VulcanPipelineSelector;
         private ILogger _Logger = LogManager.GetLogger(typeof(VulcanAttachmentIndexModifier));
 
         /// <summary>
@@ -24,16 +26,19 @@
         /// <param name="vulcanAttachmentInspector"></param>
         /// <param name="vulcanMediaReader"></param>
         /// <param name="vulcanBytesToStringConverter"></param>
+        /// <param name="vulcanPipelineSelector"></param>
         public VulcanAttachmentIndexModifier
         (
             IVulcanAttachmentInspector vulcanAttachmentInspector,
             IVulcanMediaReader vulcanMediaReader,
-            IVulcanBytesToStringConverter vulcanBytesToStringConverter
+            IVulcanBytesToStringConverter vulcanBytesToStringConverter,
+            IVulcanPipelineSelector vulcanPipelineSelector
         )
         {
             _AttachmentInspector = vulcanAttachmentInspector;
             _MediaReader = vulcanMediaReader;
             _ByteConvertor = vulcanBytesToStringConverter;
+            _VulcanPipelineSelector = vulcanPipelineSelector;
         }
 
         /// <summary>
@@ -48,17 +53,26 @@
                 byte[] mediaBytes = _MediaReader.ReadToEnd(media);
                 string mimeType = media.MimeType;
 
-                // only send base64 content if pipeline is enabled
-                if (args.PipelineId == Implementation.VulcanAttachmentPipelineInstaller.PipelineId)
+                // todo: nest 5 to 2 difference
+
+                // for 2x, have to evaluate pipeline here
+                var pipeline = _VulcanPipelineSelector.GetPipelineById(Implementation.VulcanAttachmentPipelineInstaller.PipelineId);
+
+                if (pipeline.IsMatch(args.Content))
                 {
                     string base64contents = Convert.ToBase64String(mediaBytes);
-                    args.AdditionalItems[MediaContents] = base64contents;
-                    //streamWriter.Write(",\"" + MediaContents + "\" : \"" + base64contents + "\"");
+                    Dictionary<string, object> mediaFields = new Dictionary<string, object>
+                    {
+                        ["_name"] = media.Name,
+                        ["_indexed_chars"] = -1,// indexes entire document instead of first 100000 chars   
+                        ["_content_type"] = mimeType,
+                        ["_content_length"] = mediaBytes.LongLength,
+                        ["_content"] = base64contents
+                    };
 
-                    // v2x
-                    //streamWriter.Write(",\"" + MediaContents + "\":{");                    
-                    //long fileByteSize = mediaBytes.LongLength;
+                    args.AdditionalItems[MediaContents] = mediaFields;
 
+                    //streamWriter.Write(",\"" + MediaContents + "\":{");
                     //streamWriter.Write("\"_name\": \"" + media.Name + "\",");
                     //streamWriter.Write("\"_indexed_chars\": \"-1\","); // indexes entire document instead of first 100000 chars   
                     //streamWriter.Write("\"_content_type\": \"" + mimeType + "\",");
@@ -66,6 +80,14 @@
                     //streamWriter.Write("\"_content\": \"" + base64contents + "\"");
                     //streamWriter.Write("}");
                 }
+
+                // 5x: only send base64 content if pipeline is enabled
+                //if (args.PipelineId == Implementation.VulcanAttachmentPipelineInstaller.PipelineId)
+                //{
+                //    string base64contents = Convert.ToBase64String(mediaBytes);
+                //    args.AdditionalItems[MediaContents] = base64contents;
+                //    //streamWriter.Write(",\"" + MediaContents + "\" : \"" + base64contents + "\"");
+                //}
 
                 string stringContents = _ByteConvertor.ConvertToString(mediaBytes, mimeType);
 

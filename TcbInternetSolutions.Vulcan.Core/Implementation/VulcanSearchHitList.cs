@@ -60,7 +60,10 @@
             get
             {
                 if (_Took < -1 && ResponseContext != null)
-                    _Took = ResponseContext.Took;
+                {
+                    // todo: nest 5 to 2 difference
+                    _Took = ResponseContext.TookAsLong;
+                }
 
                 return _Took;
             }

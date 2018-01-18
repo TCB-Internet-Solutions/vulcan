@@ -3,7 +3,6 @@
     using EPiServer;
     using EPiServer.Core;
     using EPiServer.Logging;
-    using EPiServer.ServiceLocation;
     using Nest;
     using System;
     using System.Collections.Generic;
@@ -164,7 +163,6 @@
                 {
                     try
                     {
-                        // todo: find a way to pass the pipeline to the custom serializer...
                         IIndexResponse response = base.Index(content, ModifyContentIndexRequest);
 
                         if (response.IsValid)
@@ -193,17 +191,19 @@
         {
             if (indexDescriptor is IIndexRequest<IContent> descriptedContent)
             {
-                var content = descriptedContent.Document;
-                var pipeline = _VulcanPipelineSelector.GetPipelineForContent(descriptedContent.Document);
+                var content = descriptedContent.Document;                
 
                 indexDescriptor = indexDescriptor
                     .Id(GetId(content))
                     .Type(GetTypeName(content));
 
-                if (pipeline != null)
-                {
-                    indexDescriptor = indexDescriptor.Pipeline(pipeline.Id);
-                }
+                // todo: nest 5 to 2 difference
+                //var pipeline = _VulcanPipelineSelector.GetPipelineForContent(descriptedContent.Document);
+
+                //if (pipeline != null)
+                //{
+                //    indexDescriptor = indexDescriptor.Pipeline(pipeline.Id);
+                //}
             }
 
             return indexDescriptor;

@@ -257,8 +257,6 @@
 
                 client.RunCustomIndexTemplates(Index, Logger);
 
-                // note: strings are no more in ES5, for not analyzed text use Keyword and for analyzed use Text
-
                 // keep our base last with lowest possible Order
                 client.PutIndexTemplate($"{Index}_analyzer_disabling", ad => ad
                         .Order(0)
@@ -267,11 +265,12 @@
                             dyn => dyn.DynamicTemplate("analyzer_template", dt => dt
                                 .Match("*") //matches all fields
                                 .MatchMappingType("string") //that are a string
-                                .Mapping(dynmap => dynmap.Keyword(s => s
+                                .Mapping(dynmap => dynmap.String(s => s
+                                    .NotAnalyzed()
                                     .IgnoreAbove(CreateIndexCustomizer.IgnoreAbove) // needed for: document contains at least one immense term in field
                                     .IncludeInAll(false)
                                     .Fields(f => f
-                                        .Text(ana => ana
+                                        .String(ana => ana
                                             .Name(VulcanFieldConstants.AnalyzedModifier)
                                             .IncludeInAll(false)
                                             .Store(true)
@@ -279,6 +278,29 @@
                                     ))
                                 )
                             )))));
+
+                // todo: nest 5 to 2 difference
+                // note: strings are no more in ES5, for not analyzed text use Keyword and for analyzed use Text
+                // keep our base last with lowest possible Order
+                //client.PutIndexTemplate($"{Index}_analyzer_disabling", ad => ad
+                //        .Order(0)
+                //        .Template($"{Index}*") //match on all created indices for index name
+                //        .Mappings(mappings => mappings.Map("_default_", map => map.DynamicTemplates(
+                //            dyn => dyn.DynamicTemplate("analyzer_template", dt => dt
+                //                .Match("*") //matches all fields
+                //                .MatchMappingType("string") //that are a string
+                //                .Mapping(dynmap => dynmap.Keyword(s => s
+                //                    .IgnoreAbove(CreateIndexCustomizer.IgnoreAbove) // needed for: document contains at least one immense term in field
+                //                    .IncludeInAll(false)
+                //                    .Fields(f => f
+                //                        .Text(ana => ana
+                //                            .Name(VulcanFieldConstants.AnalyzedModifier)
+                //                            .IncludeInAll(false)
+                //                            .Store(true)
+                //                        )
+                //                    ))
+                //                )
+                //            )))));
 
                 if (!client.IndexExists(indexName).Exists)
                 {
@@ -309,7 +331,10 @@
                 client.RunCustomizers(Logger); // allows for customizations
 
                 var openResponse = client.OpenIndex(indexName);
-                var initShards = client.ClusterHealth(x => x.WaitForActiveShards(CreateIndexCustomizer.WaitForActiveShards.ToString())); // fixes empty results on first request
+
+                // todo: nest 5 to 2 difference
+                var initShards = client.ClusterHealth(x => x.WaitForActiveShards(CreateIndexCustomizer.WaitForActiveShards)); // fixes empty results on first request                
+                //var initShards = client.ClusterHealth(x => x.WaitForActiveShards(CreateIndexCustomizer.WaitForActiveShards.ToString())); // fixes empty results on first request
 
                 clients[cultureInfo] = client;
 
