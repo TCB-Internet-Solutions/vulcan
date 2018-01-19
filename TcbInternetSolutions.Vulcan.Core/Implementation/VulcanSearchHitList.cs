@@ -61,8 +61,11 @@
             {
                 if (_Took < -1 && ResponseContext != null)
                 {
-                    // todo: nest 5 to 2 difference
+#if NEST2
                     _Took = ResponseContext.TookAsLong;
+#elif NEST5
+                    _Took = ResponseContext.Took;
+#endif
                 }
 
                 return _Took;

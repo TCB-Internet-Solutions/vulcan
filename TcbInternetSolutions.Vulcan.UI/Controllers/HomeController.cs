@@ -11,6 +11,9 @@ using TcbInternetSolutions.Vulcan.UI.Support;
 
 namespace TcbInternetSolutions.Vulcan.UI.Controllers
 {
+    /// <summary>
+    /// UI Vulcan Controller
+    /// </summary>
     [Authorize(Roles = "Administrators,CmsAdmins,WebAdmins,VulcanAdmins")]
     public class HomeController : Base.BaseController
     {
@@ -34,6 +37,10 @@ namespace TcbInternetSolutions.Vulcan.UI.Controllers
             _VulcanIndexModifiers = vulcanIndexModifiers;
         }
 
+        /// <summary>
+        ///  Main UI View
+        /// </summary>
+        /// <returns></returns>
         [MenuItem("/global/vulcan", Text = "Vulcan")]
         [HttpGet]
         public ActionResult Index()
@@ -68,25 +75,30 @@ namespace TcbInternetSolutions.Vulcan.UI.Controllers
                     .SearchType(SearchType.DfsQueryThenFetch). // possible 5x to 2x difference
                         Aggregations(aggs => aggs.Terms("typeCount", t => t.Field("_type")))).Aggregations["typeCount"] as Nest.BucketAggregate;
 
-                    // todo: nest 5 to 2 difference
-                    // KeyedBucket<object> for nest 5
-                    var total = typeCount.Items.Sum(i => (i as Nest.KeyedBucket).DocCount) ?? 0;
                     List<string> docCounts = new List<string>();
+#if NEST2
+                    var total = typeCount.Items.Sum(i => (i as Nest.KeyedBucket).DocCount) ?? 0;
 
                     foreach (Nest.KeyedBucket type in typeCount.Items)
                     {
                         docCounts.Add($"{type.Key}({type.DocCount})");
                     }
+#elif NEST5
+                    var total = typeCount.Items.Sum(i => (i as Nest.KeyedBucket<object>).DocCount) ?? 0;                   
 
-                    typeCounts[client.IndexName] = Tuple.Create(total, uiDisplayName, docCounts);                    
+                    foreach (Nest.KeyedBucket<object> type in typeCount.Items)
+                    {
+                        docCounts.Add($"{type.Key}({type.DocCount})");
+                    }
+#endif
+
+                    typeCounts[client.IndexName] = Tuple.Create(total, uiDisplayName, docCounts);
                 }
 
                 viewModel.ClientViewInfo = typeCounts;
-
-                
             }
 
             return View(Helper.ResolveView("Home/Index.cshtml"), viewModel);
         }
-    }    
+    }
 }

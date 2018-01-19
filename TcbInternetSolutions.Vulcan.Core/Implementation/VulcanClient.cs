@@ -191,19 +191,20 @@
         {
             if (indexDescriptor is IIndexRequest<IContent> descriptedContent)
             {
-                var content = descriptedContent.Document;                
+                var content = descriptedContent.Document;
 
                 indexDescriptor = indexDescriptor
                     .Id(GetId(content))
                     .Type(GetTypeName(content));
 
-                // todo: nest 5 to 2 difference
-                //var pipeline = _VulcanPipelineSelector.GetPipelineForContent(descriptedContent.Document);
+#if NEST5
+                var pipeline = _VulcanPipelineSelector.GetPipelineForContent(descriptedContent.Document);
 
-                //if (pipeline != null)
-                //{
-                //    indexDescriptor = indexDescriptor.Pipeline(pipeline.Id);
-                //}
+                if (pipeline != null)
+                {
+                    indexDescriptor = indexDescriptor.Pipeline(pipeline.Id);
+                }            
+#endif
             }
 
             return indexDescriptor;

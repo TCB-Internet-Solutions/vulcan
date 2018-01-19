@@ -34,10 +34,8 @@
         /// Writes additional IContent information to stream
         /// </summary>
         /// <param name="args"></param>
-        public virtual void ProcessContent(IVulcanIndexingModifierArgs args)//, Stream writableStream)
+        public virtual void ProcessContent(IVulcanIndexingModifierArgs args)
         {
-            //var streamWriter = new StreamWriter(writableStream);
-
             // index ancestors
             var ancestors = new List<ContentReference>();
 
@@ -56,10 +54,6 @@
 
             args.AdditionalItems[VulcanFieldConstants.Ancestors] = ancestors.Select(x => x.ToReferenceWithoutVersion()).Distinct();
 
-            //streamWriter.Write(",\"" + VulcanFieldConstants.Ancestors + "\":[");
-            //streamWriter.Write(string.Join(",", ancestors.Select(x => x.ToReferenceWithoutVersion()).Distinct().Select(x => "\"" + x.ToString() + "\"")));
-            //streamWriter.Write("]");
-
             // index read permission            
             var permissions = _ContentSecurityDescriptor.Get(args.Content.ContentLink);
 
@@ -71,15 +65,6 @@
                                 x.Access.HasFlag(AccessLevel.Administer) ||
                                 x.Access.HasFlag(AccessLevel.FullAccess)).Select(x => x.Name);
                 
-                //streamWriter.Write(",\"" + VulcanFieldConstants.ReadPermission + "\":[");
-                //streamWriter.Write(string.Join(",", permissions.Entries.
-                //            Where(x =>
-                //                x.Access.HasFlag(AccessLevel.Read) ||
-                //                x.Access.HasFlag(AccessLevel.Administer) ||
-                //                x.Access.HasFlag(AccessLevel.FullAccess))
-                //            .Select(x => StringExtensions.JsonEscapeString(x.Name)) // json escape adds quotes
-                //        ));
-                //streamWriter.Write("]");
             }
 
             // index VulcanSearchableAttribute
@@ -105,10 +90,6 @@
             }
 
             args.AdditionalItems[VulcanFieldConstants.CustomContents] = string.Join(" ", contents);
-
-            //streamWriter.Write(",\"" + VulcanFieldConstants.CustomContents + "\":" + StringExtensions.JsonEscapeString(string.Join(" ", contents)));
-
-            //streamWriter.Flush();
         }
     }
 }

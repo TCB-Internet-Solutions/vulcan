@@ -55,7 +55,7 @@
             IndexingModifers = vulcanIndexingModifiers;
             CommonConnectionSettings = vulcanClientConnectionSettings;
             ContentLoader = contentLoader;
-            CreateIndexCustomizer = vulcanCreateIndexCustomizer;            
+            CreateIndexCustomizer = vulcanCreateIndexCustomizer;
             _VulcanPipelineSelector = vulcanPipelineSelector;
             _VulcanPipelineInstallers = vulcanPipelineInstallers;
 
@@ -258,6 +258,8 @@
                 client.RunCustomIndexTemplates(Index, Logger);
 
                 // keep our base last with lowest possible Order
+
+#if NEST2                
                 client.PutIndexTemplate($"{Index}_analyzer_disabling", ad => ad
                         .Order(0)
                         .Template($"{Index}*") //match on all created indices for index name
@@ -278,30 +280,28 @@
                                     ))
                                 )
                             )))));
-
-                // todo: nest 5 to 2 difference
+#elif NEST5
                 // note: strings are no more in ES5, for not analyzed text use Keyword and for analyzed use Text
-                // keep our base last with lowest possible Order
-                //client.PutIndexTemplate($"{Index}_analyzer_disabling", ad => ad
-                //        .Order(0)
-                //        .Template($"{Index}*") //match on all created indices for index name
-                //        .Mappings(mappings => mappings.Map("_default_", map => map.DynamicTemplates(
-                //            dyn => dyn.DynamicTemplate("analyzer_template", dt => dt
-                //                .Match("*") //matches all fields
-                //                .MatchMappingType("string") //that are a string
-                //                .Mapping(dynmap => dynmap.Keyword(s => s
-                //                    .IgnoreAbove(CreateIndexCustomizer.IgnoreAbove) // needed for: document contains at least one immense term in field
-                //                    .IncludeInAll(false)
-                //                    .Fields(f => f
-                //                        .Text(ana => ana
-                //                            .Name(VulcanFieldConstants.AnalyzedModifier)
-                //                            .IncludeInAll(false)
-                //                            .Store(true)
-                //                        )
-                //                    ))
-                //                )
-                //            )))));
-
+                client.PutIndexTemplate($"{Index}_analyzer_disabling", ad => ad
+                        .Order(0)
+                        .Template($"{Index}*") //match on all created indices for index name
+                        .Mappings(mappings => mappings.Map("_default_", map => map.DynamicTemplates(
+                            dyn => dyn.DynamicTemplate("analyzer_template", dt => dt
+                                .Match("*") //matches all fields
+                                .MatchMappingType("string") //that are a string
+                                .Mapping(dynmap => dynmap.Keyword(s => s
+                                    .IgnoreAbove(CreateIndexCustomizer.IgnoreAbove) // needed for: document contains at least one immense term in field
+                                    .IncludeInAll(false)
+                                    .Fields(f => f
+                                        .Text(ana => ana
+                                            .Name(VulcanFieldConstants.AnalyzedModifier)
+                                            .IncludeInAll(false)
+                                            .Store(true)
+                                        )
+                                    ))
+                                )
+                            )))));
+#endif
                 if (!client.IndexExists(indexName).Exists)
                 {
                     var response = client.CreateIndex(indexName, CreateIndexCustomizer.CustomizeIndex);
@@ -323,7 +323,7 @@
                 InitializeAnalyzer(client);
 
                 // run installers
-                foreach(var installer in _VulcanPipelineInstallers)
+                foreach (var installer in _VulcanPipelineInstallers)
                 {
                     installer.Install(client);
                 }
@@ -332,9 +332,11 @@
 
                 var openResponse = client.OpenIndex(indexName);
 
-                // todo: nest 5 to 2 difference
+#if NEST2
                 var initShards = client.ClusterHealth(x => x.WaitForActiveShards(CreateIndexCustomizer.WaitForActiveShards)); // fixes empty results on first request                
-                //var initShards = client.ClusterHealth(x => x.WaitForActiveShards(CreateIndexCustomizer.WaitForActiveShards.ToString())); // fixes empty results on first request
+#elif NEST5
+                var initShards = client.ClusterHealth(x => x.WaitForActiveShards(CreateIndexCustomizer.WaitForActiveShards.ToString())); // fixes empty results on first request
+#endif
 
                 clients[cultureInfo] = client;
 

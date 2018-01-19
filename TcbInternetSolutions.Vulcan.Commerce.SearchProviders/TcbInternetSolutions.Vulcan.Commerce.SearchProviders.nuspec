@@ -9,14 +9,14 @@
     <copyright>Copyright $year$</copyright>
     <tags>ElasticSearch Nest Commerce</tags>
     <dependencies>
-      <dependency id="EPiServer.Commerce.Core" version="[10,)" />
-      <dependency id="TcbInternetSolutions.Vulcan.Core" version="[2.3,3)" />
+      <dependency id="EPiServer.Commerce.Core" version="[11,)" />
+      <dependency id="TcbInternetSolutions.Vulcan.Core" version="[3,)" />
     </dependencies>
   </metadata>
   <files>
     <file src="**\*.cs" target="src" />
-    <file src="bin\Release\TcbInternetSolutions.Vulcan.Commerce.SearchProviders.dll" target="lib\net45" />
-    <file src="bin\Release\TcbInternetSolutions.Vulcan.Commerce.SearchProviders.pdb" target="lib\net45" />
-    <file src="bin\Release\TcbInternetSolutions.Vulcan.Commerce.SearchProviders.xml" target="lib\net45" />
+    <file src="bin\Release\TcbInternetSolutions.Vulcan.Commerce.SearchProviders.dll" target="lib\net461" />
+    <file src="bin\Release\TcbInternetSolutions.Vulcan.Commerce.SearchProviders.pdb" target="lib\net461" />
+    <file src="bin\Release\TcbInternetSolutions.Vulcan.Commerce.SearchProviders.xml" target="lib\net461" />
   </files>
 </package>

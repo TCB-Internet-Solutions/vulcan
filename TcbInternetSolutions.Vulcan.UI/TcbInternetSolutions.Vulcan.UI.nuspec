@@ -10,6 +10,7 @@
     <copyright>Copyright $year$</copyright>
     <tags>Vulcan UI Management ElasticSearch</tags>
     <dependencies>
+      <dependency id="EPiServer.CMS.UI.Core" version="[11,12)" />
       <dependency id="TcbInternetSolutions.Vulcan.Core" version="[3,)" />
     </dependencies>
   </metadata>

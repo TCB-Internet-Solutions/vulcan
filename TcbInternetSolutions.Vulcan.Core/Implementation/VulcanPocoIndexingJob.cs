@@ -1,5 +1,6 @@
 ﻿namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
+    using Elasticsearch.Net;
     using EPiServer.Logging;
     using EPiServer.ServiceLocation;
     using Nest;
@@ -46,7 +47,7 @@
             var type = GetTypeName(item);
 
             try
-            {                
+            {
                 var response = _InvariantClient.Delete(new DeleteRequest(_InvariantClient.IndexName, type, id));
                 Logger.Debug("Vulcan deleted " + id + " for type " + type + ": " + response.DebugInformation);
             }
@@ -68,7 +69,7 @@
         {
             if (pocoIndexer == null)
                 throw new ArgumentNullException($"{nameof(pocoIndexer)} cannot be null!");
-            
+
             var total = pocoIndexer.TotalItems;
             var pageSize = pocoIndexer.PageSize;
             pageSize = pageSize < 1 ? 1 : pageSize; // don't allow 0 or negative
@@ -77,13 +78,13 @@
 
             for (int page = 1; page <= totalPages; page++)
             {
-                updateStatus?.Invoke("Indexing page " + page + " of " + totalPages + " items of " + pocoIndexer.IndexerName + " content!");                
-                var itemsToIndex = pocoIndexer.GetItems(page , pageSize);
+                updateStatus?.Invoke("Indexing page " + page + " of " + totalPages + " items of " + pocoIndexer.IndexerName + " content!");
+                var itemsToIndex = pocoIndexer.GetItems(page, pageSize);
                 var firstItem = itemsToIndex.FirstOrDefault();
 
                 if (firstItem == null)
                     break;
-                
+
                 var itemType = firstItem.GetType();
                 var itemTypeName = GetTypeName(firstItem);
                 var operationType = typeof(BulkIndexOperation<>).MakeGenericType(itemType);
@@ -107,10 +108,13 @@
 
                 // https://www.elastic.co/guide/en/elasticsearch/client/net-api/1.x/bulk.html
                 var request = new BulkRequest()
-                {                    
-                    // todo: nest 5 to 2 difference
-                    Refresh = true,// Refresh.True,
-                    //Consistency = Consistency.One, // removed in nest 5
+                {
+#if NEST2
+                    Refresh = true,
+                    Consistency = Consistency.One,
+#elif NEST5
+                    Refresh = Refresh.True,
+#endif
                     Operations = operations
                 };
 
@@ -132,13 +136,13 @@
 
             try
             {
-                var response =  _InvariantClient.Index(item, z => z.Id(id).Type(type));
+                var response = _InvariantClient.Index(item, z => z.Id(id).Type(type));
                 Logger.Debug("Vulcan indexed " + id + " for type " + type + ": " + response.DebugInformation);
             }
             catch (Exception e)
             {
                 Logger.Warning("Vulcan could not index object of type " + type + " with ID " + id, e);
-            }            
+            }
         }
 
         /// <summary>

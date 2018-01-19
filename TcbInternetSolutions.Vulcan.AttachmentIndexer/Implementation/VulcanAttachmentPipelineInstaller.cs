@@ -22,8 +22,12 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer.Implementation
 
         // 5.x support uses https://www.elastic.co/guide/en/elasticsearch/plugins/5.2/ingest-attachment.html
         // not which 2.x uses https://www.elastic.co/guide/en/elasticsearch/plugins/5.2/mapper-attachments.html
-        private const bool _isVersion5 = false; // todo: nest 5 to 2 difference
 
+#if NEST2
+        private const bool _isVersion5 = false;
+#elif NEST5
+        private const bool _isVersion5 = true;
+#endif
         private static readonly string _pluginName = _isVersion5 ? "ingest-attachment" : "mapper-attachments"; // older 2.x";
 
         private readonly IVulcanAttachmentIndexerSettings _VulcanAttachmentIndexerSettings;
@@ -50,23 +54,7 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer.Implementation
                     throw new Exception($"No attachment plugin found, be sure to install the '{_pluginName}' plugin on your Elastic Search Server!");
                 }
 
-                // todo: nest 5 to 2 difference
-                // v5, use pipeline
-                //var response = client.PutPipeline(PipelineId, p => p
-                //    .Description("Document attachment pipeline")
-                //    .Processors(pr => pr
-                //        .Attachment<Nest.Attachment>(a => a
-                //            .Field(MediaContents)
-                //            .TargetField(MediaContents)
-                //            .IndexedCharacters(-1)
-                //        )
-                //    )
-                //);
-                //if (!response.IsValid)
-                //{
-                //    throw new Exception(response.DebugInformation);
-                //}
-
+#if NEST2
                 // v2, to do, get all MediaData types that are allowed and loop them
                 var mediaDataTypes = Core.Extensions.TypeExtensions.GetSearchTypesFor<MediaData>(t => t.IsAbstract == false);
 
@@ -94,6 +82,24 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer.Implementation
                         }
                     }
                 }
+#elif NEST5
+                // v5, use pipeline
+                var response = client.PutPipeline(PipelineId, p => p
+                    .Description("Document attachment pipeline")
+                    .Processors(pr => pr
+                        .Attachment<Nest.Attachment>(a => a
+                            .Field(MediaContents)
+                            .TargetField(MediaContents)
+                            .IndexedCharacters(-1)
+                        )
+                    )
+                );
+
+                if (!response.IsValid)
+                {
+                    throw new Exception(response.DebugInformation);
+                }
+#endif
             }
         }
     }
