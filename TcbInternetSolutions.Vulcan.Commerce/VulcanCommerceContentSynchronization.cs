@@ -1,13 +1,7 @@
-﻿using EPiServer.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using EPiServer.Commerce.Catalog.Provider;
+using EPiServer.Framework;
 using EPiServer.Framework.Initialization;
 using EPiServer.ServiceLocation;
-using Mediachase.Commerce.Catalog.Events;
-using EPiServer.Commerce.Catalog.Provider;
 using TcbInternetSolutions.Vulcan.Core;
 
 namespace TcbInternetSolutions.Vulcan.Commerce

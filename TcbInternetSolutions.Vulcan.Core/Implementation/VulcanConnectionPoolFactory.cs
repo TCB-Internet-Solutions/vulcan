@@ -19,7 +19,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             if (string.IsNullOrWhiteSpace(vulcanUrl)) throw new ArgumentNullException(nameof(vulcanUrl));
 
             IConnectionPool connectionPool;
-            var urls = vulcanUrl.Split(new char[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+            var urls = vulcanUrl.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
 
             if (urls.Length == 1)
             {

@@ -22,12 +22,12 @@
         {
             if (contentArea == null) { return string.Empty; }
 
-            StringBuilder stringBuilder = new StringBuilder();
+            var stringBuilder = new StringBuilder();
 
-            foreach (ContentAreaItem contentAreaItem in contentArea.Items)
+            foreach (var contentAreaItem in contentArea.Items)
             {
-                IContent blockData = contentAreaItem.GetContent();
-                IEnumerable<string> props = GetSearchablePropertyValues(blockData, blockData.ContentTypeID);
+                var blockData = contentAreaItem.GetContent();
+                var props = GetSearchablePropertyValues(blockData, blockData.ContentTypeID);
                 stringBuilder.AppendFormat(" {0}", string.Join(" ", props));
             }
 
@@ -47,16 +47,15 @@
                 yield break;
             }
 
-            foreach (PropertyDefinition current in from d in contentType.PropertyDefinitions
+            foreach (var current in from d in contentType.PropertyDefinitions
                                                    where d.Searchable || typeof(IPropertyBlock).IsAssignableFrom(d.Type.DefinitionType)
                                                    select d)
             {
-                PropertyData propertyData = contentData.Property[current.Name];
-                IPropertyBlock propertyBlock = propertyData as IPropertyBlock;
+                var propertyData = contentData.Property[current.Name];
 
-                if (propertyBlock != null)
+                if (propertyData is IPropertyBlock propertyBlock)
                 {
-                    foreach (string current2 in GetSearchablePropertyValues(propertyBlock.Block, propertyBlock.BlockPropertyDefinitionTypeID))
+                    foreach (var current2 in GetSearchablePropertyValues(propertyBlock.Block, propertyBlock.BlockPropertyDefinitionTypeID))
                     {
                         yield return current2;
                     }
@@ -66,17 +65,15 @@
                     yield return propertyData.ToWebString();
                 }
             }
-
-            yield break;
         }
 
         /// <summary>
         /// Gets searchable propety values for content and type Id
         /// </summary>
         /// <param name="contentData"></param>
-        /// <param name="contentTypeID"></param>
+        /// <param name="contentTypeId"></param>
         /// <returns></returns>
-        public static IEnumerable<string> GetSearchablePropertyValues(IContentData contentData, int contentTypeID) =>
-            GetSearchablePropertyValues(contentData, ServiceLocator.Current.GetInstance<IContentTypeRepository>().Load(contentTypeID));
+        public static IEnumerable<string> GetSearchablePropertyValues(IContentData contentData, int contentTypeId) =>
+            GetSearchablePropertyValues(contentData, ServiceLocator.Current.GetInstance<IContentTypeRepository>().Load(contentTypeId));
     }
 }

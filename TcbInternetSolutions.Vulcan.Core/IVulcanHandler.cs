@@ -54,7 +54,8 @@ namespace TcbInternetSolutions.Vulcan.Core
         /// Delete content for all languages
         /// </summary>
         /// <param name="contentLink"></param>
-        void DeleteContentEveryLanguage(ContentReference contentLink);
+        /// <param name="typeName"></param>
+        void DeleteContentEveryLanguage(ContentReference contentLink, string typeName);
 
         /// <summary>
         /// Delete index
@@ -73,6 +74,7 @@ namespace TcbInternetSolutions.Vulcan.Core
         /// </summary>
         /// <returns></returns>
         IVulcanClient[] GetClients();
+
         /// <summary>
         /// Index content by language
         /// </summary>

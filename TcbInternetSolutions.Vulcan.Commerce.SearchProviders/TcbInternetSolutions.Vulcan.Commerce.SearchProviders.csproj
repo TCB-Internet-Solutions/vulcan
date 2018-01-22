@@ -234,6 +234,10 @@
     <None Include="TcbInternetSolutions.Vulcan.Commerce.SearchProviders.nuspec" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\TcbInternetSolutions.Vulcan.Core.SearchProviders\TcbInternetSolutions.Vulcan.Core.SearchProviders.csproj">
+      <Project>{dcf03871-5019-4adb-ab36-61f6f38c749d}</Project>
+      <Name>TcbInternetSolutions.Vulcan.Core.SearchProviders</Name>
+    </ProjectReference>
     <ProjectReference Include="..\TcbInternetSolutions.Vulcan.Core\TcbInternetSolutions.Vulcan.Core.csproj">
       <Project>{74975f21-f58d-4204-9cca-4ca890e3bf12}</Project>
       <Name>TcbInternetSolutions.Vulcan.Core</Name>

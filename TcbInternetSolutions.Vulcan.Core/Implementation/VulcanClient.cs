@@ -3,20 +3,25 @@
     using EPiServer;
     using EPiServer.Core;
     using EPiServer.Logging;
+    using Extensions;
     using Nest;
     using System;
     using System.Collections.Generic;
     using System.Globalization;
     using System.Linq;
     using System.Security.Principal;
-    using TcbInternetSolutions.Vulcan.Core.Extensions;
 
     /// <summary>
     /// Default vulcan client
     /// </summary>
     public class VulcanClient : ElasticClient, IVulcanClient
     {
-        private static ILogger Logger = LogManager.GetLogger();
+        private static readonly ILogger Logger = LogManager.GetLogger();
+
+        /// <summary>
+        /// needed for nest5
+        /// </summary>
+        private readonly IVulcanPipelineSelector _vulcanPipelineSelector;
 
         /// <summary>
         /// DI Constructor
@@ -30,17 +35,17 @@
         public VulcanClient
         (
             string index,
-            ConnectionSettings settings,
+            IConnectionSettingsValues settings,
             CultureInfo language,
             IContentLoader contentLoader,
             IVulcanHandler vulcanHandler,
             IVulcanPipelineSelector vulcanPipelineSelector) : base(settings)
         {
             Language = language ?? throw new Exception("Vulcan client requires a language (you may use CultureInfo.InvariantCulture if needed for non-language specific data)");
-            IndexName = VulcanHelper.GetIndexName(index, Language);
+            IndexName = VulcanHelper.GetIndexName(index, language);
             ContentLoader = contentLoader;
             VulcanHandler = vulcanHandler;
-            _VulcanPipelineSelector = vulcanPipelineSelector;
+            _vulcanPipelineSelector = vulcanPipelineSelector;
         }
 
         /// <summary>
@@ -62,9 +67,6 @@
         /// Injected Vulcan Handler
         /// </summary>
         protected IVulcanHandler VulcanHandler { get; set; }
-
-        private readonly IVulcanPipelineSelector _VulcanPipelineSelector;
-
         /// <summary>
         /// Adds a synonym
         /// </summary>
@@ -86,7 +88,7 @@
 
             if (localizableContent != null && !localizableContent.Language.Equals(Language))
             {
-                throw new Exception("Cannot delete content '" + GetId(content) + "' with language " + (content as ILocalizable).Language.Name + " with Vulcan client for language " + Language.GetCultureName());
+                throw new Exception("Cannot delete content '" + GetId(content) + "' with language " + localizableContent.Language.Name + " with Vulcan client for language " + Language.GetCultureName());
             }
 
             if (localizableContent == null && !Language.Equals(CultureInfo.InvariantCulture))
@@ -96,7 +98,7 @@
 
             try
             {
-                var response = base.Delete(new DeleteRequest(IndexName, GetTypeName(content), GetId(content)));
+                var response = Delete(new DeleteRequest(IndexName, GetTypeName(content), GetId(content)));
 
                 Logger.Debug("Vulcan deleted " + GetId(content) + " for language " + Language.GetCultureName() + ": " + response.DebugInformation);
             }
@@ -110,24 +112,31 @@
         /// Deletes content from index
         /// </summary>
         /// <param name="contentLink"></param>
-        public virtual void DeleteContent(ContentReference contentLink)
+        /// <param name="typeName"></param>
+        public virtual void DeleteContent(ContentReference contentLink, string typeName)
         {
             // we don't know content type so try and find it in current language index
-            var result = SearchContent<IContent>(s => s.Query(q => q.Term(c => c.ContentLink, contentLink.ToReferenceWithoutVersion())));
-
-            if (result != null && result.Hits.Count() >= 0)
+            if (string.IsNullOrWhiteSpace(typeName))
             {
-                try
-                {
-                    var response = base.Delete(new DeleteRequest(IndexName, result.Hits.First().Type, contentLink.ToReferenceWithoutVersion().ToString()));
+                var result = SearchContent<IContent>(s => s.Query(q => q.Term(c => c.ContentLink, contentLink.ToReferenceWithoutVersion())));
 
-                    Logger.Debug("Vulcan (using direct content link) deleted " + contentLink.ToReferenceWithoutVersion().ToString() + " for language " + Language.GetCultureName() + ": " + response.DebugInformation);
-                }
-                catch (Exception e)
+                if (result != null && result.Hits.Count() >= 0)
                 {
-                    Logger.Warning("Vulcan could not delete (using direct content link) content with content link " + contentLink.ToReferenceWithoutVersion().ToString() + " for language " + Language.GetCultureName() + ":", e);
+                    typeName = result.Hits.FirstOrDefault()?.Type;
                 }
             }
+
+            try
+            {
+                var response = Delete(new DeleteRequest(IndexName, typeName, contentLink.ToReferenceWithoutVersion().ToString()));
+
+                Logger.Debug($"Vulcan (using direct content link) deleted {contentLink.ToReferenceWithoutVersion()} for language {Language.GetCultureName()}: {response.DebugInformation}");
+            }
+            catch (Exception e)
+            {
+                Logger.Warning($"Vulcan could not delete (using direct content link) content with content link {contentLink.ToReferenceWithoutVersion()} for language {Language.GetCultureName()}:", e);
+            }
+
         }
 
         /// <summary>
@@ -146,7 +155,7 @@
 
             if (localizableContent != null && !localizableContent.Language.Equals(Language))
             {
-                throw new Exception($"Cannot index content '{GetId(content)}' with language {(content as ILocalizable).Language.Name} with Vulcan client for language {Language.GetCultureName()}");
+                throw new Exception($"Cannot index content '{GetId(content)}' with language {localizableContent.Language.Name} with Vulcan client for language {Language.GetCultureName()}");
             }
 
             if (localizableContent == null && !Language.Equals(CultureInfo.InvariantCulture))
@@ -154,16 +163,14 @@
                 throw new Exception($"Cannot index content '{GetId(content)}' with no language with Vulcan client for language {Language.Name}");
             }
 
-            var versionableContent = content as IVersionable;
-
-            if (versionableContent == null || versionableContent.Status == VersionStatus.Published)
+            if (!(content is IVersionable versionableContent) || versionableContent.Status == VersionStatus.Published)
             {
                 // see if we should index this content
                 if (VulcanHandler.AllowContentIndexing(content))
                 {
                     try
                     {
-                        IIndexResponse response = base.Index(content, ModifyContentIndexRequest);
+                        var response = Index(content, ModifyContentIndexRequest);
 
                         if (response.IsValid)
                         {
@@ -180,34 +187,6 @@
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// Assigns Id, Type, and Pipeline (if available) on index request
-        /// </summary>
-        /// <param name="indexDescriptor"></param>
-        /// <returns></returns>
-        protected virtual IIndexRequest ModifyContentIndexRequest(IndexDescriptor<IContent> indexDescriptor)
-        {
-            if (indexDescriptor is IIndexRequest<IContent> descriptedContent)
-            {
-                var content = descriptedContent.Document;
-
-                indexDescriptor = indexDescriptor
-                    .Id(GetId(content))
-                    .Type(GetTypeName(content));
-
-#if NEST5
-                var pipeline = _VulcanPipelineSelector.GetPipelineForContent(descriptedContent.Document);
-
-                if (pipeline != null)
-                {
-                    indexDescriptor = indexDescriptor.Pipeline(pipeline.Id);
-                }            
-#endif
-            }
-
-            return indexDescriptor;
         }
 
         /// <summary>
@@ -236,31 +215,21 @@
                 IEnumerable<Type> typeFilter = null,
                 IPrincipal principleReadFilter = null) where T : class, IContent
         {
-            SearchDescriptor<T> resolvedDescriptor;
-
-            if (searchDescriptor == null)
-            {
-                resolvedDescriptor = new SearchDescriptor<T>();
-            }
-            else
-            {
-                resolvedDescriptor = searchDescriptor.Invoke(new SearchDescriptor<T>());
-            }
-
+            var resolvedDescriptor = searchDescriptor == null ? new SearchDescriptor<T>() : searchDescriptor.Invoke(new SearchDescriptor<T>());
             typeFilter = typeFilter ?? typeof(T).GetSearchTypesFor(VulcanFieldConstants.AbstractFilter);
             resolvedDescriptor = resolvedDescriptor.Type(string.Join(",", typeFilter.Select(t => t.FullName)))
                 .ConcreteTypeSelector((d, docType) => typeof(VulcanContentHit));
 
             var indexName = IndexName;
 
-            if (Language != CultureInfo.InvariantCulture && includeNeutralLanguage)
+            if (Language.Equals(CultureInfo.InvariantCulture) && includeNeutralLanguage)
             {
                 indexName += "," + VulcanHelper.GetIndexName(VulcanHandler.Index, CultureInfo.InvariantCulture);
             }
 
             resolvedDescriptor = resolvedDescriptor.Index(indexName);
             var validRootReferences = rootReferences?.Where(x => !ContentReference.IsNullOrEmpty(x)).ToList();
-            List<QueryContainer> filters = new List<QueryContainer>();
+            var filters = new List<QueryContainer>();
 
             if (validRootReferences?.Count > 0)
             {
@@ -291,7 +260,7 @@
                 resolvedDescriptor = resolvedDescriptor.Query(q => q.Bool(b => b.Must(filters.ToArray())));
             }
 
-            var response = base.Search<T, IContent>(resolvedDescriptor);
+            var response = Search<T, IContent>(resolvedDescriptor);
 
             return response;
         }
@@ -309,5 +278,32 @@
         /// <param name="content"></param>
         /// <returns></returns>
         protected virtual string GetTypeName(IContent content) => content.GetTypeName();
+
+        /// <summary>
+        /// Assigns Id, Type, and Pipeline (if available) on index request
+        /// </summary>
+        /// <param name="indexDescriptor"></param>
+        /// <returns></returns>
+        protected virtual IIndexRequest ModifyContentIndexRequest(IndexDescriptor<IContent> indexDescriptor)
+        {
+            if (!(indexDescriptor is IIndexRequest<IContent> descriptedContent)) return null;
+
+            var content = descriptedContent.Document;
+
+            indexDescriptor = indexDescriptor
+                .Id(GetId(content))
+                .Type(GetTypeName(content));
+
+#if NEST5
+                var pipeline = _VulcanPipelineSelector.GetPipelineForContent(descriptedContent.Document);
+
+                if (pipeline != null)
+                {
+                    indexDescriptor = indexDescriptor.Pipeline(pipeline.Id);
+                }            
+#endif
+
+            return indexDescriptor;
+        }
     }
 }

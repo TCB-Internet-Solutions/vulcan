@@ -9,7 +9,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     /// </summary>
     public class VulcanCmsIndexer : IVulcanContentIndexer
     {
-        private readonly ISynchronizedObjectInstanceCache _SynchronizedObjectInstanceCache;
+        private readonly ISynchronizedObjectInstanceCache _synchronizedObjectInstanceCache;
 
         /// <summary>
         /// DI Constructor
@@ -17,7 +17,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <param name="synchronizedObjectInstanceCache"></param>
         public VulcanCmsIndexer(ISynchronizedObjectInstanceCache synchronizedObjectInstanceCache)
         {
-            _SynchronizedObjectInstanceCache = synchronizedObjectInstanceCache;
+            _synchronizedObjectInstanceCache = synchronizedObjectInstanceCache;
         }
 
         /// <summary>
@@ -40,8 +40,8 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             foreach(var key in cacheKeys)
             {
-                _SynchronizedObjectInstanceCache.RemoveLocal(key);
-                _SynchronizedObjectInstanceCache.RemoveRemote(key);
+                _synchronizedObjectInstanceCache.RemoveLocal(key);
+                _synchronizedObjectInstanceCache.RemoveRemote(key);
             }
         }
 
@@ -52,14 +52,15 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         public virtual KeyValuePair<EPiServer.Core.ContentReference, string> GetRoot() =>
             new KeyValuePair<EPiServer.Core.ContentReference, string>(SiteDefinition.Current.RootPage, "CMS");
 
-        private IEnumerable<string> GetCacheKeys()
+        private static IEnumerable<string> GetCacheKeys()
         {
             var enumerator = System.Web.HttpRuntime.Cache.GetEnumerator();
-            List<string> cacheKeys = new List<string>();
+            var cacheKeys = new List<string>();
 
             while (enumerator.MoveNext())
             {
-                cacheKeys.Add(enumerator.Key.ToString());
+                var key = enumerator.Key?.ToString() ?? string.Empty;
+                cacheKeys.Add(key);
             }
 
             return cacheKeys;

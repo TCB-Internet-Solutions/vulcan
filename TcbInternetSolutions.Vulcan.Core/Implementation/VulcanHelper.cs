@@ -16,14 +16,17 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <summary>
         /// Get index name for language
         /// </summary>
-        /// <param name="IndexNameBase"></param>
+        /// <param name="indexNameBase"></param>
         /// <param name="language"></param>
         /// <returns></returns>
-        public static string GetIndexName(string IndexNameBase, CultureInfo language)
+        public static string GetIndexName(string indexNameBase, CultureInfo language)
         {
+            if (language == null)
+                throw new ArgumentNullException(nameof(language));
+
             var suffix = "_";
 
-            if (language == CultureInfo.InvariantCulture)
+            if (language.Equals(CultureInfo.InvariantCulture))
             {
                 suffix += "invariant";
             }
@@ -32,11 +35,11 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 suffix += language.Name.ToLowerInvariant(); // causing invalid index name w/o tolowerstring
             }
 
-            return IndexNameBase + suffix;
+            return indexNameBase + suffix;
         }
 
         internal static Type[] IgnoredTypes =>
-            new Type[]
+            new[]
             {
                 typeof(PropertyDataCollection),
                 typeof(ContentArea),
@@ -52,7 +55,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <returns></returns>
         public static string GetAnalyzer(CultureInfo cultureInfo)
         {
-            if (cultureInfo != CultureInfo.InvariantCulture) // check if we have non-language data
+            if (!cultureInfo.Equals(CultureInfo.InvariantCulture)) // check if we have non-language data
             {
                 if (!cultureInfo.IsNeutralCulture)
                 {
@@ -144,7 +147,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         internal static Nest.Language? GetLanguage(CultureInfo cultureInfo)
         {
-            if (cultureInfo != CultureInfo.InvariantCulture) // check if we have non-language data
+            if (!cultureInfo.Equals(CultureInfo.InvariantCulture)) // check if we have non-language data
             {
                 if (!cultureInfo.IsNeutralCulture)
                 {
@@ -158,7 +161,6 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 }
 
                 // nothing specific matched, go with generic
-
                 switch (cultureInfo.TwoLetterISOLanguageName.ToUpper())
                 {
                     case "AR":
@@ -250,12 +252,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             var store = DynamicDataStoreFactory.Instance.CreateStore(typeof(VulcanSynonym));
 
-            var synonym = store.LoadAll<VulcanSynonym>().Where(s => s.Term == term && s.Language == language).FirstOrDefault();
-
-            if (synonym == null)
-            {
-                synonym = new VulcanSynonym();
-            }
+            var synonym = store.LoadAll<VulcanSynonym>().FirstOrDefault(s => s.Term == term && s.Language == language) ?? new VulcanSynonym();
 
             synonym.Language = language;
             synonym.Term = term;
@@ -276,7 +273,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             var store = DynamicDataStoreFactory.Instance.CreateStore(typeof(VulcanSynonym));
 
-            var synonym = store.LoadAll<VulcanSynonym>().Where(s => s.Term == term && s.Language == language).FirstOrDefault();
+            var synonym = store.LoadAll<VulcanSynonym>().FirstOrDefault(s => s.Term == term && s.Language == language);
 
             if (synonym != null)
             {

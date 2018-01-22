@@ -17,8 +17,8 @@ namespace TcbInternetSolutions.Vulcan.UI.Controllers
     [Authorize(Roles = "Administrators,CmsAdmins,WebAdmins,VulcanAdmins")]
     public class HomeController : Base.BaseController
     {
-        private readonly IEnumerable<IVulcanIndexer> _VulcanIndexers;
-        private readonly IEnumerable<IVulcanIndexingModifier> _VulcanIndexModifiers;
+        private readonly IEnumerable<IVulcanIndexer> _vulcanIndexers;
+        private readonly IEnumerable<IVulcanIndexingModifier> _vulcanIndexModifiers;
 
         /// <summary>
         /// DI Constructor
@@ -33,8 +33,8 @@ namespace TcbInternetSolutions.Vulcan.UI.Controllers
             IEnumerable<IVulcanIndexingModifier> vulcanIndexModifiers
         ) : base(vulcanHandler)
         {
-            _VulcanIndexers = vulcanIndexers;
-            _VulcanIndexModifiers = vulcanIndexModifiers;
+            _vulcanIndexers = vulcanIndexers;
+            _vulcanIndexModifiers = vulcanIndexModifiers;
         }
 
         /// <summary>
@@ -45,29 +45,29 @@ namespace TcbInternetSolutions.Vulcan.UI.Controllers
         [HttpGet]
         public ActionResult Index()
         {
-            var clients = VulcanHandler.GetClients()?.OrderBy(x => x.Language.EnglishName);
+            var clients = VulcanHandler.GetClients()?.OrderBy(x => x.Language.EnglishName).ToList();
 
             var viewModel = new HomeViewModel()
             {
                 VulcanClients = clients,
                 VulcanHandler = VulcanHandler,
-                PocoIndexers = _VulcanIndexers.OfType<IVulcanPocoIndexer>(),
-                VulcanIndexModifiers = _VulcanIndexModifiers,
+                PocoIndexers = _vulcanIndexers.OfType<IVulcanPocoIndexer>(),
+                VulcanIndexModifiers = _vulcanIndexModifiers,
                 ProtectedUiPath = EPiServer.Shell.Paths.ProtectedRootPath
             };
 
             if (clients?.Any() == true)
             {
-                var healthResponse = clients.FirstOrDefault().CatIndices();
+                var healthResponse = clients[0].CatIndices();
 
                 viewModel.IndexHealthDescriptor.AddRange(healthResponse.Records.Where(r => r.Index.StartsWith(VulcanHandler.Index)));
 
                 // doc types count
-                Dictionary<string, Tuple<long, string, List<string>>> typeCounts = new Dictionary<string, Tuple<long, string, List<string>>>();
+                var typeCounts = new Dictionary<string, Tuple<long, string, List<string>>>();
 
                 foreach (var client in clients)
                 {
-                    string uiDisplayName = client.Language == CultureInfo.InvariantCulture ?
+                    var uiDisplayName = client.Language.Equals(CultureInfo.InvariantCulture) ?
                         "non-specific" :
                         $"{client.Language.EnglishName} ({client.Language.Name})";
 
@@ -75,19 +75,22 @@ namespace TcbInternetSolutions.Vulcan.UI.Controllers
                     .SearchType(SearchType.DfsQueryThenFetch). // possible 5x to 2x difference
                         Aggregations(aggs => aggs.Terms("typeCount", t => t.Field("_type")))).Aggregations["typeCount"] as Nest.BucketAggregate;
 
-                    List<string> docCounts = new List<string>();
+                    var docCounts = new List<string>();
+                    long total = 0;
 #if NEST2
-                    var total = typeCount.Items.Sum(i => (i as Nest.KeyedBucket).DocCount) ?? 0;
+                    var buckets = typeCount?.Items.OfType<Nest.KeyedBucket>() ?? new List<Nest.KeyedBucket>();
 
-                    foreach (Nest.KeyedBucket type in typeCount.Items)
+                    foreach (var type in buckets)
                     {
+                        total += type.DocCount ?? 0;
                         docCounts.Add($"{type.Key}({type.DocCount})");
                     }
 #elif NEST5
-                    var total = typeCount.Items.Sum(i => (i as Nest.KeyedBucket<object>).DocCount) ?? 0;                   
+                    var buckets = typeCount?.Items.OfType<Nest.KeyedBucket<object>>() ?? new List<Nest.KeyedBucket<object>>();
 
-                    foreach (Nest.KeyedBucket<object> type in typeCount.Items)
+                    foreach (var type in buckets)
                     {
+                        total += type.DocCount ?? 0;
                         docCounts.Add($"{type.Key}({type.DocCount})");
                     }
 #endif

@@ -1,5 +1,6 @@
 ﻿namespace TcbInternetSolutions.Vulcan.Core.SearchProviders
 {
+    using Core.Extensions;
     using EPiServer;
     using EPiServer.Core;
     using EPiServer.Core.Html;
@@ -21,7 +22,6 @@
     using System.Globalization;
     using System.Linq;
     using System.Web;
-    using TcbInternetSolutions.Vulcan.Core.Extensions;
 
     /// <summary>
     /// Base class for UI search providers
@@ -38,32 +38,32 @@
         /// <summary>
         /// Content repository
         /// </summary>
-        protected IContentRepository _ContentRepository;
+        protected IContentRepository ContentRepository;
 
         /// <summary>
         /// Content type repository
         /// </summary>
-        protected IContentTypeRepository _ContentTypeRepository;
+        protected IContentTypeRepository ContentTypeRepository;
 
         /// <summary>
         /// Site definition resolver
         /// </summary>
-        protected ISiteDefinitionResolver _SiteDefinitionResolver;
+        protected ISiteDefinitionResolver SiteDefinitionResolver;
 
         /// <summary>
         /// Localization service
         /// </summary>
-        protected LocalizationService _LocalizationService;
+        protected LocalizationService LocalizationService;
 
         /// <summary>
         /// UI descriptor registry
         /// </summary>
-        protected UIDescriptorRegistry _UIDescriptorRegistry;
+        protected UIDescriptorRegistry UiDescriptorRegistry;
 
         /// <summary>
         /// Vulcan handler
         /// </summary>
-        protected IVulcanHandler _VulcanHandler;
+        protected IVulcanHandler VulcanHandler;
 
         /// <summary>
         /// Constructor
@@ -74,23 +74,20 @@
         /// <param name="localizationService"></param>
         /// <param name="uiDescriptorRegistry"></param>
         /// <param name="enterpriseSettings"></param>
-        public VulcanSearchProviderBase(IVulcanHandler vulcanHandler, IContentRepository contentRepository, IContentTypeRepository contentTypeRepository, LocalizationService localizationService, UIDescriptorRegistry uiDescriptorRegistry, ISiteDefinitionResolver enterpriseSettings)
+        protected VulcanSearchProviderBase(IVulcanHandler vulcanHandler, IContentRepository contentRepository, IContentTypeRepository contentTypeRepository, LocalizationService localizationService, UIDescriptorRegistry uiDescriptorRegistry, ISiteDefinitionResolver enterpriseSettings)
         {
-            _VulcanHandler = vulcanHandler;
-            _ContentRepository = contentRepository;
-            _ContentTypeRepository = contentTypeRepository;
-            _LocalizationService = localizationService;
-            _UIDescriptorRegistry = uiDescriptorRegistry;
-            _SiteDefinitionResolver = enterpriseSettings;
+            VulcanHandler = vulcanHandler;
+            ContentRepository = contentRepository;
+            ContentTypeRepository = contentTypeRepository;
+            LocalizationService = localizationService;
+            UiDescriptorRegistry = uiDescriptorRegistry;
+            SiteDefinitionResolver = enterpriseSettings;
 
             EditPath = (contentData, contentLink, languageName) =>
             {
-                var uri = SearchProviderExtensions.GetUri(contentData);
+                var uri = contentData.GetUri();
 
-                if (!string.IsNullOrWhiteSpace(languageName))
-                    return string.Format("{0}#language={1}", uri, languageName);
-
-                return uri;
+                return !string.IsNullOrWhiteSpace(languageName) ? $"{uri}#language={languageName}" : uri;
             };
         }
 
@@ -137,16 +134,15 @@
             if (query.SearchRoots?.Any() == true)
             {
                 searchRoots = new List<ContentReference>();
-                ContentReference c = null;
 
                 foreach (var item in query.SearchRoots)
                 {
-                    if (ContentReference.TryParse(item, out c))
+                    if (ContentReference.TryParse(item, out var c))
                         searchRoots.Add(c);
                 }
             }
 
-            List<Type> typeRestriction = typeof(TContent).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
+            var typeRestriction = typeof(TContent).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
 
             // Special condition for BlockData since it doesn't derive from BlockData
             if (typeof(TContent) == typeof(VulcanContentHit))
@@ -156,40 +152,39 @@
 
             var hits = new List<ISearchResponse<IContent>>();
 
-            var clients = _VulcanHandler.GetClients();
+            var clients = VulcanHandler.GetClients();
 
             if (clients != null)
             {
                 foreach (var client in clients)
                 {
-                    if (client.Language != CultureInfo.InvariantCulture || IncludeInvariant)
-                    {
-                        var clientHits = client.SearchContent<IContent>(d => d
-                                .Take(query.MaxResults)
-                                .FielddataFields(fs => fs.Field(p => p.ContentLink)) // only return id for performance
-                                .Query(x =>
-                                    x.SimpleQueryString(sqs =>
-                                        sqs.Fields(f => f
-                                                    .AllAnalyzed()
-                                                    .Field($"{VulcanFieldConstants.MediaContents}.content")
-                                                    .Field($"{VulcanFieldConstants.MediaContents}.content_type"))
-                                                .Query(searchText))
-                                ),
-                                includeNeutralLanguage: client.Language == CultureInfo.InvariantCulture,
-                                rootReferences: searchRoots,
-                                typeFilter: typeRestriction,
-                                principleReadFilter: UserExtensions.GetUser()
-                        );
+                    if (client.Language.Equals(CultureInfo.InvariantCulture) && !IncludeInvariant) continue;
 
-                        if (clientHits != null && clientHits.Total > 0)
-                        {
-                            hits.Add(clientHits);
-                        }
+                    var clientHits = client.SearchContent<IContent>(d => d
+                            .Take(query.MaxResults)
+                            .FielddataFields(fs => fs.Field(p => p.ContentLink)) // only return id for performance
+                            .Query(x =>
+                                x.SimpleQueryString(sqs =>
+                                    sqs.Fields(f => f
+                                            .AllAnalyzed()
+                                            .Field($"{VulcanFieldConstants.MediaContents}.content")
+                                            .Field($"{VulcanFieldConstants.MediaContents}.content_type"))
+                                        .Query(searchText))
+                            ),
+                        typeFilter: typeRestriction,
+                        includeNeutralLanguage: client.Language.Equals(CultureInfo.InvariantCulture),
+                        rootReferences: searchRoots,
+                        principleReadFilter: UserExtensions.GetUser()
+                    );
+
+                    if (clientHits?.Total > 0)
+                    {
+                        hits.Add(clientHits);
                     }
                 }
             }
 
-            var results = hits.SelectMany(h => h.Hits.Select(x => CreateSearchResult(x)));
+            var results = hits.SelectMany(h => h.Hits.Select(CreateSearchResult));
 
             return results;
         }
@@ -200,7 +195,7 @@
         /// <param name="content">The page to extract the preview from.</param>
         protected virtual string CreatePreviewText(IContentData content)
         {
-            string str = string.Empty;
+            var str = string.Empty;
 
             if (content == null)
                 return str;
@@ -229,28 +224,32 @@
             if (ContentReference.IsNullOrEmpty(reference))
                 throw new Exception("Unable to convert search hit to IContent!");
 
-            var content = _ContentRepository.Get<IContent>(reference);
-            ILocalizable localizable = content as ILocalizable;
-            IChangeTrackable changeTracking = content as IChangeTrackable;
-
-            bool onCurrentHost;
-            SearchResult result = new SearchResult
+            var content = ContentRepository.Get<IContent>(reference);
+            var localizable = content as ILocalizable;
+            var changeTracking = content as IChangeTrackable;
+            var result = new SearchResult
             (
-                GetEditUrl(content, out onCurrentHost),
+                GetEditUrl(content, out var onCurrentHost),
                 HttpUtility.HtmlEncode(content.Name),
                 CreatePreviewText(content)
-            );
+            )
+            {
+                Language = localizable?.Language?.NativeName ?? string.Empty,
+                IconCssClass = IconCssClass(content),
+                Metadata =
+                {
+                    ["Id"] = content.ContentLink.ToString(),
+                    ["LanguageBranch"] = localizable?.Language?.Name,
+                    ["ParentId"] = content.ParentLink.ToString(),
+                    ["TypeIdentifier"] = content.GetTypeIdentifier(UiDescriptorRegistry)
+                }
+            };
 
-            result.IconCssClass = IconCssClass(content);
-            result.Metadata["Id"] = content.ContentLink.ToString();
-            result.Metadata["LanguageBranch"] = localizable == null || localizable.Language == null ? string.Empty : localizable.Language.Name;
-            result.Metadata["ParentId"] = content.ParentLink.ToString();
+            // hack: cannot initalize as its crashing VS
             result.Metadata["IsOnCurrentHost"] = onCurrentHost ? "true" : "false";
-            result.Metadata["TypeIdentifier"] = SearchProviderExtensions.GetTypeIdentifier(content, _UIDescriptorRegistry);
-            ContentType contentType = _ContentTypeRepository.Load(content.ContentTypeID);
 
+            var contentType = ContentTypeRepository.Load(content.ContentTypeID);
             CreateToolTip(content, changeTracking, result, contentType);
-            result.Language = localizable == null || localizable.Language == null ? string.Empty : localizable.Language.NativeName;
 
             return result;
         }
@@ -264,12 +263,11 @@
         /// </returns>
         protected virtual string GetEditUrl(IContent contentData, out bool onCurrentHost)
         {
-            ContentReference contentLink = contentData.ContentLink;
-            ILocalizable localizable = contentData as ILocalizable;
-            string language = localizable != null ? localizable.Language.Name : ContentLanguage.PreferredCulture.Name;
-            string editUrl = EditPath(contentData, contentLink, language);
+            var contentLink = contentData.ContentLink;
+            var language = contentData is ILocalizable localizable ? localizable.Language.Name : ContentLanguage.PreferredCulture.Name;
+            var editUrl = EditPath(contentData, contentLink, language);
             onCurrentHost = true;
-            SiteDefinition definitionForContent = _SiteDefinitionResolver.GetByContent(contentData.ContentLink, true, true);
+            var definitionForContent = SiteDefinitionResolver.GetByContent(contentData.ContentLink, true, true);
 
             if (definitionForContent?.SiteUrl != SiteDefinition.Current.SiteUrl)
                 onCurrentHost = false;
@@ -289,7 +287,7 @@
         /// </returns>
         protected virtual string GetPreviewTextFromFirstLongString(IContentData content)
         {
-            foreach (PropertyData propertyData in content.Property)
+            foreach (var propertyData in content.Property)
             {
                 if (propertyData is PropertyLongString && !(propertyData is PropertyLinkCollection) && !string.IsNullOrEmpty(propertyData.Value as string))
                     return propertyData.ToWebString();
@@ -308,29 +306,29 @@
             if (string.IsNullOrEmpty(ToolTipResourceKeyBase))
                 return;
 
-            result.ToolTipElements.Add(new ToolTipElement(_LocalizationService.GetString(string.Format(CultureInfo.InvariantCulture, "{0}/id", new object[1]
+            result.ToolTipElements.Add(new ToolTipElement(LocalizationService.GetString(string.Format(CultureInfo.InvariantCulture, "{0}/id", new object[]
             {
                 ToolTipResourceKeyBase
             })), content.ContentLink.ToString()));
 
             if (changeTracking != null)
             {
-                result.ToolTipElements.Add(new ToolTipElement(_LocalizationService.GetString(string.Format(CultureInfo.InvariantCulture, "{0}/changed", new object[1]
+                result.ToolTipElements.Add(new ToolTipElement(LocalizationService.GetString(string.Format(CultureInfo.InvariantCulture, "{0}/changed", new object[]
                 {
                     ToolTipResourceKeyBase
-                })), changeTracking.Changed.ToString()));
+                })), changeTracking.Changed.ToString(CultureInfo.CurrentUICulture)));
 
-                result.ToolTipElements.Add(new ToolTipElement(_LocalizationService.GetString(string.Format(CultureInfo.InvariantCulture, "{0}/created", new object[1]
+                result.ToolTipElements.Add(new ToolTipElement(LocalizationService.GetString(string.Format(CultureInfo.InvariantCulture, "{0}/created", new object[]
                 {
                     ToolTipResourceKeyBase
-                })), changeTracking.Created.ToString()));
+                })), changeTracking.Created.ToString(CultureInfo.CurrentUICulture)));
             }
 
             if (string.IsNullOrEmpty(ToolTipContentTypeNameResourceKey))
                 return;
 
             result.ToolTipElements.Add
-                (new ToolTipElement(_LocalizationService.GetString(string.Format(CultureInfo.InvariantCulture, "{0}/{1}", new object[2]
+                (new ToolTipElement(LocalizationService.GetString(string.Format(CultureInfo.InvariantCulture, "{0}/{1}", new object[]
             {
                 ToolTipResourceKeyBase,
                 ToolTipContentTypeNameResourceKey

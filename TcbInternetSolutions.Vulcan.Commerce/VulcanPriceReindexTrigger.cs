@@ -1,15 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using EPiServer;
+﻿using EPiServer;
+using EPiServer.Commerce.Catalog.ContentTypes;
+using EPiServer.Commerce.Extensions;
 using EPiServer.Core;
 using EPiServer.Framework;
 using EPiServer.Framework.Initialization;
-using EPiServer.ServiceLocation;
 using Mediachase.Commerce.Catalog;
 using Mediachase.Commerce.Engine.Events;
+using System.Collections.Generic;
+using System.Linq;
 using TcbInternetSolutions.Vulcan.Core;
-using EPiServer.Commerce.Catalog.ContentTypes;
 
 namespace TcbInternetSolutions.Vulcan.Commerce
 {
@@ -17,14 +16,18 @@ namespace TcbInternetSolutions.Vulcan.Commerce
     [ModuleDependency(typeof(EPiServer.Web.InitializationModule))]
     public class VulcanPriceReindexTrigger : IInitializableModule
     {
-        public Injected<IVulcanHandler> VulcanHandler { get; set; }
+        private IVulcanHandler _vulcanHandler;
+        private ReferenceConverter _referenceConverter;
+        private IContentLoader _contentLoader;
 
         public void Initialize(InitializationEngine context)
         {
             var broadcaster = context.Locate.Advanced.GetInstance<CatalogKeyEventBroadcaster>();
+            _contentLoader = context.Locate.ContentLoader();
+            _referenceConverter = context.Locate.ReferenceConverter();
+            _vulcanHandler = context.Locate.Advanced.GetInstance<IVulcanHandler>();
 
             broadcaster.InventoryUpdated += Broadcaster_InventoryUpdated;
-
             broadcaster.PriceUpdated += Broadcaster_PriceUpdated;
         }
 
@@ -40,30 +43,26 @@ namespace TcbInternetSolutions.Vulcan.Commerce
 
         private void ReindexVariations(IEnumerable<string> variantCodes)
         {
-            var clients = VulcanHandler.Service.GetClients();
+            var clients = _vulcanHandler.GetClients();
+            if (clients?.Any() != true) return;
 
-            if (clients != null && clients.Any())
+            foreach (var client in clients)
             {
-                foreach (var client in clients)
+                foreach (var variantCode in variantCodes)
                 {
-                    foreach (var variantCode in variantCodes)
+                    var variantLink = _referenceConverter.GetContentLink(variantCode);
+
+                    if (ContentReference.IsNullOrEmpty(variantLink)) continue;
+
+                    var variant = _contentLoader.Get<IContent>(variantLink, client.Language);
+
+                    if (variant == null) continue;
+
+                    var existing = client.SearchContent<VariationContent>(s => s.Query(q => q.Term(v => v.Code, variantCode)));
+
+                    if (existing.Total > 0)
                     {
-                        var variantLink = ServiceLocator.Current.GetInstance<ReferenceConverter>().GetContentLink(variantCode);
-
-                        if (!ContentReference.IsNullOrEmpty(variantLink))
-                        {
-                            var variant = ServiceLocator.Current.GetInstance<IContentLoader>().Get<IContent>(variantLink, client.Language);
-
-                            if (variant != null)
-                            {
-                                var existing = client.SearchContent<VariationContent>(s => s.Query(q => q.Term(v => v.Code, variantCode)));
-
-                                if (existing.Total > 0)
-                                {
-                                    client.IndexContent(variant);
-                                }
-                            }
-                        }
+                        client.IndexContent(variant);
                     }
                 }
             }
@@ -74,7 +73,6 @@ namespace TcbInternetSolutions.Vulcan.Commerce
             var broadcaster = context.Locate.Advanced.GetInstance<CatalogKeyEventBroadcaster>();
 
             broadcaster.InventoryUpdated -= Broadcaster_InventoryUpdated;
-
             broadcaster.PriceUpdated -= Broadcaster_PriceUpdated;
         }
     }

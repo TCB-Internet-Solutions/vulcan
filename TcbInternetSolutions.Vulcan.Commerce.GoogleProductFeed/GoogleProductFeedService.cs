@@ -1,22 +1,16 @@
-﻿using EPiServer.ServiceLocation;
+﻿using EPiServer.Commerce.Catalog.ContentTypes;
+using EPiServer.ServiceLocation;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using EPiServer.Commerce.Catalog.ContentTypes;
-using TcbInternetSolutions.Vulcan.Core;
-using TcbInternetSolutions.Vulcan.Core.Extensions;
-using Mediachase.Commerce.Catalog;
-using System.Web.Routing;
 using System.Web.Mvc;
+using System.Web.Routing;
 
 namespace TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed
 {
     [ServiceConfiguration(ServiceType = typeof(IGoogleProductFeedService), Lifecycle = ServiceInstanceScope.Singleton)]
     public class GoogleProductFeedService : IGoogleProductFeedService
     {
-        private Dictionary<Type, IGoogleProductFeed> Feeds { get; set; } = new Dictionary<Type, IGoogleProductFeed>();
+        private Dictionary<Type, IGoogleProductFeed> Feeds { get; } = new Dictionary<Type, IGoogleProductFeed>();
 
         public IGoogleProductFeed<T> CreateFeed<T>(string urlSegment) where T : VariationContent
         {
@@ -36,10 +30,8 @@ namespace TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed
                 {
                     throw new ArgumentException("That feed was already added for type " + typeof(TVariationContent).FullName + " with a different url segment");
                 }
-                else
-                {
-                    return Feeds[typeof(TVariationContent)] as IGoogleProductFeed<TVariationContent>;
-                }
+
+                return Feeds[typeof(TVariationContent)] as IGoogleProductFeed<TVariationContent>;
             }
 
             var url = urlSegment;

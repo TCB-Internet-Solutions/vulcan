@@ -1,6 +1,5 @@
 ﻿using Nest;
 using Newtonsoft.Json;
-using System;
 
 namespace TcbInternetSolutions.Vulcan.Core
 {

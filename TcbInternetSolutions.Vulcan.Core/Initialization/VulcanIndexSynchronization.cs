@@ -1,11 +1,13 @@
-﻿using EPiServer;
+﻿using System.Collections.Generic;
+using System.Linq;
+using EPiServer;
 using EPiServer.Core;
 using EPiServer.Framework;
 using EPiServer.Framework.Initialization;
 using EPiServer.Web;
-using System.Linq;
+using TcbInternetSolutions.Vulcan.Core.Extensions;
 
-namespace TcbInternetSolutions.Vulcan.Core.Implementation
+namespace TcbInternetSolutions.Vulcan.Core.Initialization
 {
     /// <summary>
     /// Setup events for content syncs to search
@@ -13,9 +15,9 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     [InitializableModule]
     public class VulcanIndexSynchronization : IInitializableModule
     {
-        IContentEvents _ContentEvents;
-        IContentRepository _ContentRepository;
-        IVulcanHandler _VulcanHandler;
+        private IContentEvents _contentEvents;
+        private IContentRepository _contentRepository;
+        private IVulcanHandler _vulcanHandler;
 
         /// <summary>
         /// Assigns private variables, and wires up content events
@@ -23,16 +25,16 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <param name="context"></param>
         public void Initialize(InitializationEngine context)
         {
-            _ContentEvents = context.Locate.ContentEvents();
-            _ContentRepository = context.Locate.ContentRepository();
-            _VulcanHandler = context.Locate.Advanced.GetInstance<IVulcanHandler>();
+            _contentEvents = context.Locate.ContentEvents();
+            _contentRepository = context.Locate.ContentRepository();
+            _vulcanHandler = context.Locate.Advanced.GetInstance<IVulcanHandler>();
 
             // TODO: Add content events to work with content area attribute to sync block changes that are searchable.
 
-            _ContentEvents.PublishedContent += Service_PublishedContent;
-            _ContentEvents.MovedContent += Service_MovedContent;
-            _ContentEvents.DeletedContent += Service_DeletedContent;
-            _ContentEvents.DeletedContentLanguage += Service_DeletedContentLanguage;
+            _contentEvents.PublishedContent += Service_PublishedContent;
+            _contentEvents.MovedContent += Service_MovedContent;
+            _contentEvents.DeletedContent += Service_DeletedContent;
+            _contentEvents.DeletedContentLanguage += Service_DeletedContentLanguage;
         }
 
         /// <summary>
@@ -41,47 +43,86 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <param name="context"></param>
         public void Uninitialize(InitializationEngine context)
         {
-            _ContentEvents.PublishedContent -= Service_PublishedContent;
-            _ContentEvents.MovedContent -= Service_MovedContent;
-            _ContentEvents.DeletedContent -= Service_DeletedContent;
-            _ContentEvents.DeletedContentLanguage -= Service_DeletedContentLanguage;
+            _contentEvents.PublishedContent -= Service_PublishedContent;
+            _contentEvents.MovedContent -= Service_MovedContent;
+            _contentEvents.DeletedContent -= Service_DeletedContent;
+            _contentEvents.DeletedContentLanguage -= Service_DeletedContentLanguage;
         }
 
-        void Service_DeletedContent(object sender, EPiServer.DeleteContentEventArgs e)
+        private void AddContentToIndex(IEnumerable<IContent> contents)
         {
-            _VulcanHandler.DeleteContentEveryLanguage(e.ContentLink);
+            foreach (var content in contents)
+            {
+                // Add the content to the index
+                _vulcanHandler.IndexContentEveryLanguage(content.ContentLink);
+
+                // Recursively search for nested children and add them too.
+                var descendants = _contentRepository.GetChildren<IContent>(content.ContentLink)?.ToList();
+
+                if (descendants?.Any() == true)
+                {
+                    AddContentToIndex(descendants);
+                }
+            }
         }
 
-        void Service_DeletedContentLanguage(object sender, EPiServer.ContentEventArgs e)
+        private void RemoveContentFromIndex(IEnumerable<IContent> contents)
         {
-            _VulcanHandler.DeleteContentByLanguage(e.Content);
+            foreach (var content in contents)
+            {
+                // Remove the content from the index
+                _vulcanHandler.DeleteContentEveryLanguage(content.ContentLink, content.GetTypeName());
+
+                // Recursively search for nested children and remove them too.
+                var descendants = _contentRepository.GetChildren<IContent>(content.ContentLink)?.ToList();
+
+                if (descendants?.Any() == true)
+                {
+                    RemoveContentFromIndex(descendants);
+                }
+            }
         }
 
-        void Service_MovedContent(object sender, EPiServer.ContentEventArgs e)
+        private void Service_DeletedContent(object sender, DeleteContentEventArgs e)
         {
+            _vulcanHandler.DeleteContentEveryLanguage(e.ContentLink, e.Content.GetTypeName());
+        }
+
+        private void Service_DeletedContentLanguage(object sender, ContentEventArgs e)
+        {
+            _vulcanHandler.DeleteContentByLanguage(e.Content);
+        }
+
+        private void Service_MovedContent(object sender, ContentEventArgs e)
+        {
+            var descendants = _contentRepository.GetChildren<IContent>(e.ContentLink);
+
             if (e.TargetLink.CompareToIgnoreWorkID(SiteDefinition.Current.WasteBasket))
             {
-                _VulcanHandler.DeleteContentEveryLanguage(e.ContentLink);
+                _vulcanHandler.DeleteContentEveryLanguage(e.ContentLink, e.Content.GetTypeName());
+
+                RemoveContentFromIndex(descendants);
             }
             else
             {
-                _VulcanHandler.IndexContentEveryLanguage(e.Content);
+                _vulcanHandler.IndexContentEveryLanguage(e.Content);
+
+                AddContentToIndex(descendants);
             }
         }
 
-        void Service_PublishedContent(object sender, EPiServer.ContentEventArgs e)
+        private void Service_PublishedContent(object sender, ContentEventArgs e)
         {
             // Update the index for the currently published content
-            _VulcanHandler.IndexContentByLanguage(e.Content);
+            _vulcanHandler.IndexContentByLanguage(e.Content);
 
             // See if there are references to the content and if so, update the index for them as well
-            var references = _ContentRepository.GetReferencesToContent(e.ContentLink, false);
+            var references = _contentRepository.GetReferencesToContent(e.ContentLink, false);
 
             foreach (var r in references.Where(x => !x.OwnerID.CompareToIgnoreWorkID(e.ContentLink)))
             {
-                _VulcanHandler.IndexContentByLanguage(_ContentRepository.Get<IContent>(r.OwnerID));
+                _vulcanHandler.IndexContentByLanguage(_contentRepository.Get<IContent>(r.OwnerID));
             }
-
         }
     }
 }

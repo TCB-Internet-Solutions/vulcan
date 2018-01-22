@@ -9,13 +9,13 @@ namespace TcbInternetSolutions.Vulcan.Commerce.Extensions
     public static class PriceExtensions
     {
         public static decimal GetPrice(this IContent contentHit, string marketId = null, string currencyCode = null) =>
-            contentHit is VulcanContentHit ? GetPrice((contentHit as VulcanContentHit).__prices, marketId, currencyCode) : 0;
+            contentHit is VulcanContentHit ? GetPrice(((VulcanContentHit) contentHit).__prices, marketId, currencyCode) : 0;
 
         public static decimal GetPriceLow(this IContent contentHit, string marketId = null, string currencyCode = null) =>
-            contentHit is VulcanContentHit ? GetPrice((contentHit as VulcanContentHit).__pricesLow, marketId, currencyCode) : 0;
+            contentHit is VulcanContentHit ? GetPrice(((VulcanContentHit) contentHit).__pricesLow, marketId, currencyCode) : 0;
 
         public static decimal GetPriceHigh(this IContent contentHit, string marketId = null, string currencyCode = null) =>
-            contentHit is VulcanContentHit ? GetPrice((contentHit as VulcanContentHit).__pricesHigh, marketId, currencyCode) : 0;
+            contentHit is VulcanContentHit ? GetPrice(((VulcanContentHit) contentHit).__pricesHigh, marketId, currencyCode) : 0;
 
         private static decimal GetPrice(Dictionary<string, decimal> priceDictionary, string marketId, string currencyCode)
         {
@@ -28,10 +28,8 @@ namespace TcbInternetSolutions.Vulcan.Commerce.Extensions
             {
                 return priceDictionary[key];
             }
-            else
-            {
-                return 0;
-            }
+
+            return 0;
         }
     }
 }

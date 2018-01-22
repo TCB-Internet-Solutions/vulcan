@@ -10,7 +10,7 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer.Implementation
     [ServiceConfiguration(typeof(IVulcanPipeline), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanAttachmentPipeline : IVulcanPipeline
     {
-        private readonly IVulcanAttachmentInspector _VulcanAttachmentInspector ;        
+        private readonly IVulcanAttachmentInspector _vulcanAttachmentInspector ;        
 
         /// <summary>
         /// DI Constructor
@@ -18,7 +18,7 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer.Implementation
         /// <param name="vulcanAttachmentInspector"></param>
         public VulcanAttachmentPipeline(IVulcanAttachmentInspector vulcanAttachmentInspector)
         {
-            _VulcanAttachmentInspector = vulcanAttachmentInspector;            
+            _vulcanAttachmentInspector = vulcanAttachmentInspector;            
         }
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer.Implementation
         {
             if (content is MediaData mediaContent)
             {
-                return _VulcanAttachmentInspector.AllowIndexing(mediaContent);
+                return _vulcanAttachmentInspector.AllowIndexing(mediaContent);
             }
 
             return false;

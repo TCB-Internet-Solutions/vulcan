@@ -44,7 +44,8 @@ namespace TcbInternetSolutions.Vulcan.Core
         /// Delete content
         /// </summary>
         /// <param name="contentLink"></param>
-        void DeleteContent(ContentReference contentLink);
+        /// <param name="typeName"></param>
+        void DeleteContent(ContentReference contentLink, string typeName);
 
         /// <summary>
         /// Index name

@@ -1,10 +1,5 @@
 ﻿using EPiServer.Commerce.Catalog.ContentTypes;
-using EPiServer.Core;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed
 {

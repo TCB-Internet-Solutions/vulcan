@@ -18,8 +18,8 @@ namespace TcbInternetSolutions.Vulcan.Commerce
     [ServiceConfiguration(typeof(IVulcanContentAncestorLoader), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanCommerceContentAncestorLoader : IVulcanContentAncestorLoader
     {
-        private readonly IContentLoader _ContentLoader;
-        private readonly IRelationRepository _RelationRepository;
+        private readonly IContentLoader _contentLoader;
+        private readonly IRelationRepository _relationRepository;
 
         /// <summary>
         /// DI Constructor
@@ -28,8 +28,8 @@ namespace TcbInternetSolutions.Vulcan.Commerce
         /// <param name="relationRepository"></param>
         public VulcanCommerceContentAncestorLoader(IContentLoader contentLoader,IRelationRepository relationRepository)
         {
-            _ContentLoader = contentLoader;
-            _RelationRepository = relationRepository;
+            _contentLoader = contentLoader;
+            _relationRepository = relationRepository;
         }
 
         public IEnumerable<ContentReference> GetAncestors(IContent content)
@@ -39,7 +39,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
             if (content is VariationContent)
             {
                 //var productAncestors = _RelationRepository.GetParents<Relation>(content.ContentLink);
-                var productAncestors = _RelationRepository.GetRelationsByTarget(content.ContentLink)?.OfType<ProductVariation>();
+                var productAncestors = _relationRepository.GetRelationsByTarget(content.ContentLink)?.OfType<ProductVariation>().ToList();
 
                 if (productAncestors?.Any() == true)
                 {
@@ -58,11 +58,11 @@ namespace TcbInternetSolutions.Vulcan.Commerce
         private IEnumerable<ContentReference> GetAncestorCategoriesIterative(ContentReference contentLink, bool checkCategoryParent)
         {
             var ancestors = new List<ContentReference>();
-            IEnumerable<Relation> categories = null;
+            IEnumerable<Relation> categories;
 
             try
             {
-                categories = _RelationRepository.GetRelationsBySource<NodeRelation>(contentLink);
+                categories = _relationRepository.GetRelationsBySource<NodeRelation>(contentLink)?.ToList();
             }
             catch (Exception)
             {
@@ -79,7 +79,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
             if (checkCategoryParent)
             {
                 // there may be no categories related, but we still have a parent
-                if (_ContentLoader.Get<IContent>(contentLink) is NodeContent thisCat && !ancestors.Contains(thisCat.ParentLink))
+                if (_contentLoader.Get<IContent>(contentLink) is NodeContent thisCat && !ancestors.Contains(thisCat.ParentLink))
                 {
                     ancestors.Add(thisCat.ParentLink);
 

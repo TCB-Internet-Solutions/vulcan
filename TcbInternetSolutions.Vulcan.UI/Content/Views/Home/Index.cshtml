@@ -1,5 +1,4 @@
 ﻿@using System.Web.Mvc.Html
-@using EPiServer.Shell
 
 @model TcbInternetSolutions.Vulcan.UI.Models.ViewModels.HomeViewModel
 
@@ -96,7 +95,7 @@
                             <span>Term </span>@Html.TextBox("AddTerm-" + client.Language.Name)
                         </div>
                         <div style="width:33%;float:left;">
-                            <span>Synonyms </span>@Html.TextBox("Synonyms-" + client.Language.Name)
+                            <span>Synonyms </span>@Html.TextBox("synonyms-" + client.Language.Name)
                         </div>
                         <div style="width:33%;float:left;">
                             <span>Bi-Directional? </span><input type="checkbox" id="BiDirectional-@client.Language.Name" name="BiDirectional-@client.Language.Name" />

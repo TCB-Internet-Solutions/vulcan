@@ -12,7 +12,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <summary>
         /// Func to determine indexing
         /// </summary>
-        public Func<T, bool> Condition { get; private set; }
+        public Func<T, bool> Condition { get; }
 
         /// <summary>
         /// Constructor
