@@ -47,7 +47,7 @@ namespace TcbInternetSolutions.Vulcan.UI.Controllers
         {
             var clients = VulcanHandler.GetClients()?.OrderBy(x => x.Language.EnglishName).ToList();
 
-            var viewModel = new HomeViewModel()
+            var viewModel = new HomeViewModel
             {
                 VulcanClients = clients,
                 VulcanHandler = VulcanHandler,
@@ -56,6 +56,7 @@ namespace TcbInternetSolutions.Vulcan.UI.Controllers
                 ProtectedUiPath = EPiServer.Shell.Paths.ProtectedRootPath
             };
 
+            // ReSharper disable once InvertIf
             if (clients?.Any() == true)
             {
                 var healthResponse = clients[0].CatIndices();
@@ -71,9 +72,20 @@ namespace TcbInternetSolutions.Vulcan.UI.Controllers
                         "non-specific" :
                         $"{client.Language.EnglishName} ({client.Language.Name})";
 
-                    var typeCount = client.Search<object>(m => m.AllTypes()
-                    .SearchType(SearchType.DfsQueryThenFetch). // possible 5x to 2x difference
-                        Aggregations(aggs => aggs.Terms("typeCount", t => t.Field("_type")))).Aggregations["typeCount"] as Nest.BucketAggregate;
+                    //search can error in some situations
+                    Nest.BucketAggregate typeCount;
+
+                    try
+                    {
+                        typeCount = client.Search<object>(m => m.AllTypes()
+                                .SearchType(SearchType.DfsQueryThenFetch). // possible 5x to 2x difference
+                                Aggregations(aggs => aggs.Terms("typeCount", t => t.Field("_type"))))
+                            .Aggregations["typeCount"] as Nest.BucketAggregate;
+                    }
+                    catch
+                    {
+                        typeCount = null;
+                    }                    
 
                     var docCounts = new List<string>();
                     long total = 0;

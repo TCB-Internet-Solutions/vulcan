@@ -36,16 +36,14 @@
         public static IEnumerable<IVulcanCustomizer> Customizers => ServiceLocator.Current.GetAllInstances<IVulcanCustomizer>();
 
         /// <summary>
-        /// Allows for customizations on analyzers and mappings.
+        /// Allows for customizations on analyzers.
         /// </summary>
         /// <param name="client"></param>
         /// <param name="logger"></param>
         public static void RunCustomizers(this IVulcanClient client, ILogger logger)
         {
-            var customizers = Customizers;
-
             // run index updaters first, incase they are creating analyzers the mapping need
-            foreach (var customizer in customizers)
+            foreach (var customizer in Customizers)
             {
                 try
                 {
@@ -53,14 +51,23 @@
 
                     if (updateResponse?.IsValid == false)
                     {
-                        logger.Error("Could not update index " + client.IndexName + ": " + updateResponse.DebugInformation);
+                        logger.Error($"Could not update index {client.IndexName}: {updateResponse.DebugInformation}");
                     }
                 }
                 catch (NotImplementedException) { }
             }
 
-            // then run the mappings
-            foreach (var customizer in customizers)
+        }
+
+        /// <summary>
+        /// Allows customization on mappings
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="logger"></param>
+        public static void RunCustomMappers(this IVulcanClient client, ILogger logger)
+        {
+            // run the mappings
+            foreach (var customizer in Customizers)
             {
                 try
                 {
@@ -68,7 +75,7 @@
 
                     if (mappingResponse?.IsValid == false)
                     {
-                        logger.Error("Could not add mapping for index " + client.IndexName + ": " + mappingResponse.DebugInformation);
+                        logger.Error($"Could not add mapping for index {client.IndexName}: {mappingResponse.DebugInformation}");
                     }
                 }
                 catch (NotImplementedException) { }
@@ -91,7 +98,7 @@
 
                     if (updateIndexTemplate?.IsValid == false)
                     {
-                        logger.Error("Could not update index template " + client.IndexName + ": " + updateIndexTemplate.DebugInformation);
+                        logger.Error($"Could not update index template {client.IndexName}: {updateIndexTemplate.DebugInformation}");
                     }
                 }
                 catch (NotImplementedException) { }
@@ -128,9 +135,10 @@
             var localizable = content as ILocalizable;
             var searchDescriptionCheck = contentHit.Fields.FirstOrDefault(x => x.Key == SearchDescriptionField);
             var storedDescription = (searchDescriptionCheck.Value as JArray)?.FirstOrDefault()?.ToString();
+            // ReSharper disable once SuspiciousTypeConversion.Global
             var description = storedDescription ?? (content as IVulcanSearchHitDescription)?.VulcanSearchDescription ?? string.Empty;
 
-            var result = new VulcanSearchHit()
+            var result = new VulcanSearchHit
             {
                 Id = content.ContentLink,
                 Title = content.Name,
@@ -206,8 +214,8 @@
         {
             if (includeTypes == null)
             {
-                var pageTypes = typeof(PageData).GetSearchTypesFor((x => x.IsClass && !x.IsAbstract));
-                var mediaTypes = typeof(MediaData).GetSearchTypesFor((x => x.IsClass && !x.IsAbstract));
+                var pageTypes = typeof(PageData).GetSearchTypesFor(x => x.IsClass && !x.IsAbstract);
+                var mediaTypes = typeof(MediaData).GetSearchTypesFor(x => x.IsClass && !x.IsAbstract);
 
                 includeTypes = pageTypes.Union(mediaTypes);
             }

@@ -92,40 +92,45 @@ namespace TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed
                 {
                     var product = hit.Value as T;
 
-                    if (!entries.ContainsKey(product.Code))
+                    if (entries.ContainsKey(product.Code)) continue;
+
+                    var price = hit.Key.Source.GetPrice(market, currency);
+
+                    if (price == 0) continue;
+
+                    var image = AssetUrlResolver.Service.GetAssetUrl(product);
+
+                    if (string.IsNullOrWhiteSpace(image)) continue;
+
+                    var description = DescriptionSelector == null
+                        ? product.DisplayName
+                        : DescriptionSelector.Invoke(product);
+                    if (string.IsNullOrWhiteSpace(description))
+                        description = product.DisplayName; // double-check in case it's empty
+
+                    entries.Add(product.Code, new GoogleProductFeedEntry
                     {
-                        var price = hit.Key.Source.GetPrice(market, currency);
-
-                        if (price != 0)
-                        {
-                            var image = AssetUrlResolver.Service.GetAssetUrl(product);
-
-                            if (!string.IsNullOrWhiteSpace(image))
-                            {
-                                var description = DescriptionSelector == null ? product.DisplayName : DescriptionSelector.Invoke(product);
-                                if (string.IsNullOrWhiteSpace(description)) description = product.DisplayName; // double-check in case it's empty
-
-                                entries.Add(product.Code, new GoogleProductFeedEntry()
-                                {
-                                    Id = product.Code?.Replace('\t', ' '),
-                                    Title = product.DisplayName?.Replace('\t', ' '),
-                                    Description = description?.Replace('\t', ' '),
-                                    Availability = AvailabilitySelector == null ? "in stock" : AvailabilitySelector.Invoke(product)?.Replace('\t', ' '),
-                                    Adult = AdultSelector == null ? "no" : AdultSelector.Invoke(product)?.Replace('\t', ' '),
-                                    Brand = BrandSelector?.Invoke(product)?.Replace('\t', ' '),
-                                    Condition = ConditionSelector == null ? "new" : ConditionSelector.Invoke(product)?.Replace('\t', ' '),
-                                    GoogleProductCategory = GoogleProductCategorySelector?.Invoke(product)?.Replace('\t', ' '),
-                                    GTIN = GTINSelector?.Invoke(product)?.Replace('\t', ' '),
-                                    MPN = MPNSelector?.Invoke(product)?.Replace('\t', ' '),
-                                    Shipping = ShippingSelector?.Invoke(product)?.Replace('\t', ' '),
-                                    Tax = TaxSelector?.Invoke(product)?.Replace('\t', ' '),
-                                    ImageLink = FullUrl(image),
-                                    Link = FullUrl(UrlResolver.Current.GetUrl(product)),
-                                    Price = price.ToString("F2", CultureInfo.InvariantCulture) + " " + currency.ToUpper()
-                                });
-                            }
-                        }
-                    }
+                        Id = product.Code?.Replace('\t', ' '),
+                        Title = product.DisplayName?.Replace('\t', ' '),
+                        Description = description?.Replace('\t', ' '),
+                        Availability =
+                            AvailabilitySelector == null
+                                ? "in stock"
+                                : AvailabilitySelector.Invoke(product)?.Replace('\t', ' '),
+                        Adult = AdultSelector == null ? "no" : AdultSelector.Invoke(product)?.Replace('\t', ' '),
+                        Brand = BrandSelector?.Invoke(product)?.Replace('\t', ' '),
+                        Condition = ConditionSelector == null
+                            ? "new"
+                            : ConditionSelector.Invoke(product)?.Replace('\t', ' '),
+                        GoogleProductCategory = GoogleProductCategorySelector?.Invoke(product)?.Replace('\t', ' '),
+                        GTIN = GTINSelector?.Invoke(product)?.Replace('\t', ' '),
+                        MPN = MPNSelector?.Invoke(product)?.Replace('\t', ' '),
+                        Shipping = ShippingSelector?.Invoke(product)?.Replace('\t', ' '),
+                        Tax = TaxSelector?.Invoke(product)?.Replace('\t', ' '),
+                        ImageLink = FullUrl(image),
+                        Link = FullUrl(UrlResolver.Current.GetUrl(product)),
+                        Price = price.ToString("F2", CultureInfo.InvariantCulture) + " " + currency.ToUpper()
+                    });
                 }
             }
 

@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using TcbInternetSolutions.Vulcan.Core;
+// ReSharper disable InvertIf
 
 namespace TcbInternetSolutions.Vulcan.Commerce.SearchProviders
 {
@@ -139,7 +140,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce.SearchProviders
 
             var client = VulcanHandler.Service.GetClient(new CultureInfo(criteria.Locale));
             var results = client.SearchContent<T>(q => searchDescriptor, false, catalogReferences);
-            var searchDocuments = new SearchDocuments() { TotalCount = Convert.ToInt32(results.Total) };
+            var searchDocuments = new SearchDocuments { TotalCount = Convert.ToInt32(results.Total) };
 
             if (results.Hits.Any())
             {

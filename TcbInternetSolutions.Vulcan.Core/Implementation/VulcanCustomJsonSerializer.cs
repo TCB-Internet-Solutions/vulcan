@@ -47,7 +47,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                  || VulcanHelper.IgnoredTypes.Contains((memberInfo as PropertyInfo)?.PropertyType)
                  || memberInfo.Name.Equals("DefaultMvcController", StringComparison.OrdinalIgnoreCase)))
             {
-                return new PropertyMapping() { Ignore = true };
+                return new PropertyMapping { Ignore = true };
             }
 
             return base.CreatePropertyMapping(memberInfo);
@@ -61,6 +61,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <param name="formatting"></param>
         public override void Serialize(object data, Stream writableStream, SerializationFormatting formatting = SerializationFormatting.Indented)
         {
+            // ReSharper disable once MergeCastWithTypeCheck
             if (data is IndexDescriptor<IContent> descriptedData)
             {
                 // write all but ending }
@@ -94,7 +95,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                     }
 
                     // copy all but starting {
-                    CopyDataToStream(args.AdditionalItems, writableStream, formatting, trimLast: false);
+                    CopyDataToStream(args.AdditionalItems, writableStream, formatting, false);
                 }
                 else
                 {

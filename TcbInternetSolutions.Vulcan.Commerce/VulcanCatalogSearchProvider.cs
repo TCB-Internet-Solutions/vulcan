@@ -46,7 +46,7 @@
 
         protected override string IconCssClass(IContent contentData) => "epi-resourceIcon epi-resourceIcon-page";
 
-        private string GetEditPath(IContent entryContent, ContentReference contentLink, string languageName)
+        private static string GetEditPath(IContent entryContent, ContentReference contentLink, string languageName)
         {
             return entryContent.GetUri();
         }

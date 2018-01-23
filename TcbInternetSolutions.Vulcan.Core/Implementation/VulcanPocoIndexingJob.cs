@@ -100,7 +100,7 @@
                     if (!(Activator.CreateInstance(operationType, item) is IBulkOperation indexItem))
                         throw new Exception("Unable to create item for bulk request");
 
-                    indexItem.Type = new TypeName() { Name = itemTypeName, Type = itemType };
+                    indexItem.Type = new TypeName { Name = itemTypeName, Type = itemType };
                     indexItem.Id = pocoIndexer.GetItemIdentifier(item);
                     operations.Add(indexItem);
 
@@ -109,7 +109,7 @@
                 }
 
                 // https://www.elastic.co/guide/en/elasticsearch/client/net-api/1.x/bulk.html
-                var request = new BulkRequest()
+                var request = new BulkRequest
                 {
 #if NEST2
                     Refresh = true,

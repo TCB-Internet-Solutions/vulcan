@@ -47,7 +47,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed
                 new { controller = "GoogleProductFeed", action = "Feed", type = typeof(TVariationContent), market = "", language = "", currency = "" },
                 new[] { "TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed" });
 
-            var feed = new TGoogleProductFeed()
+            var feed = new TGoogleProductFeed
             {
                 Route = route,
                 UrlSegment = urlSegment

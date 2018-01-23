@@ -29,100 +29,101 @@ namespace TcbInternetSolutions.Vulcan.Commerce
         {
             //var streamWriter = new StreamWriter(writableStream);
 
-            if (args.Content is VariationContent variationContent)
+            switch (args.Content)
             {
-                //streamWriter.Write(",\"__prices\":{");
-                //WritePrices(streamWriter, GetDefaultPrices(variationContent));
-                //streamWriter.Write("}");
+                case VariationContent variationContent:
+                    //streamWriter.Write(",\"__prices\":{");
+                    //WritePrices(streamWriter, GetDefaultPrices(variationContent));
+                    //streamWriter.Write("}");
 
-                // todo: verify that this equivalent to WritePrices
-                var marketPrices = GetDefaultPrices(variationContent);
-                var prices = new Dictionary<string, string>();
+                    // todo: verify that this equivalent to WritePrices
+                    var marketPrices = GetDefaultPrices(variationContent);
+                    var prices = new Dictionary<string, string>();
 
-                if (marketPrices?.Any() == true)
-                {
-                    foreach (var market in marketPrices)
+                    if (marketPrices?.Any() == true)
                     {
-                        foreach (var price in market.Value)
+                        foreach (var market in marketPrices)
                         {
-                            prices[market.Key + "_" + price.Key] = price.Value.ToString(CultureInfo.InvariantCulture.NumberFormat);
-                        }
-                    }
-                }
-
-                if (prices.Any())
-                {
-                    args.AdditionalItems["__prices"] = prices;
-                }
-            }
-            else if (args.Content is ProductContent productContent)
-            {
-                var pricesLow = new Dictionary<string, Dictionary<string, decimal>>();
-                var pricesHigh = new Dictionary<string, Dictionary<string, decimal>>();
-                var variants = _contentLoader.GetItems((productContent).GetVariants(), (productContent).Language);
-
-                if (variants != null)
-                {
-                    foreach (var v in variants)
-                    {
-                        if (!(v is VariationContent variant)) continue;
-                        var markets = GetDefaultPrices(variant);
-
-                        if (markets == null) continue;
-
-                        foreach (var market in markets)
-                        {
-                            if (!pricesLow.ContainsKey(market.Key))
-                            {
-                                pricesLow.Add(market.Key, new Dictionary<string, decimal>());
-                            }
-
-                            if (!pricesHigh.ContainsKey(market.Key))
-                            {
-                                pricesHigh.Add(market.Key, new Dictionary<string, decimal>());
-                            }
-
-                            if (!market.Value.Any()) continue;
-
                             foreach (var price in market.Value)
                             {
-                                if (!pricesLow[market.Key].ContainsKey(price.Key))
+                                prices[market.Key + "_" + price.Key] = price.Value.ToString(CultureInfo.InvariantCulture.NumberFormat);
+                            }
+                        }
+                    }
+
+                    if (prices.Any())
+                    {
+                        args.AdditionalItems["__prices"] = prices;
+                    }
+                    break;
+                case ProductContent productContent:
+                    var pricesLow = new Dictionary<string, Dictionary<string, decimal>>();
+                    var pricesHigh = new Dictionary<string, Dictionary<string, decimal>>();
+                    var variants = _contentLoader.GetItems(productContent.GetVariants(), productContent.Language);
+
+                    if (variants != null)
+                    {
+                        foreach (var v in variants)
+                        {
+                            if (!(v is VariationContent variant)) continue;
+                            var markets = GetDefaultPrices(variant);
+
+                            if (markets == null) continue;
+
+                            foreach (var market in markets)
+                            {
+                                if (!pricesLow.ContainsKey(market.Key))
                                 {
-                                    pricesLow[market.Key].Add(price.Key, price.Value);
-                                }
-                                else
-                                {
-                                    if (price.Value < pricesLow[market.Key][price.Key])
-                                    {
-                                        pricesLow[market.Key][price.Key] = price.Value;
-                                    }
+                                    pricesLow.Add(market.Key, new Dictionary<string, decimal>());
                                 }
 
-                                if (!pricesHigh[market.Key].ContainsKey(price.Key))
+                                if (!pricesHigh.ContainsKey(market.Key))
                                 {
-                                    pricesHigh[market.Key].Add(price.Key, price.Value);
+                                    pricesHigh.Add(market.Key, new Dictionary<string, decimal>());
                                 }
-                                else
+
+                                if (!market.Value.Any()) continue;
+
+                                foreach (var price in market.Value)
                                 {
-                                    if (price.Value > pricesHigh[market.Key][price.Key])
+                                    if (!pricesLow[market.Key].ContainsKey(price.Key))
                                     {
-                                        pricesHigh[market.Key][price.Key] = price.Value;
+                                        pricesLow[market.Key].Add(price.Key, price.Value);
+                                    }
+                                    else
+                                    {
+                                        if (price.Value < pricesLow[market.Key][price.Key])
+                                        {
+                                            pricesLow[market.Key][price.Key] = price.Value;
+                                        }
+                                    }
+
+                                    if (!pricesHigh[market.Key].ContainsKey(price.Key))
+                                    {
+                                        pricesHigh[market.Key].Add(price.Key, price.Value);
+                                    }
+                                    else
+                                    {
+                                        if (price.Value > pricesHigh[market.Key][price.Key])
+                                        {
+                                            pricesHigh[market.Key][price.Key] = price.Value;
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
 
-                args.AdditionalItems["__pricesLow"] = pricesLow;
-                args.AdditionalItems["__pricesHigh"] = pricesHigh;
+                    args.AdditionalItems["__pricesLow"] = pricesLow;
+                    args.AdditionalItems["__pricesHigh"] = pricesHigh;
 
-                //streamWriter.Write(",\"__pricesLow\":{");
-                //WritePrices(streamWriter, pricesLow);
-                //streamWriter.Write("}");
-                //streamWriter.Write(",\"__pricesHigh\":{");
-                //WritePrices(streamWriter, pricesHigh);
-                //streamWriter.Write("}");
+                    //streamWriter.Write(",\"__pricesLow\":{");
+                    //WritePrices(streamWriter, pricesLow);
+                    //streamWriter.Write("}");
+                    //streamWriter.Write(",\"__pricesHigh\":{");
+                    //WritePrices(streamWriter, pricesHigh);
+                    //streamWriter.Write("}");
+                    break;
             }
 
             // read permission compatibility for commerce content, since markets handle access
@@ -151,7 +152,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                 prices.Add(market.MarketId.Value, new Dictionary<string, decimal>());
 
                 var variantPrices = _priceDetailService.List(variation.ContentLink, market.MarketId,
-                    new PriceFilter()
+                    new PriceFilter
                     {
                         Quantity = 0,
                         CustomerPricing = new[] { CustomerPricing.AllCustomers }
@@ -164,16 +165,15 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                 if (variantPrices == null || totalCount <= 0) continue;
 
                 foreach (var price in variantPrices)
-                {
-                    if (price.MinQuantity == 0 && price.CustomerPricing == CustomerPricing.AllCustomers) // this is a default price
-                    {
-                        if (!prices.ContainsKey(price.UnitPrice.Currency.CurrencyCode))
-                        {
-                            prices[market.MarketId.Value].Add(price.UnitPrice.Currency.CurrencyCode, 0);
-                        }
+                {                    
+                    if (price.MinQuantity != 0 || price.CustomerPricing != CustomerPricing.AllCustomers) continue;// this is a default price
 
-                        prices[market.MarketId.Value][price.UnitPrice.Currency.CurrencyCode] = price.UnitPrice.Amount;
+                    if (!prices.ContainsKey(price.UnitPrice.Currency.CurrencyCode))
+                    {
+                        prices[market.MarketId.Value].Add(price.UnitPrice.Currency.CurrencyCode, 0);
                     }
+
+                    prices[market.MarketId.Value][price.UnitPrice.Currency.CurrencyCode] = price.UnitPrice.Amount;
                 }
             }
 

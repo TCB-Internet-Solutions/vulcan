@@ -156,6 +156,7 @@
 
             if (clients != null)
             {
+                // ReSharper disable once LoopCanBeConvertedToQuery
                 foreach (var client in clients)
                 {
                     if (client.Language.Equals(CultureInfo.InvariantCulture) && !IncludeInvariant) continue;
@@ -227,9 +228,10 @@
             var content = ContentRepository.Get<IContent>(reference);
             var localizable = content as ILocalizable;
             var changeTracking = content as IChangeTrackable;
+            var editUrl = GetEditUrl(content, out var isOnCurrentHost);
             var result = new SearchResult
             (
-                GetEditUrl(content, out var onCurrentHost),
+                editUrl,
                 HttpUtility.HtmlEncode(content.Name),
                 CreatePreviewText(content)
             )
@@ -241,12 +243,10 @@
                     ["Id"] = content.ContentLink.ToString(),
                     ["LanguageBranch"] = localizable?.Language?.Name,
                     ["ParentId"] = content.ParentLink.ToString(),
-                    ["TypeIdentifier"] = content.GetTypeIdentifier(UiDescriptorRegistry)
+                    ["TypeIdentifier"] = content.GetTypeIdentifier(UiDescriptorRegistry),
+                    ["IsOnCurrentHost"] = isOnCurrentHost? "true" : "false"
                 }
             };
-
-            // hack: cannot initalize as its crashing VS
-            result.Metadata["IsOnCurrentHost"] = onCurrentHost ? "true" : "false";
 
             var contentType = ContentTypeRepository.Load(content.ContentTypeID);
             CreateToolTip(content, changeTracking, result, contentType);

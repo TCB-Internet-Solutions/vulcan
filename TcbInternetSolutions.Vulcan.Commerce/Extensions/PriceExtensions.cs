@@ -17,7 +17,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce.Extensions
         public static decimal GetPriceHigh(this IContent contentHit, string marketId = null, string currencyCode = null) =>
             contentHit is VulcanContentHit ? GetPrice(((VulcanContentHit) contentHit).__pricesHigh, marketId, currencyCode) : 0;
 
-        private static decimal GetPrice(Dictionary<string, decimal> priceDictionary, string marketId, string currencyCode)
+        private static decimal GetPrice(IReadOnlyDictionary<string, decimal> priceDictionary, string marketId, string currencyCode)
         {
             if (marketId == null) marketId = ServiceLocator.Current.GetInstance<ICurrentMarket>().GetCurrentMarket().MarketId.Value;
             if (currencyCode == null) currencyCode = ServiceLocator.Current.GetInstance<ICurrentMarket>().GetCurrentMarket().DefaultCurrency.CurrencyCode;

@@ -17,10 +17,8 @@
     public class VulcanClient : ElasticClient, IVulcanClient
     {
         private static readonly ILogger Logger = LogManager.GetLogger();
-
-        /// <summary>
-        /// needed for nest5
-        /// </summary>
+        
+        // ReSharper disable once NotAccessedField.Local, needed for nest5
         private readonly IVulcanPipelineSelector _vulcanPipelineSelector;
 
         /// <summary>
@@ -163,29 +161,25 @@
                 throw new Exception($"Cannot index content '{GetId(content)}' with no language with Vulcan client for language {Language.Name}");
             }
 
-            if (!(content is IVersionable versionableContent) || versionableContent.Status == VersionStatus.Published)
-            {
-                // see if we should index this content
-                if (VulcanHandler.AllowContentIndexing(content))
-                {
-                    try
-                    {
-                        var response = Index(content, ModifyContentIndexRequest);
+            if (content is IVersionable versionableContent && versionableContent.Status != VersionStatus.Published) return;            
+            if (!VulcanHandler.AllowContentIndexing(content)) return;
 
-                        if (response.IsValid)
-                        {
-                            Logger.Debug($"Vulcan indexed {GetId(content)} for language {Language.GetCultureName()}: {response.DebugInformation}");
-                        }
-                        else
-                        {
-                            throw new Exception(response.DebugInformation);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.Error($"Vulcan could not index content with content link {GetId(content)} for language {Language.GetCultureName()}: {e}");
-                    }
+            try
+            {
+                var response = Index(content, ModifyContentIndexRequest);
+
+                if (response.IsValid)
+                {
+                    Logger.Debug($"Vulcan indexed {GetId(content)} for language {Language.GetCultureName()}: {response.DebugInformation}");
                 }
+                else
+                {
+                    throw new Exception(response.DebugInformation);
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Error($"Vulcan could not index content with content link {GetId(content)} for language {Language.GetCultureName()}: {e}");
             }
         }
 
@@ -249,7 +243,8 @@
 
             if (filters.Count > 0)
             {
-                Func<SearchDescriptor<T>, ISearchRequest> selector = ts => resolvedDescriptor;
+                var descriptor = resolvedDescriptor;
+                Func<SearchDescriptor<T>, ISearchRequest> selector = ts => descriptor;
                 var container = selector.Invoke(new SearchDescriptor<T>());
 
                 if (container.Query != null)

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+// ReSharper disable InvertIf
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {

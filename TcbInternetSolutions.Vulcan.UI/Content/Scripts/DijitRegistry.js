@@ -1,10 +1,10 @@
 ﻿define([
-	'dojo/_base/declare',
-	'dojo/dom-geometry',
-	'dijit/_WidgetBase',
-	'dijit/registry'
-], function (declare, domGeometry, _WidgetBase, registry) {
-    var wbPrototype = _WidgetBase.prototype;
+	"dojo/_base/declare",
+	"dojo/dom-geometry",
+	"dijit/_WidgetBase",
+	"dijit/registry"
+], function (declare, domGeometry, widgetBase, registry) {
+    var wbPrototype = widgetBase.prototype;
 
     return declare(null, {
         // summary:
@@ -22,7 +22,7 @@
             registry.add(this);
             this.inherited(arguments);
             // Note: for dojo 2.0 may rename widgetId to dojo._scopeName + "_widgetId"
-            this.domNode.setAttribute('widgetId', this.id);
+            this.domNode.setAttribute("widgetId", this.id);
         },
 
         startup: function () {

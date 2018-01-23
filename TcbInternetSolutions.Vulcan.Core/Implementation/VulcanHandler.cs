@@ -19,9 +19,9 @@
     public class VulcanHandler : IVulcanHandler
     {
         /// <summary>
-        /// Vulcan logger
+        /// Vulcan logger, uses getter to avoid lock issues
         /// </summary>
-        protected static ILogger Logger = LogManager.GetLogger(typeof(VulcanHandler));
+        protected static ILogger Logger => LogManager.GetLogger(typeof(VulcanHandler));
 
         /// <summary>
         /// List of vulcan clients
@@ -76,6 +76,7 @@
         /// Indexing modifiers
         /// </summary>
         public virtual IEnumerable<IVulcanIndexingModifier> IndexingModifers { get; }
+
         /// <summary>
         /// Inected connection settings
         /// </summary>
@@ -117,14 +118,13 @@
 
             foreach (var kvp in _conditionalContentIndexInstructions)
             {
-                if (kvp.Key.IsInstanceOfType(objectToIndex))
-                {
-                    foreach (var instruction in kvp.Value)
-                    {
-                        allowIndex = instruction.AllowContentIndexing(objectToIndex);
+                if (!kvp.Key.IsInstanceOfType(objectToIndex)) continue;
 
-                        if (!allowIndex) break; // we only care about first FALSE
-                    }
+                foreach (var instruction in kvp.Value)
+                {
+                    allowIndex = instruction.AllowContentIndexing(objectToIndex);
+
+                    if (!allowIndex) break; // we only care about first FALSE
                 }
             }
 
@@ -160,7 +160,6 @@
         public virtual void DeleteContentEveryLanguage(ContentReference contentLink, string typeName)
         {
             // we don't know what language(s), or even if invariant, so send a delete request to all
-
             foreach (var client in GetClients())
             {
                 client.DeleteContent(contentLink, typeName);
@@ -187,7 +186,7 @@
 
                         if (!response.IsValid)
                         {
-                            Logger.Error("Could not run a delete index: " + response.DebugInformation);
+                            Logger.Error($"Could not run a delete index: {response.DebugInformation}");
                         }
                         else
                         {
@@ -198,14 +197,7 @@
                     DeletedIndices?.Invoke(indicesToDelete);
                 }
 
-                // todo: this is a temp fix to keep multiple templates from getting added, shouldn't exist long term....
-                if (client.IndexTemplateExists("analyzer_disabling").Exists)
-                {
-                    // clean up template that was too generic in a shared environment
-                    client.DeleteIndexTemplate("analyzer_disabling");
-                }
-
-                Clients = new Dictionary<CultureInfo, IVulcanClient>(); // need to force a re-creation                
+                Clients.Clear(); // need to force a re-creation                
             }
         }
 
@@ -218,14 +210,11 @@
         {
             var cultureInfo = language ?? CultureInfo.CurrentUICulture;
 
-            if (Clients.TryGetValue(cultureInfo, out IVulcanClient storedClient))
+            if (Clients.TryGetValue(cultureInfo, out var storedClient))
                 return storedClient;
 
             lock (_lockObject)
             {
-                // we now know what our culture is (current culture or invariant), but we need to choose the language analyzer                
-                //var languageAnalyzer = VulcanHelper.GetAnalyzer(cultureInfo);
-                VulcanHelper.GetAnalyzer(cultureInfo); // todo: verify if this was useful
                 var indexName = VulcanHelper.GetIndexName(Index, cultureInfo);
                 var settings = CommonConnectionSettings.ConnectionSettings;
                 settings.InferMappingFor<ContentMixin>(pd => pd.Ignore(p => p.MixinInstance));
@@ -326,7 +315,9 @@
                     installer.Install(client);
                 }
 
-                client.RunCustomizers(Logger); // allows for customizations
+                // allows for customizations
+                client.RunCustomizers(Logger); 
+                client.RunCustomMappers(Logger);
 
                 client.OpenIndex(indexName);
 
@@ -340,10 +331,12 @@
 #endif
                 ));
 
-                Clients[cultureInfo] = client;
-
-                return client;
+                storedClient = client;
             }
+
+            Clients[cultureInfo] = storedClient;
+
+            return storedClient;
         }
 
         /// <summary>
@@ -356,17 +349,23 @@
             var client = CreateElasticClient(CommonConnectionSettings.ConnectionSettings);
             var indices = client.CatIndices();
 
-            if (indices?.Records?.Any() == true)
-            {
-                foreach (var index in indices.Records.Where(i => i.Index.StartsWith(Index + "_")).Select(i => i.Index))
-                {
-                    var cultureName = index.Substring(Index.Length + 1);
+            if (indices?.Records?.Any() != true) return clientList.ToArray();
 
-                    clientList.Add(GetClient(cultureName.Equals("invariant", StringComparison.InvariantCultureIgnoreCase) ? CultureInfo.InvariantCulture : new CultureInfo(cultureName)));
-                }
-            }
+            clientList.AddRange
+            (
+                indices.Records
+                    .Where(i => i.Index.StartsWith(Index + "_")).Select(i => i.Index)
+                    .Select(index => index.Substring(Index.Length + 1))
+                    .Select(cultureName =>
+                        GetClient(cultureName.Equals("invariant", StringComparison.InvariantCultureIgnoreCase) ?
+                            CultureInfo.InvariantCulture :
+                            new CultureInfo(cultureName)
+                        )
+                    )
+            );
 
             return clientList.ToArray();
+            
         }
 
         /// <summary>
@@ -629,11 +628,11 @@
 
                 if (!response.IsValid)
                 {
-                    Logger.Error("Could not set up stop words for " + client.IndexName + ": " + response.DebugInformation);
+                    Logger.Error($"Could not set up stop words for {client.IndexName}: {response.DebugInformation}");
                 }
 
                 // next, stemmer
-                if (!(new[] { "cjk", "persian", "thai" }.Contains(language)))
+                if (!new[] { "cjk", "persian", "thai" }.Contains(language))
                 {
                     response = client.UpdateIndexSettings(client.IndexName, uix => uix
                         .IndexSettings(ixs => ixs
@@ -729,7 +728,7 @@
 
             if (!response.IsValid)
             {
-                Logger.Error("Could not set up custom analyzers for " + client.IndexName + ": " + response.DebugInformation);
+                Logger.Error($"Could not set up custom analyzers for {client.IndexName}: {response.DebugInformation}");
             }
 
             if (language != "persian") return;

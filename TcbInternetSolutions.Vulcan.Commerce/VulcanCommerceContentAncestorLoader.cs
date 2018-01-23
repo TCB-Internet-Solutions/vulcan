@@ -76,26 +76,23 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                 ancestors.AddRange(categories.SelectMany(c => GetAncestorCategoriesIterative(GetLinkFromRelation(c), true)));
             }
 
-            if (checkCategoryParent)
+            // ReSharper disable once InvertIf
+            if (checkCategoryParent && _contentLoader.Get<IContent>(contentLink) is NodeContent thisCat && !ancestors.Contains(thisCat.ParentLink))
             {
-                // there may be no categories related, but we still have a parent
-                if (_contentLoader.Get<IContent>(contentLink) is NodeContent thisCat && !ancestors.Contains(thisCat.ParentLink))
-                {
-                    ancestors.Add(thisCat.ParentLink);
+                ancestors.Add(thisCat.ParentLink);
 
-                    ancestors.AddRange(GetAncestorCategoriesIterative(thisCat.ParentLink, true));
-                }
+                ancestors.AddRange(GetAncestorCategoriesIterative(thisCat.ParentLink, true));
             }
 
             return ancestors;
         }
 
-        private ContentReference GetLinkFromProductVariant(ProductVariation p)
+        private static ContentReference GetLinkFromProductVariant(ProductVariation p)
         {
             return p.Source; // should this be Parent?
         }
 
-        private ContentReference GetLinkFromRelation(Relation n)
+        private static ContentReference GetLinkFromRelation(Relation n)
         {
             return n.Target; // should this be Child?
         }

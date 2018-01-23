@@ -69,6 +69,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
 
             var dic = new Dictionary<IHit<T>, T>();
 
+            // ReSharper disable once InvertIf
             if (searchResponse?.Hits != null)
             {
                 var contentLoader = GetContentLoader();
@@ -90,18 +91,17 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
                             }
                         }
 
-                        if (contentType != null && typeof(IContent).IsAssignableFrom(contentType))
-                        {
-                            var content = contentLoader.Get<T>(new ContentReference(hit.Id));
+                        if (contentType == null || !typeof(IContent).IsAssignableFrom(contentType)) continue;
 
-                            if (content != null)
-                            {
-                                dic.Add(hit, content);
-                            }
-                            else
-                            {
-                                Logger.Warning("Vulcan found a content within hits that was missing with content link: " + hit.Id);
-                            }
+                        var content = contentLoader.Get<T>(new ContentReference(hit.Id));
+
+                        if (content != null)
+                        {
+                            dic.Add(hit, content);
+                        }
+                        else
+                        {
+                            Logger.Warning("Vulcan found a content within hits that was missing with content link: " + hit.Id);
                         }
                     }
                     catch (Exception e)

@@ -79,7 +79,7 @@
                         // only update this every 100 records (reduce load on db)
                         if (cr % 100 == 0)
                         {
-                            OnStatusChanged($"{indexer.IndexerName} indexing item {(cr + 1)} of {contentReferences.Count} items of {cmsIndexer.GetRoot().Value} content");
+                            OnStatusChanged($"{indexer.IndexerName} indexing item {cr + 1} of {contentReferences.Count} items of {cmsIndexer.GetRoot().Value} content");
                         }
 
                         IContent content = null;
