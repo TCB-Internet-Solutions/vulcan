@@ -1,12 +1,11 @@
-﻿using TcbInternetSolutions.Vulcan.Core.Implementation;
-
-namespace TcbInternetSolutions.Vulcan.AttachmentIndexer
+﻿namespace TcbInternetSolutions.Vulcan.AttachmentIndexer
 {
     using EPiServer.Core;
     using EPiServer.ServiceLocation;
     using System;
     using System.Collections.Generic;
     using Core;
+    using Core.Implementation;
     using static Core.VulcanFieldConstants;
 
     /// <summary>
@@ -75,7 +74,7 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer
             args.AdditionalItems[MediaContents] = mediaFields;
 #elif NEST5
             // 5x: only send base64 content if pipeline is enabled
-            args.AdditionalItems[MediaContents] = base64contents;
+            args.AdditionalItems[MediaContents] = base64Contents;
 #endif
         }
 
@@ -86,13 +85,13 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer
 
             if (media == null) return false;
 
-#if NEST2
-            // for 2x, have to evaluate pipeline here
             if (_attachmentPipeline == null)
             {
                 _attachmentPipeline = _vulcanPipelineSelector.GetPipelineById(Implementation.VulcanAttachmentPipelineInstaller.PipelineId);
             }
 
+#if NEST2
+            // for 2x, have to evaluate pipeline here
             if (_attachmentPipeline?.IsMatch(args.Content) == true)
             {
                 return isPipeline = true;

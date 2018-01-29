@@ -70,7 +70,7 @@
 #if NEST2
                     _took = ResponseContext.TookAsLong;
 #elif NEST5
-                    _Took = ResponseContext.Took;
+                    _took = ResponseContext.Took;
 #endif
                 }
 

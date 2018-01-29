@@ -290,7 +290,7 @@
                 .Type(GetTypeName(content));
 
 #if NEST5
-                var pipeline = _VulcanPipelineSelector.GetPipelineForContent(descriptedContent.Document);
+                var pipeline = _vulcanPipelineSelector.GetPipelineForContent(descriptedContent.Document);
 
                 if (pipeline != null)
                 {

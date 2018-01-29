@@ -9,8 +9,8 @@
     <copyright>Copyright $year$</copyright>
     <tags>ElasticSearch Nest Search</tags>
     <dependencies>
-      <!--<dependency id="NEST" version="[5,6)" />-->
-      <dependency id="NEST" version="[2.5,3)" />
+      <!--<dependency id="NEST" version="[5.3.1,6)" />-->
+      <dependency id="NEST" version="[2.5.4,3)" />
       <dependency id="EPiServer.CMS.Core" version="[11.2.1,12)" />
     </dependencies>
   </metadata>

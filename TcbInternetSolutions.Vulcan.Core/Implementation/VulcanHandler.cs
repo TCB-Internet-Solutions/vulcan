@@ -289,7 +289,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                                         .Text(ana => ana
                                             .Name(VulcanFieldConstants.AnalyzedModifier)
                                             .IncludeInAll(false)
-                                            .Store(true)
+                                            .Store()
                                         )
                                     ))
                                 )
