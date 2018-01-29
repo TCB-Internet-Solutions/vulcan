@@ -50,11 +50,11 @@ namespace TcbInternetSolutions.Vulcan.Core
         /// <summary>
         /// Filters for classes that are not abstracts
         /// </summary>
-        public static Func<Type, bool> DefaultFilter = (x => x.IsClass && !x.IsAbstract);
+        public static Func<Type, bool> DefaultFilter = x => x.IsClass && !x.IsAbstract;
 
         /// <summary>
         /// Filters for types not abstracts
         /// </summary>
-        public static Func<Type, bool> AbstractFilter = (x => !x.IsAbstract);
+        public static Func<Type, bool> AbstractFilter = x => !x.IsAbstract;
     }
 }

@@ -55,9 +55,9 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
             //var userPrinciple = new PrincipalInfo(principle);
             var list = new List<string>();
 
-            foreach (string name in VirtualRoleRepository.Service.GetAllRoles())
+            foreach (var name in VirtualRoleRepository.Service.GetAllRoles())
             {
-                if (VirtualRoleRepository.Service.TryGetRole(name, out VirtualRoleProviderBase virtualRoleProvider) && virtualRoleProvider.IsInVirtualRole(principle, null))
+                if (VirtualRoleRepository.Service.TryGetRole(name, out var virtualRoleProvider) && virtualRoleProvider.IsInVirtualRole(principle, null))
                 {
                     list.Add(name);
                 }

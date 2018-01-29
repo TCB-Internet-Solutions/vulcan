@@ -9,7 +9,7 @@
     using EPiServer.Shell.Search;
     using EPiServer.Web;
     using Implementation;
-    using TcbInternetSolutions.Vulcan.Core;
+    using Core;
 
     /// <summary>
     /// UI Search provider for blocks
@@ -64,7 +64,7 @@
         /// <summary>
         /// Gets the CMS page category.
         /// </summary>
-        public override string Category => _LocalizationService.GetString("/vulcan/searchprovider/blocks/name");
+        public override string Category => LocalizationService.GetString("/vulcan/searchprovider/blocks/name");
 
         /// <summary>
         /// Gets the name of the localization page type.

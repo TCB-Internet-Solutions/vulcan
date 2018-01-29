@@ -8,7 +8,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Initialization
     /// Registers implementations to DI container
     /// </summary>
     [ModuleDependency(typeof(ServiceContainerInitialization))]
-    public class RegisterImplementations : IConfigurableModule, IInitializableModule
+    public class RegisterImplementations : IConfigurableModule
     {
         void IConfigurableModule.ConfigureContainer(ServiceConfigurationContext context)
         {

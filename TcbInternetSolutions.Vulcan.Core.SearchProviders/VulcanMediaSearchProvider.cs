@@ -1,5 +1,6 @@
 ﻿namespace TcbInternetSolutions.Vulcan.Core.SearchProviders
 {
+    using Core;
     using Core.Extensions;
     using EPiServer;
     using EPiServer.Core;
@@ -9,7 +10,6 @@
     using EPiServer.Shell;
     using EPiServer.Shell.Search;
     using EPiServer.Web;
-    using TcbInternetSolutions.Vulcan.Core;
 
     /// <summary>
     /// UI Search provider for mediadata
@@ -69,7 +69,7 @@
         /// <summary>
         /// Gets the CMS page category.
         /// </summary>
-        public override string Category => _LocalizationService.GetString("/vulcan/searchprovider/files/name");
+        public override string Category => LocalizationService.GetString("/vulcan/searchprovider/files/name");
 
         /// <summary>
         /// Gets the name of the localization page type.
@@ -85,6 +85,6 @@
         /// Gets the icon CSS class for pages.
         /// </summary>
         protected override string IconCssClass(IContent content) => 
-            "epi-resourceIcon epi-resourceIcon-" + ContentExtensions.SearchFileExtension(content as MediaData);
+            "epi-resourceIcon epi-resourceIcon-" + (content as MediaData).SearchFileExtension();
     }
 }

@@ -1,10 +1,7 @@
-﻿using EPiServer.Commerce.Catalog.ContentTypes;
-using EPiServer.ServiceLocation;
+﻿using EPiServer.ServiceLocation;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Web.Mvc;
 
 namespace TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed
@@ -22,7 +19,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed
                 return Json(entries, JsonRequestBehavior.AllowGet); // for debugging
             }
 
-            var format = "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\t{15}";
+            const string format = "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\t{15}";
 
             var text = string.Format(format, "id", "title", "description", "link", "image_link", "availability", "price", "google_product_category", "brand", "gtin", "mpn", "identifier_exists", "condition", "adult", "shipping", "tax") + Environment.NewLine;
             

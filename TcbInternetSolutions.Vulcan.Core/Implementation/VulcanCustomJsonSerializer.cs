@@ -5,6 +5,7 @@ using Nest;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -16,10 +17,25 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     /// </summary>
     public class VulcanCustomJsonSerializer : JsonNetSerializer
     {
-        private readonly IEnumerable<IVulcanIndexingModifier> _VulcanModifiers;
+        private readonly IEnumerable<IVulcanIndexingModifier> _vulcanModifiers;
+
+        private static readonly Type IgnoreType = typeof(VulcanIgnoreAttribute);
 
         /// <summary>
-        /// DI
+        /// Ignored property mapping types
+        /// </summary>
+        protected static Type[] IgnoredPropertyTypes =
+        {
+            typeof(PropertyDataCollection),
+            typeof(ContentArea),
+            typeof(CultureInfo),
+            typeof(IEnumerable<CultureInfo>),
+            typeof(EPiServer.DataAbstraction.PageType),
+            typeof(EPiServer.Framework.Blobs.Blob)
+        };
+
+        /// <summary>
+        /// DI Constructor
         /// </summary>
         /// <param name="settings"></param>
         /// <param name="modifiers"></param>
@@ -31,7 +47,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 Action<JsonSerializerSettings, IConnectionSettingsValues> settingsModifier
             ) : base(settings, settingsModifier)
         {
-            _VulcanModifiers = modifiers;
+            _vulcanModifiers = modifiers;
         }
 
         /// <summary>
@@ -41,19 +57,26 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <returns></returns>
         public override IPropertyMapping CreatePropertyMapping(MemberInfo memberInfo)
         {
-            if (memberInfo.Name.Equals("PageName", StringComparison.OrdinalIgnoreCase) ||
-                memberInfo.Name.Contains(".") || (
-                    memberInfo.MemberType == MemberTypes.Property &&
-                    (IsSubclassOfRawGeneric(typeof(Injected<>), (memberInfo as PropertyInfo).PropertyType)
-                    || VulcanHelper.IgnoredTypes.Contains((memberInfo as PropertyInfo).PropertyType)
-                    || memberInfo.Name.Equals("DefaultMvcController", StringComparison.OrdinalIgnoreCase))))
+            var propertyType = (memberInfo as PropertyInfo)?.PropertyType;
+            // have to use Attribute.GetCustomAttributes, if types are proxied checking memberinfo directly is always false
+            var isIgnored = Attribute.GetCustomAttributes(memberInfo, IgnoreType, true).Length > 0;
+
+            if
+            (
+                isIgnored ||
+                memberInfo.Name.Equals("PageName", StringComparison.OrdinalIgnoreCase) ||
+                memberInfo.Name.Contains(".") ||
+                memberInfo.MemberType == MemberTypes.Property &&
+                (
+                    IsSubclassOfRawGeneric(typeof(Injected<>), propertyType) ||
+                    IgnoredPropertyTypes.Contains(propertyType) ||
+                    memberInfo.Name.Equals("DefaultMvcController", StringComparison.OrdinalIgnoreCase))
+                )
             {
-                return new PropertyMapping() { Ignore = true };
+                return new PropertyMapping { Ignore = true };
             }
-            else
-            {
-                return base.CreatePropertyMapping(memberInfo);
-            }
+
+            return base.CreatePropertyMapping(memberInfo);
         }
 
         /// <summary>
@@ -64,27 +87,22 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <param name="formatting"></param>
         public override void Serialize(object data, Stream writableStream, SerializationFormatting formatting = SerializationFormatting.Indented)
         {
+            // ReSharper disable once MergeCastWithTypeCheck
             if (data is IndexDescriptor<IContent> descriptedData)
             {
                 // write all but ending }
-                CopyDataToStream(data, writableStream, formatting, trimLast: true);
+                CopyDataToStream(data, writableStream, formatting);
 
-                var content = (descriptedData as IIndexRequest<IContent>)?.Document;
+                var content = ((IIndexRequest<IContent>)descriptedData).Document;
 
-                if (content != null && _VulcanModifiers != null)
+                if (content != null && _vulcanModifiers != null)
                 {
                     // try to inspect to see if a pipeline was enabled
-                    var requestAccessor = data as IRequest<IndexRequestParameters>;
-
-                    if (requestAccessor == null)
-                    {
-                        throw new NotSupportedException($"{data.GetType().FullName} doesn't implement {typeof(IRequest<IndexRequestParameters>).FullName}!");
-                    }
-
-                    string pipelineId = requestAccessor.RequestParameters?.GetQueryStringValue<string>("pipeline") ?? null; // returns null if key not found                    
+                    var requestAccessor = (IRequest<IndexRequestParameters>)data;
+                    var pipelineId = requestAccessor.RequestParameters?.GetQueryStringValue<string>("pipeline"); // returns null if key not found                    
                     var args = new VulcanIndexingModifierArgs(content, pipelineId);
 
-                    foreach (var indexingModifier in _VulcanModifiers)
+                    foreach (var indexingModifier in _vulcanModifiers)
                     {
                         try
                         {
@@ -99,15 +117,15 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                     // add separator for additional items if any
                     if (args.AdditionalItems.Any())
                     {
-                        WriteToStream(" , " , writableStream); 
+                        WriteToStream(" , ", writableStream);
                     }
 
                     // copy all but starting {
-                    CopyDataToStream(args.AdditionalItems, writableStream, formatting, trimLast: false);
+                    CopyDataToStream(args.AdditionalItems, writableStream, formatting, false);
                 }
                 else
                 {
-                    WriteToStream( "}", writableStream); // add back closing
+                    WriteToStream("}", writableStream); // add back closing
                 }
             }
             else
@@ -116,7 +134,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             }
         }
 
-        static bool IsSubclassOfRawGeneric(Type generic, Type toCheck)
+        private static bool IsSubclassOfRawGeneric(Type generic, Type toCheck)
         {
             while (toCheck != null && toCheck != typeof(object))
             {
@@ -130,7 +148,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             return false;
         }
 
-        static void WriteToStream(string data, Stream writeableStream)
+        private static void WriteToStream(string data, Stream writeableStream)
         {
             var streamWriter = new StreamWriter(writeableStream);
 
@@ -140,14 +158,14 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         }
 
         //copies all but first or last byte
-        void CopyDataToStream(object data, Stream writableStream, SerializationFormatting formatting, bool trimLast = true)
+        private void CopyDataToStream(object data, Stream writableStream, SerializationFormatting formatting, bool trimLast = true)
         {
             var stream = new MemoryStream();
             base.Serialize(data, stream, formatting);
             stream.Seek(trimLast ? 0 : 1, SeekOrigin.Begin);
             var bytes = Convert.ToInt32(stream.Length);
             var buffer = new byte[32768];
-            int read = 0;
+            int read;
 
             if (trimLast)
                 bytes--;

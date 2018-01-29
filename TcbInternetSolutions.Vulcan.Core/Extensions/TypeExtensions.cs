@@ -11,7 +11,7 @@
     /// </summary>
     public static class TypeExtensions
     {
-        private static ConcurrentDictionary<Type, List<Type>> resolvedTypes = new ConcurrentDictionary<Type, List<Type>>();        
+        private static readonly ConcurrentDictionary<Type, List<Type>> ResolvedTypes = new ConcurrentDictionary<Type, List<Type>>();        
 
         /// <summary>
         /// Get search types for given T
@@ -30,19 +30,17 @@
         /// <returns></returns>
         public static List<Type> GetSearchTypesFor(this Type type, Func<Type,bool> filter = null)
         {
-            List<Type> allTypesForGiven;
-
-            if (!resolvedTypes.TryGetValue(type, out allTypesForGiven))
+            if (!ResolvedTypes.TryGetValue(type, out var allTypesForGiven))
             {
                 allTypesForGiven = new List<Type>();
 
                 foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
                 {
                     allTypesForGiven.AddRange(assembly.GetTypes()
-                        .Where(t => type.IsAssignableFrom(t) && !t.FullName.EndsWith("Proxy")));
+                        .Where(t =>  type.IsAssignableFrom(t) && t.FullName?.EndsWith("Proxy") == false));
                 }
 
-                resolvedTypes.TryAdd(type, allTypesForGiven);
+                ResolvedTypes.TryAdd(type, allTypesForGiven);
             }
 
             if (filter != null)

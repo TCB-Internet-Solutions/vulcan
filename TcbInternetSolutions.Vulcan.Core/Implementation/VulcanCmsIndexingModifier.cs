@@ -4,11 +4,10 @@
     using EPiServer.DataAbstraction;
     using EPiServer.Security;
     using EPiServer.ServiceLocation;
+    using Extensions;
     using System;
     using System.Collections.Generic;
-    using System.IO;
     using System.Linq;
-    using TcbInternetSolutions.Vulcan.Core.Extensions;
 
     /// <summary>
     /// Default CMS content indexing modifier
@@ -16,8 +15,8 @@
     [ServiceConfiguration(typeof(IVulcanIndexingModifier), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanCmsIndexingModifier : IVulcanIndexingModifier
     {        
-        private readonly IContentSecurityRepository _ContentSecurityDescriptor;
-        private readonly IEnumerable<IVulcanContentAncestorLoader> _VulcanContentAncestorLoaders;
+        private readonly IContentSecurityRepository _contentSecurityDescriptor;
+        private readonly IEnumerable<IVulcanContentAncestorLoader> _vulcanContentAncestorLoaders;
 
         /// <summary>
         /// DI Constructor
@@ -26,8 +25,8 @@
         /// <param name="vulcanContentAncestorLoader"></param>
         public VulcanCmsIndexingModifier(IContentSecurityRepository contentSecurityRepository, IEnumerable<IVulcanContentAncestorLoader> vulcanContentAncestorLoader)
         {
-            _ContentSecurityDescriptor = contentSecurityRepository;
-            _VulcanContentAncestorLoaders = vulcanContentAncestorLoader;
+            _contentSecurityDescriptor = contentSecurityRepository;
+            _vulcanContentAncestorLoaders = vulcanContentAncestorLoader;
         }
 
         /// <summary>
@@ -39,11 +38,11 @@
             // index ancestors
             var ancestors = new List<ContentReference>();
 
-            if (_VulcanContentAncestorLoaders?.Any() == true)
+            if (_vulcanContentAncestorLoaders?.Any() == true)
             {
-                foreach (var ancestorLoader in _VulcanContentAncestorLoaders)
+                foreach (var ancestorLoader in _vulcanContentAncestorLoaders)
                 {
-                    IEnumerable<ContentReference> ancestorsFound = ancestorLoader.GetAncestors(args.Content);
+                    var ancestorsFound = ancestorLoader.GetAncestors(args.Content)?.ToList();
 
                     if (ancestorsFound?.Any() == true)
                     {
@@ -55,7 +54,7 @@
             args.AdditionalItems[VulcanFieldConstants.Ancestors] = ancestors.Select(x => x.ToReferenceWithoutVersion()).Distinct();
 
             // index read permission            
-            var permissions = _ContentSecurityDescriptor.Get(args.Content.ContentLink);
+            var permissions = _contentSecurityDescriptor.Get(args.Content.ContentLink);
 
             if (permissions != null) // will be null for commerce products, compatibility handled in commerce modifier
             {
@@ -68,20 +67,20 @@
             }
 
             // index VulcanSearchableAttribute
-            List<string> contents = new List<string>();
+            var contents = new List<string>();
             var properties = args.Content.GetType().GetProperties().Where(prop => Attribute.IsDefined(prop, typeof(VulcanSearchableAttribute)));
 
             foreach (var p in properties)
             {
-                object value = p.GetValue(args.Content);
+                var value = p.GetValue(args.Content);
 
                 // Property to string conversions
                 if (p.PropertyType == typeof(ContentArea))
                 {
-                    value = ContentAreaExtensions.GetContentAreaContents(value as ContentArea);
+                    value = (value as ContentArea).GetContentAreaContents();
                 }
 
-                string v = value?.ToString();
+                var v = value?.ToString();
 
                 if (!string.IsNullOrWhiteSpace(v))
                 {

@@ -12,7 +12,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     [ServiceConfiguration(typeof(IVulcanContentAncestorLoader), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanCmsContentAncestorLoader : IVulcanContentAncestorLoader
     {
-        private readonly IContentLoader _ContentLoader;
+        private readonly IContentLoader _contentLoader;
 
         /// <summary>
         /// DI Constructor
@@ -20,7 +20,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <param name="contentLoader"></param>
         public VulcanCmsContentAncestorLoader(IContentLoader contentLoader)
         {
-            _ContentLoader = contentLoader;
+            _contentLoader = contentLoader;
         }
 
         /// <summary>
@@ -30,7 +30,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <returns></returns>
         public IEnumerable<ContentReference> GetAncestors(IContent content)
         {
-            return _ContentLoader.GetAncestors(content.ContentLink)?.Select(c => c.ContentLink);
+            return _contentLoader.GetAncestors(content.ContentLink)?.Select(c => c.ContentLink);
         }
     }
 }

@@ -25,13 +25,9 @@
             //var expiredMissing = new QueryContainerDescriptor<IVersionable>().Missing(dr => dr.Field(xf => xf.StopPublish).NullValue().Existence());
             var expiredExists = new QueryContainerDescriptor<IVersionable>().Exists(dr => dr.Field(xf => xf.StopPublish));
 
-            if (!requireIsSearchable)
-            {
-                return new QueryContainerDescriptor<T>().Bool(b => b.Must(query).MustNot(notExpired || expiredExists).Filter(notDeleted && published));
-            }
-
-            //return new QueryContainerDescriptor<T>().Bool(b => b.Must(query).Filter(notDeleted && published && (notExpired || notExpiredMissing)));
-            return new QueryContainerDescriptor<T>().Bool(b => b.Must(query).MustNot(notExpired || expiredExists).Filter(searchable && notDeleted && published));
+            return !requireIsSearchable ?
+                new QueryContainerDescriptor<T>().Bool(b => b.Must(query).MustNot(notExpired || expiredExists).Filter(notDeleted && published)) :
+                new QueryContainerDescriptor<T>().Bool(b => b.Must(query).MustNot(notExpired || expiredExists).Filter(searchable && notDeleted && published));
         }
     }
 }

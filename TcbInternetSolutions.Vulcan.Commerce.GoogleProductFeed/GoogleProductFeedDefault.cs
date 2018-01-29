@@ -1,11 +1,7 @@
-﻿using System;
-using System.Linq;
+﻿using EPiServer.Commerce.Catalog.ContentTypes;
 using EPiServer.Framework;
 using EPiServer.Framework.Initialization;
-using System.Web.Routing;
-using System.Web.Mvc;
 using EPiServer.ServiceLocation;
-using EPiServer.Commerce.Catalog.ContentTypes;
 
 namespace TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed
 {

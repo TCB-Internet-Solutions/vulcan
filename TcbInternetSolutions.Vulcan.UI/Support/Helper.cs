@@ -1,45 +1,48 @@
 ﻿using System;
 using System.Linq;
+using EPiServer.ServiceLocation;
+using EPiServer.Web.Hosting;
 
 namespace TcbInternetSolutions.Vulcan.UI.Support
 {
     public static class Helper
     {
-        public static string ResolveView(string View)
+        public static string ResolveView(string view)
         {
-            var protectedModulesVpp = EPiServer.ServiceLocation.ServiceLocator.Current.GetInstance<EPiServer.Web.Hosting.VirtualPathRegistrationHandler>().RegisteredVirtualPathProviders.Where(p => (p.Key is EPiServer.Web.Hosting.VirtualPathNonUnifiedProvider) && ((p.Key as EPiServer.Web.Hosting.VirtualPathNonUnifiedProvider).ProviderName == "ProtectedModules"));
+            var protectedModulesVpp = ServiceLocator.Current.
+                GetInstance<VirtualPathRegistrationHandler>()
+                    .RegisteredVirtualPathProviders.Where(p => p.Key is VirtualPathNonUnifiedProvider && ((VirtualPathNonUnifiedProvider) p.Key).ProviderName == "ProtectedModules")
+                    .ToList();
 
-            if(protectedModulesVpp.Count() > 0)
+            if (!protectedModulesVpp.Any() ||!(protectedModulesVpp[0].Key is VirtualPathNonUnifiedProvider provider))
+                throw new Exception("Cannot resolve the Vulcan UI views");
+
+            var path = provider.ConfigurationParameters["physicalPath"].Replace(@"\", "/");
+
+            if (!path.StartsWith("~"))
             {
-                var path = (protectedModulesVpp.First().Key as EPiServer.Web.Hosting.VirtualPathNonUnifiedProvider).ConfigurationParameters["physicalPath"].Replace(@"\", "/");
-
-                if(!path.StartsWith("~"))
+                if (!path.StartsWith("/"))
                 {
-                    if(!path.StartsWith("/"))
-                    {
-                        path = "~/" + path;
-                    }
-                    else
-                    {
-                        path = "~" + path;
-                    }
+                    path = "~/" + path;
                 }
-                else if (!path.StartsWith("/"))
+                else
                 {
-                    if (!path.StartsWith("~"))
-                    {
-                        path = "~/" + path;
-                    }
+                    path = "~" + path;
                 }
-
-                if (!path.EndsWith("/")) path += "/";
-
-                if (!View.StartsWith("/")) View = "/" + View;
-
-                return path + "TcbInternetSolutions.Vulcan.UI/Views" + View;
+            }
+            else if (!path.StartsWith("/"))
+            {
+                if (!path.StartsWith("~"))
+                {
+                    path = "~/" + path;
+                }
             }
 
-            throw new Exception("Cannot resolve the Vulcan UI views");
+            if (!path.EndsWith("/")) path += "/";
+
+            if (!view.StartsWith("/")) view = "/" + view;
+
+            return path + "TcbInternetSolutions.Vulcan.UI/Views" + view;
         }
     }
 }

@@ -11,7 +11,8 @@
     [ServiceConfiguration(typeof(IVulcanPipelineSelector), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanPipelineSelector : IVulcanPipelineSelector
     {
-        private readonly IEnumerable<IVulcanPipeline> _AllPipelines;
+        private readonly IEnumerable<IVulcanPipeline> _allPipelines;
+        private IEnumerable<IVulcanPipeline> _sortedPipelines;
 
         /// <summary>
         /// DI Constructor
@@ -19,7 +20,7 @@
         /// <param name="allPipelines"></param>
         public VulcanPipelineSelector(IEnumerable<IVulcanPipeline> allPipelines)
         {
-            _AllPipelines = allPipelines;
+            _allPipelines = allPipelines;
         }
 
         /// <summary>
@@ -29,12 +30,10 @@
         /// <returns></returns>
         public virtual IVulcanPipeline GetPipelineById(string id)
         {
-            if (string.IsNullOrWhiteSpace(id))
-            {
-                return null;
-            }
-
-            return _AllPipelines.FirstOrDefault(x => string.Compare(id, x.Id, System.StringComparison.OrdinalIgnoreCase) == 0);
+            return string.IsNullOrWhiteSpace(id)
+                ? null
+                : GetSortedPipelines().FirstOrDefault(x =>
+                    string.Compare(id, x.Id, System.StringComparison.OrdinalIgnoreCase) == 0);
         }
 
         /// <summary>
@@ -44,18 +43,17 @@
         /// <returns></returns>
         public virtual IVulcanPipeline GetPipelineForContent(IContent content)
         {
-            if (_AllPipelines?.Any() == true)
+            return GetSortedPipelines()?.FirstOrDefault(x => x.IsMatch(content));
+        }
+
+        private IEnumerable<IVulcanPipeline> GetSortedPipelines()
+        {
+            if (_sortedPipelines == null && _allPipelines?.Any() == true)
             {
-                foreach (var pipeline in _AllPipelines.OrderByDescending(x => x.SortOrder))
-                {
-                    if (pipeline.IsMatch(content))
-                    {
-                        return pipeline;
-                    }
-                }
+                _sortedPipelines = _allPipelines.OrderByDescending(x => x.SortOrder).ToList();
             }
 
-            return null;
+            return _sortedPipelines;
         }
     }
 }

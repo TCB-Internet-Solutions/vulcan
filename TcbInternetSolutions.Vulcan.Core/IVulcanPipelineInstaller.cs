@@ -1,6 +1,4 @@
-﻿using EPiServer.Framework.Initialization;
-
-namespace TcbInternetSolutions.Vulcan.Core
+﻿namespace TcbInternetSolutions.Vulcan.Core
 {
     /// <summary>
     /// Installs a pipeline on Epi initialization

@@ -10,9 +10,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TcbInternetSolutions.Vulcan.Core;
+// ReSharper disable InvertIf
 
 namespace TcbInternetSolutions.Vulcan.Commerce.SearchProviders
 {
@@ -46,29 +45,23 @@ namespace TcbInternetSolutions.Vulcan.Commerce.SearchProviders
 
         public override ISearchResults Search(string applicationName, ISearchCriteria criteria)
         {
-            if (criteria is CatalogEntrySearchCriteria)
+            if (criteria is CatalogEntrySearchCriteria cesc && cesc.ClassTypes?.Count == 1)
             {
-                var cesc = criteria as CatalogEntrySearchCriteria;
-
-                if (cesc.ClassTypes != null && cesc.ClassTypes.Count == 1)
+                // in this provider, we only support a single class type
+                switch (cesc.ClassTypes[0].ToUpper())
                 {
-                    // in this provider, we only support a single class type
+                    case "VARIANT":
+                        return Search<VariationContent>(criteria);
 
-                    switch(cesc.ClassTypes[0].ToUpper())
-                    {
-                        case "VARIANT":
-                            return Search<VariationContent>(criteria);
+                    case "PRODUCT":
+                        return Search<ProductContent>(criteria);
 
-                        case "PRODUCT":
-                            return Search<ProductContent>(criteria);
+                    case "BUNDLE":
+                        return Search<BundleContent>(criteria);
 
-                        case "BUNDLE":
-                            return Search<BundleContent>(criteria);
-
-                        case "PACKAGE":
-                        case "DYNAMICPACKAGE": // for Vulcan purposes, dynamic packages are the same as packages
-                            return Search<PackageContent>(criteria);
-                    }
+                    case "PACKAGE":
+                    case "DYNAMICPACKAGE": // for Vulcan purposes, dynamic packages are the same as packages
+                        return Search<PackageContent>(criteria);
                 }
             }
 
@@ -83,23 +76,21 @@ namespace TcbInternetSolutions.Vulcan.Commerce.SearchProviders
 
             var filters = new List<Nest.QueryContainer>();
 
-            if(criteria is CatalogEntrySearchCriteria)
+            if (criteria is CatalogEntrySearchCriteria cesc1)
             {
-                var cesc = criteria as CatalogEntrySearchCriteria;
-
-                if (!string.IsNullOrWhiteSpace(cesc.SearchPhrase))
+                if (!string.IsNullOrWhiteSpace(cesc1.SearchPhrase))
                 {
                     filters.Add(new Nest.QueryContainerDescriptor<T>().SimpleQueryString(
-                        sq => sq.Fields(f => f.Field("*.analyzed")).Query(cesc.SearchPhrase.Trim())));
+                        sq => sq.Fields(f => f.Field("*.analyzed")).Query(cesc1.SearchPhrase.Trim())));
                 }
             }
 
             // 2: id ... NOTE: Vulcan supports 1 and only 1 filter field, code
 
-            if(criteria.ActiveFilterFields != null && criteria.ActiveFilterFields.Count() == 1 && criteria.ActiveFilterFields[0].Equals("code", StringComparison.InvariantCultureIgnoreCase))
+            if (criteria.ActiveFilterFields?.Any() == true && criteria.ActiveFilterFields[0].Equals("code", StringComparison.InvariantCultureIgnoreCase))
             {
                 filters.Add(new Nest.QueryContainerDescriptor<T>().Term(
-                            p => p.Field(f => f.Code).Value((criteria.ActiveFilterValues[0] as SimpleValue).value)));
+                            p => p.Field(f => f.Code).Value((criteria.ActiveFilterValues[0] as SimpleValue)?.value)));
             }
 
             // 3: inactive... TODO, not sure what this should check!
@@ -112,26 +103,23 @@ namespace TcbInternetSolutions.Vulcan.Commerce.SearchProviders
 
             // get catalog filter, if needed
 
-           var catalogReferences = new List<ContentReference>();
+            var catalogReferences = new List<ContentReference>();
 
-            if (criteria is CatalogEntrySearchCriteria)
+            var cesc = criteria as CatalogEntrySearchCriteria;
+
+            if (cesc?.CatalogNames != null)
             {
-                var cesc = criteria as CatalogEntrySearchCriteria;
+                var catalogs = ContentLoader.Service.GetChildren<CatalogContent>(ReferenceConverter.Service.GetRootLink())?.ToList();
 
-                if(cesc.CatalogNames != null)
+                if (catalogs?.Any() == true)
                 {
-                    var catalogs = ContentLoader.Service.GetChildren<CatalogContent>(ReferenceConverter.Service.GetRootLink());
-
-                    if (catalogs != null && catalogs.Any())
+                    foreach (var catalogName in cesc.CatalogNames)
                     {
-                        foreach (var catalogName in cesc.CatalogNames)
-                        {
-                            var catalog = catalogs.FirstOrDefault(c => c.Name.Equals(catalogName, StringComparison.InvariantCultureIgnoreCase));
+                        var catalog = catalogs.FirstOrDefault(c => c.Name.Equals(catalogName, StringComparison.InvariantCultureIgnoreCase));
 
-                            if(catalog != null)
-                            {
-                                catalogReferences.Add(catalog.ContentLink);
-                            }
+                        if (catalog != null)
+                        {
+                            catalogReferences.Add(catalog.ContentLink);
                         }
                     }
                 }
@@ -142,26 +130,21 @@ namespace TcbInternetSolutions.Vulcan.Commerce.SearchProviders
             // do search
 
             var searchDescriptor = new Nest.SearchDescriptor<T>();
-
             searchDescriptor.Skip(criteria.StartingRecord);
             searchDescriptor.Take(criteria.RecordsToRetrieve);
-            
-            if(filters.Any())
+
+            if (filters.Any())
             {
                 searchDescriptor.Query(q => q.Bool(b => b.Must(filters.ToArray())));
             }
 
             var client = VulcanHandler.Service.GetClient(new CultureInfo(criteria.Locale));
-
             var results = client.SearchContent<T>(q => searchDescriptor, false, catalogReferences);
+            var searchDocuments = new SearchDocuments { TotalCount = Convert.ToInt32(results.Total) };
 
-            //var id = ReferenceConverter.Service.GetObjectId();
-
-            var searchDocuments = new SearchDocuments() { TotalCount = Convert.ToInt32(results.Total) };
-
-            if(results.Hits != null && results.Hits.Any())
+            if (results.Hits.Any())
             {
-                foreach(var hit in results.Hits)
+                foreach (var hit in results.Hits)
                 {
                     var doc = new SearchDocument();
                     doc.Add(new SearchField("_id", ReferenceConverter.Service.GetObjectId(hit.Source.ContentLink)));

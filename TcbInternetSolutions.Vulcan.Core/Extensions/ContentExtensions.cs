@@ -14,7 +14,9 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
     /// </summary>
     public static class ContentExtensions
     {
-        private static ILogger Logger = LogManager.GetLogger();
+        private static readonly ILogger Logger = LogManager.GetLogger();
+
+        private static IContentLoader GetContentLoader() => ServiceLocator.Current.GetInstance<IContentLoader>();
 
         /// <summary>
         /// Injected VulcanHanlder
@@ -27,8 +29,8 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
         /// <typeparam name="T"></typeparam>
         /// <param name="hit"></param>
         /// <returns></returns>
-        public static T GetContent<T>(this Nest.IHit<IContent> hit) where T : IContent =>
-            ServiceLocator.Current.GetInstance<IContentLoader>().Get<T>(new ContentReference(hit.Id));
+        public static T GetContent<T>(this IHit<IContent> hit) where T : IContent =>
+            GetContentLoader().Get<T>(new ContentReference(hit.Id));
 
         /// <summary>
         /// Gets fully populated content from given content
@@ -37,7 +39,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
         /// <param name="content"></param>
         /// <returns></returns>
         public static T GetContent<T>(this IContent content) where T : IContent =>
-            ServiceLocator.Current.GetInstance<IContentLoader>().Get<T>(content.ContentLink);
+            GetContentLoader().Get<T>(content.ContentLink);
 
         /// <summary>
         /// Converts search response to list of content
@@ -67,42 +69,39 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
 
             var dic = new Dictionary<IHit<T>, T>();
 
-            if (searchResponse != null && searchResponse.Hits != null)
+            // ReSharper disable once InvertIf
+            if (searchResponse?.Hits != null)
             {
-                var contentLoader = ServiceLocator.Current.GetInstance<IContentLoader>();
+                var contentLoader = GetContentLoader();
 
                 foreach (var hit in searchResponse.Hits)
                 {
                     try
-                    {
-                        Type contentType = null;
-
-                        if (!resolved.TryGetValue(hit.Type, out contentType))
+                    {                        
+                        if (!resolved.TryGetValue(hit.Type, out var contentType))
                         {
                             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
                             {
                                 var type = assembly.GetType(hit.Type, false);
 
-                                if (type != null)
-                                {
-                                    contentType = type;
-                                    resolved.Add(hit.Type, type);
-                                }
+                                if (type == null) continue;
+
+                                contentType = type;
+                                resolved.Add(hit.Type, type);
                             }
                         }
 
-                        if (contentType != null && typeof(IContent).IsAssignableFrom(contentType))
-                        {
-                            var content = contentLoader.Get<T>(new ContentReference(hit.Id));
+                        if (contentType == null || !typeof(IContent).IsAssignableFrom(contentType)) continue;
 
-                            if (content != null)
-                            {
-                                dic.Add(hit, content);
-                            }
-                            else
-                            {
-                                Logger.Warning("Vulcan found a content within hits that was missing with content link: " + hit.Id);
-                            }
+                        var content = contentLoader.Get<T>(new ContentReference(hit.Id));
+
+                        if (content != null)
+                        {
+                            dic.Add(hit, content);
+                        }
+                        else
+                        {
+                            Logger.Warning("Vulcan found a content within hits that was missing with content link: " + hit.Id);
                         }
                     }
                     catch (Exception e)
@@ -120,39 +119,43 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
         /// </summary>
         /// <param name="content"></param>
         /// <returns></returns>
-        public static string GetTypeName(this IContent content) =>
-                    content.GetType().Name.EndsWith("Proxy") ? content.GetType().BaseType.FullName : content.GetType().FullName;
+        public static string GetTypeName(this IContent content)
+        {
+            if (content == null)
+                throw new ArgumentNullException(nameof(content));
+
+            var contentType = content.GetType();
+           
+            return contentType.Name.EndsWith("Proxy") && contentType.BaseType != null ? contentType.BaseType.FullName : contentType.FullName;
+        }
 
         private static IEnumerable<T> GetContentsWorker<T>(ISearchResponse<IContent> searchResponse) where T : class, IContent
         {
             var list = new List<T>();
+            if (searchResponse?.Documents == null) return list;
 
-            if (searchResponse != null && searchResponse.Documents != null)
+            var contentLoader = ServiceLocator.Current.GetInstance<IContentLoader>();
+
+            foreach (var document in searchResponse.Documents)
             {
-                var contentLoader = ServiceLocator.Current.GetInstance<IContentLoader>();
+                if (!(document is IVulcanContentHit vulcanDocument)) continue;
 
-                foreach (var document in searchResponse.Documents)
+                try
                 {
-                    if (document is IVulcanContentHit)
-                    {
-                        try
-                        {
-                            var content = contentLoader.Get<T>((document as IVulcanContentHit).ContentLink);
+                    var content = contentLoader.Get<T>(vulcanDocument.ContentLink);
 
-                            if (content != null)
-                            {
-                                list.Add(content);
-                            }
-                            else
-                            {
-                                Logger.Warning("Vulcan found a content in the index that was missing with content link: " + (document as IVulcanContentHit).ContentLink.ToString());
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            Logger.Warning("Vulcan found a content in the index that could not be loaded with content link: " + (document as IVulcanContentHit).ContentLink.ToString(), e);
-                        }
+                    if (content != null)
+                    {
+                        list.Add(content);
                     }
+                    else
+                    {
+                        Logger.Warning("Vulcan found a content in the index that was missing with content link: " + vulcanDocument.ContentLink);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Logger.Warning("Vulcan found a content in the index that could not be loaded with content link: " + vulcanDocument.ContentLink, e);
                 }
             }
 
@@ -166,7 +169,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
         /// <returns></returns>
         public static string SearchFileExtension(this MediaData media)
         {
-            if (media == null)
+            if (media?.RouteSegment == null)
                 return string.Empty;
 
             try

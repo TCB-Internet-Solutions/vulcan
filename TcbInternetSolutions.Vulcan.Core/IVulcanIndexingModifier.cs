@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-namespace TcbInternetSolutions.Vulcan.Core
+﻿namespace TcbInternetSolutions.Vulcan.Core
 {
     /// <summary>
     /// Index modifier
@@ -11,6 +9,6 @@ namespace TcbInternetSolutions.Vulcan.Core
         /// Process modifier and flush customization to stream
         /// </summary>
         /// <param name="modifierArgs"></param>
-        void ProcessContent(IVulcanIndexingModifierArgs modifierArgs);//, Stream writableStream);
+        void ProcessContent(IVulcanIndexingModifierArgs modifierArgs);
     }
 }

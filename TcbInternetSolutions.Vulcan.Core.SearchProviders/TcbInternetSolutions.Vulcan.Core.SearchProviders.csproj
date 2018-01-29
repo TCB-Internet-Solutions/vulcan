@@ -176,15 +176,15 @@
     <Compile Include="VulcanSearchProviderBase.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
+    <None Include="packages.config" />
+    <None Include="TcbInternetSolutions.Vulcan.Core.SearchProviders.nuspec" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\TcbInternetSolutions.Vulcan.Core\TcbInternetSolutions.Vulcan.Core.csproj">
       <Project>{74975f21-f58d-4204-9cca-4ca890e3bf12}</Project>
       <Name>TcbInternetSolutions.Vulcan.Core</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="app.config" />
-    <None Include="packages.config" />
-    <None Include="TcbInternetSolutions.Vulcan.Core.SearchProviders.nuspec" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

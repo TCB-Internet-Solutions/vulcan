@@ -7,11 +7,11 @@ namespace TcbInternetSolutions.Vulcan.Commerce
 {
     public class VulcanCommerceIndexer : IVulcanContentIndexer
     {
-        private readonly ReferenceConverter _ReferenceConverter;
+        private readonly ReferenceConverter _referenceConverter;
 
         public VulcanCommerceIndexer(ReferenceConverter referenceConverter)
         {
-            _ReferenceConverter = referenceConverter;
+            _referenceConverter = referenceConverter;
         }
 
         public int ClearCacheItemInterval => 100;
@@ -24,6 +24,6 @@ namespace TcbInternetSolutions.Vulcan.Commerce
         }
 
         public KeyValuePair<EPiServer.Core.ContentReference, string> GetRoot() =>
-            new KeyValuePair<EPiServer.Core.ContentReference, string>(_ReferenceConverter.GetRootLink(), "Commerce");
+            new KeyValuePair<EPiServer.Core.ContentReference, string>(_referenceConverter.GetRootLink(), "Commerce");
     }
 }
