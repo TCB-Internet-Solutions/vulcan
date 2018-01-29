@@ -16,9 +16,10 @@
     {
         private static readonly ILogger Logger = LogManager.GetLogger();
         private readonly IVulcanHandler _vulcanHandler;
+        private readonly IVulcanIndexContentJobSettings _vulcanIndexContentJobSettings;
+        private readonly IEnumerable<IVulcanIndexer> _vulcanIndexers;
         private readonly IVulcanPocoIndexingJob _vulcanPocoIndexHandler;
         private readonly IVulcanSearchContentLoader _vulcanSearchContentLoader;
-        private readonly IEnumerable<IVulcanIndexer> _vulcanIndexers;
         private bool _stopSignaled;
 
         /// <summary>
@@ -28,11 +29,13 @@
         /// <param name="vulcanHandler"></param>
         /// <param name="vulcanPocoIndexingJob"></param>
         /// <param name="vulcanIndexers"></param>
+        /// <param name="vulcanIndexContentJobSettings"></param>
         public VulcanIndexContentJob
         (
             IVulcanSearchContentLoader vulcanSearchContentLoader,
             IVulcanHandler vulcanHandler,
             IVulcanPocoIndexingJob vulcanPocoIndexingJob,
+            IVulcanIndexContentJobSettings vulcanIndexContentJobSettings,
             IEnumerable<IVulcanIndexer> vulcanIndexers
         )
         {
@@ -40,6 +43,7 @@
             _vulcanHandler = vulcanHandler;
             _vulcanPocoIndexHandler = vulcanPocoIndexingJob;
             _vulcanIndexers = vulcanIndexers;
+            _vulcanIndexContentJobSettings = vulcanIndexContentJobSettings;
             IsStoppable = true;
         }
 
@@ -53,7 +57,7 @@
             _vulcanHandler.DeleteIndex(); // delete all language indexes
             var totalIndexedCount = 0;
 
-            foreach (var indexer in _vulcanIndexers)
+            foreach (var indexer in EnumerateIndexers())
             {
                 var pocoIndexer = indexer as IVulcanPocoIndexer;
                 var cmsIndexer = indexer as IVulcanContentIndexer;
@@ -66,24 +70,24 @@
                 {
                     var contentReferences = _vulcanSearchContentLoader.GetSearchContentReferences(cmsIndexer).ToList();
 
-                    for (var cr = 0; cr < contentReferences.Count; cr++)
+                    var contentRecord = 0;
+                    foreach (var contentReference in EnumerateContent(contentReferences))
                     {
                         if (cmsIndexer.ClearCacheItemInterval >= 0)
                         {
-                            if (cr % cmsIndexer.ClearCacheItemInterval == 0)
+                            if (contentRecord % cmsIndexer.ClearCacheItemInterval == 0)
                             {
                                 cmsIndexer.ClearCache();
                             }
                         }
 
                         // only update this every 100 records (reduce load on db)
-                        if (cr % 100 == 0)
+                        if (contentRecord % 100 == 0)
                         {
-                            OnStatusChanged($"{indexer.IndexerName} indexing item {cr + 1} of {contentReferences.Count} items of {cmsIndexer.GetRoot().Value} content");
+                            OnStatusChanged($"{indexer.IndexerName} indexing item {contentRecord + 1} of {contentReferences.Count} items of {cmsIndexer.GetRoot().Value} content");
                         }
 
                         IContent content = null;
-                        var contentReference = contentReferences.ElementAt(cr);
 
                         try
                         {
@@ -114,7 +118,7 @@
                         }
                         else
                         {
-                            Logger.Information($"Vulcan indexed content with reference: {cr} and name: {content.Name}");
+                            Logger.Information($"Vulcan indexed content with reference: {contentRecord} and name: {content.Name}");
                             _vulcanHandler.IndexContentEveryLanguage(content);
                             totalIndexedCount++;
                         }
@@ -123,6 +127,8 @@
                         {
                             return "Stop of job was called";
                         }
+
+                        contentRecord++;
                     }
                 }
             }
@@ -137,5 +143,11 @@
         {
             _stopSignaled = true;
         }
+
+        private IEnumerable<ContentReference> EnumerateContent(IEnumerable<ContentReference> contentReferences) =>
+            _vulcanIndexContentJobSettings.EnableParallelContent ? contentReferences.AsParallel() : contentReferences;
+
+        private IEnumerable<IVulcanIndexer> EnumerateIndexers() =>
+            _vulcanIndexContentJobSettings.EnableParallelIndexers ? _vulcanIndexers.AsParallel() : _vulcanIndexers;
     }
 }

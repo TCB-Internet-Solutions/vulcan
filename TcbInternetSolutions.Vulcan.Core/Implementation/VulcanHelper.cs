@@ -1,6 +1,4 @@
-﻿using EPiServer.Core;
-using EPiServer.Data.Dynamic;
-using EPiServer.DataAbstraction;
+﻿using EPiServer.Data.Dynamic;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -38,16 +36,6 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             return indexNameBase + suffix;
         }
-
-        internal static Type[] IgnoredTypes =>
-            new[]
-            {
-                typeof(PropertyDataCollection),
-                typeof(ContentArea),
-                typeof(CultureInfo),
-                typeof(IEnumerable<CultureInfo>),
-                typeof(PageType)
-            };
 
         /// <summary>
         /// Get analyzer for cultureinfo
@@ -146,97 +134,6 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             return "standard";
         }
 
-        internal static Nest.Language? GetLanguage(CultureInfo cultureInfo)
-        {
-            if (!cultureInfo.Equals(CultureInfo.InvariantCulture)) // check if we have non-language data
-            {
-                if (!cultureInfo.IsNeutralCulture)
-                {
-                    // try something specific first
-
-                    switch (cultureInfo.Name.ToUpper())
-                    {
-                        case "PT-BR":
-                            return Nest.Language.Brazilian;
-                    }
-                }
-
-                // nothing specific matched, go with generic
-                switch (cultureInfo.TwoLetterISOLanguageName.ToUpper())
-                {
-                    case "AR":
-                        return Nest.Language.Arabic;
-                    case "HY":
-                        return Nest.Language.Armenian;
-                    case "EU":
-                        return Nest.Language.Basque;
-                    case "BG":
-                        return Nest.Language.Bulgarian;
-                    case "CA":
-                        return Nest.Language.Catalan;
-                    case "ZH":
-                        return Nest.Language.Chinese;
-                    case "KO":
-                        return Nest.Language.Cjk; // generic chinese-japanese-korean                            
-                    case "JP":
-                        return Nest.Language.Cjk; // generic chinese-japanese-korean                            
-                    case "CS":
-                        return Nest.Language.Czech;
-                    case "DA":
-                        return Nest.Language.Danish;
-                    case "NL":
-                        return Nest.Language.Dutch;
-                    case "EN":
-                        return Nest.Language.English;
-                    case "FI":
-                        return Nest.Language.Finnish;
-                    case "FR":
-                        return Nest.Language.French;
-                    case "GL":
-                        return Nest.Language.Galician;
-                    case "DE":
-                        return Nest.Language.German;
-                    case "GR":
-                        return Nest.Language.Greek;
-                    case "HI":
-                        return Nest.Language.Hindi;
-                    case "HU":
-                        return Nest.Language.Hungarian;
-                    case "ID":
-                        return Nest.Language.Indonesian;
-                    case "GA":
-                        return Nest.Language.Irish;
-                    case "IT":
-                        return Nest.Language.Italian;
-                    case "LV":
-                        return Nest.Language.Latvian;
-                    case "NO":
-                        return Nest.Language.Norwegian;
-                    case "FA":
-                        return Nest.Language.Persian;
-                    case "PT":
-                        return Nest.Language.Portuguese;
-                    case "RO":
-                        return Nest.Language.Romanian;
-                    case "RU":
-                        return Nest.Language.Russian;
-                    case "KU":
-                        return Nest.Language.Sorani; // Kurdish                            
-                    case "ES":
-                        return Nest.Language.Spanish;
-                    case "SV":
-                        return Nest.Language.Swedish;
-                    case "TR":
-                        return Nest.Language.Turkish;
-                    case "TH":
-                        return Nest.Language.Thai;
-                }
-            }
-
-            // couldn't find a match (or invariant culture)
-            return null;
-        }
-
         internal static void AddSynonym(string language, string term, string[] synonyms, bool biDirectional)
         {
             if (string.IsNullOrWhiteSpace(term))
@@ -250,9 +147,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             }
 
             term = term.ToLower().Trim();
-
-            var store = DynamicDataStoreFactory.Instance.CreateStore(typeof(VulcanSynonym));
-
+            var store = CreateVulcanStore();
             var synonym = store.LoadAll<VulcanSynonym>().FirstOrDefault(s => s.Term == term && s.Language == language) ?? new VulcanSynonym();
 
             synonym.Language = language;
@@ -271,9 +166,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             }
 
             term = term.ToLower().Trim();
-
-            var store = DynamicDataStoreFactory.Instance.CreateStore(typeof(VulcanSynonym));
-
+            var store = CreateVulcanStore();
             var synonym = store.LoadAll<VulcanSynonym>().FirstOrDefault(s => s.Term == term && s.Language == language);
 
             if (synonym != null)
@@ -283,10 +176,13 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         }
 
         internal static Dictionary<string, KeyValuePair<string[], bool>> GetSynonyms(string language)
-        {
-            var store = DynamicDataStoreFactory.Instance.CreateStore(typeof(VulcanSynonym));
-
-            return store.LoadAll<VulcanSynonym>().Where(s => s.Language == language).ToDictionary(s => s.Term, s => new KeyValuePair<string[], bool>(s.Synonyms, s.BiDirectional));
+        {            
+            return CreateVulcanStore()
+                .LoadAll<VulcanSynonym>()
+                .Where(s => s.Language == language)
+                .ToDictionary(s => s.Term, s => new KeyValuePair<string[], bool>(s.Synonyms, s.BiDirectional));
         }
+
+        private static DynamicDataStore CreateVulcanStore() => DynamicDataStoreFactory.Instance.CreateStore(typeof(VulcanSynonym));
     }
 }

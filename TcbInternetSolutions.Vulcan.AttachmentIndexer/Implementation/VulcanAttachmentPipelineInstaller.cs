@@ -16,6 +16,11 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer.Implementation
     public class VulcanAttachmentPipelineInstaller : IVulcanPipelineInstaller
     {
         /// <summary>
+        /// Advanced option for forcing attachments for a type in Nest 2x where new media types were added later
+        /// </summary>
+        public static Func<Type, bool> MapAttachment;
+
+        /// <summary>
         /// Attachment Pipeline ID
         /// </summary>
         public const string PipelineId = "vulcan-attachment";
@@ -62,11 +67,12 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer.Implementation
                 var descriptors = mediaType.GetCustomAttributes(false).OfType<MediaDescriptorAttribute>();
                 var extensionStrings = string.Join(",", descriptors.Select(x => x.ExtensionString ?? ""));
                 var extensions = extensionStrings.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                var manualCheck = MapAttachment?.Invoke(mediaType) ?? false;
 
                 // only map ones we allow
-                if (!extensions.Union(_vulcanAttachmentIndexerSettings.SupportedFileExtensions).Any()) continue;
+                if (!extensions.Intersect(_vulcanAttachmentIndexerSettings.SupportedFileExtensions).Any() && !manualCheck) continue;
 
-                var response = client.Map<object>(m => m.
+                var response = client.Map<object>(m => m.                    
                     Index(client.IndexName). // was _all
                     Type(mediaType.FullName).
                     Properties(props => props.

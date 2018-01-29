@@ -1,4 +1,6 @@
-﻿namespace TcbInternetSolutions.Vulcan.Core.Implementation
+﻿using System.Collections.Concurrent;
+
+namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
     using EPiServer;
     using EPiServer.Core;
@@ -26,7 +28,7 @@
         /// <summary>
         /// List of vulcan clients
         /// </summary>
-        protected Dictionary<CultureInfo, IVulcanClient> Clients = new Dictionary<CultureInfo, IVulcanClient>();
+        protected ConcurrentDictionary<CultureInfo, IVulcanClient> Clients = new ConcurrentDictionary<CultureInfo, IVulcanClient>();
 
         private readonly Dictionary<Type, List<IVulcanConditionalContentIndexInstruction>> _conditionalContentIndexInstructions;
         private readonly IVulcanPipelineSelector _vulcanPipelineSelector;
@@ -99,12 +101,14 @@
         /// <param name="instruction"></param>
         public void AddConditionalContentIndexInstruction<T>(Func<T, bool> instruction) where T : IContent
         {
-            if (!_conditionalContentIndexInstructions.ContainsKey(typeof(T)))
+            var typeT = typeof(T);
+
+            if (!_conditionalContentIndexInstructions.ContainsKey(typeT))
             {
-                _conditionalContentIndexInstructions.Add(typeof(T), new List<IVulcanConditionalContentIndexInstruction>());
+                _conditionalContentIndexInstructions.Add(typeT, new List<IVulcanConditionalContentIndexInstruction>());
             }
 
-            _conditionalContentIndexInstructions[typeof(T)].Add(new VulcanConditionalContentIndexInstruction<T>(instruction));
+            _conditionalContentIndexInstructions[typeT].Add(new VulcanConditionalContentIndexInstruction<T>(instruction));
         }
 
         /// <summary>
@@ -180,7 +184,7 @@
                 {
                     var indicesToDelete = new List<string>();
 
-                    foreach (var index in indices.Records.Where(i => i.Index.StartsWith(Index + "_")).Select(i => i.Index))
+                    foreach (var index in indices.Records.Where(i => i.Index.StartsWith($"{Index}_")).Select(i => i.Index))
                     {
                         var response = client.DeleteIndex(index);
 
@@ -215,6 +219,8 @@
 
             lock (_lockObject)
             {
+                // todo: need some sort of check here to make sure we still need to create a client
+
                 var indexName = VulcanHelper.GetIndexName(Index, cultureInfo);
                 var settings = CommonConnectionSettings.ConnectionSettings;
                 settings.InferMappingFor<ContentMixin>(pd => pd.Ignore(p => p.MixinInstance));
@@ -321,15 +327,17 @@
 
                 client.OpenIndex(indexName);
 
-                // Init shards to attempt to fix empty results on first request
-                client.ClusterHealth(x => x.
-                    WaitForActiveShards(
+                if (CreateIndexCustomizer.WaitForActiveShards > 0)
+                {
+                    // Init shards to attempt to fix empty results on first request
+                    client.ClusterHealth(x => x.WaitForActiveShards(
 #if NEST2
-                    CreateIndexCustomizer.WaitForActiveShards
+                        CreateIndexCustomizer.WaitForActiveShards
 #elif NEST5
-                    CreateIndexCustomizer.WaitForActiveShards.ToString()
+                        CreateIndexCustomizer.WaitForActiveShards.ToString()
 #endif
-                ));
+                    ));
+                }
 
                 storedClient = client;
             }
@@ -357,7 +365,7 @@
                     .Where(i => i.Index.StartsWith(Index + "_")).Select(i => i.Index)
                     .Select(index => index.Substring(Index.Length + 1))
                     .Select(cultureName =>
-                        GetClient(cultureName.Equals("invariant", StringComparison.InvariantCultureIgnoreCase) ?
+                        GetClient(cultureName.Equals("invariant", StringComparison.OrdinalIgnoreCase) ?
                             CultureInfo.InvariantCulture :
                             new CultureInfo(cultureName)
                         )

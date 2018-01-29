@@ -5,6 +5,7 @@ using Nest;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -18,8 +19,23 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     {
         private readonly IEnumerable<IVulcanIndexingModifier> _vulcanModifiers;
 
+        private static readonly Type IgnoreType = typeof(VulcanIgnoreAttribute);
+
         /// <summary>
-        /// DI
+        /// Ignored property mapping types
+        /// </summary>
+        protected static Type[] IgnoredPropertyTypes =
+        {
+            typeof(PropertyDataCollection),
+            typeof(ContentArea),
+            typeof(CultureInfo),
+            typeof(IEnumerable<CultureInfo>),
+            typeof(EPiServer.DataAbstraction.PageType),
+            typeof(EPiServer.Framework.Blobs.Blob)
+        };
+
+        /// <summary>
+        /// DI Constructor
         /// </summary>
         /// <param name="settings"></param>
         /// <param name="modifiers"></param>
@@ -41,11 +57,21 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <returns></returns>
         public override IPropertyMapping CreatePropertyMapping(MemberInfo memberInfo)
         {
-            if (memberInfo.Name.Equals("PageName", StringComparison.OrdinalIgnoreCase) ||
-                memberInfo.Name.Contains(".") || memberInfo.MemberType == MemberTypes.Property &&
-                (IsSubclassOfRawGeneric(typeof(Injected<>), (memberInfo as PropertyInfo)?.PropertyType)
-                 || VulcanHelper.IgnoredTypes.Contains((memberInfo as PropertyInfo)?.PropertyType)
-                 || memberInfo.Name.Equals("DefaultMvcController", StringComparison.OrdinalIgnoreCase)))
+            var propertyType = (memberInfo as PropertyInfo)?.PropertyType;
+            // have to use Attribute.GetCustomAttributes, if types are proxied checking memberinfo directly is always false
+            var isIgnored = Attribute.GetCustomAttributes(memberInfo, IgnoreType, true).Length > 0;
+
+            if
+            (
+                isIgnored ||
+                memberInfo.Name.Equals("PageName", StringComparison.OrdinalIgnoreCase) ||
+                memberInfo.Name.Contains(".") ||
+                memberInfo.MemberType == MemberTypes.Property &&
+                (
+                    IsSubclassOfRawGeneric(typeof(Injected<>), propertyType) ||
+                    IgnoredPropertyTypes.Contains(propertyType) ||
+                    memberInfo.Name.Equals("DefaultMvcController", StringComparison.OrdinalIgnoreCase))
+                )
             {
                 return new PropertyMapping { Ignore = true };
             }
@@ -67,12 +93,12 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 // write all but ending }
                 CopyDataToStream(data, writableStream, formatting);
 
-                var content = ((IIndexRequest<IContent>) descriptedData).Document;
+                var content = ((IIndexRequest<IContent>)descriptedData).Document;
 
                 if (content != null && _vulcanModifiers != null)
                 {
                     // try to inspect to see if a pipeline was enabled
-                    var requestAccessor = (IRequest<IndexRequestParameters>) data;
+                    var requestAccessor = (IRequest<IndexRequestParameters>)data;
                     var pipelineId = requestAccessor.RequestParameters?.GetQueryStringValue<string>("pipeline"); // returns null if key not found                    
                     var args = new VulcanIndexingModifierArgs(content, pipelineId);
 
@@ -91,7 +117,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                     // add separator for additional items if any
                     if (args.AdditionalItems.Any())
                     {
-                        WriteToStream(" , " , writableStream); 
+                        WriteToStream(" , ", writableStream);
                     }
 
                     // copy all but starting {
@@ -99,7 +125,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 }
                 else
                 {
-                    WriteToStream( "}", writableStream); // add back closing
+                    WriteToStream("}", writableStream); // add back closing
                 }
             }
             else

@@ -48,11 +48,19 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer
         /// <param name="args"></param>
         public void ProcessContent(IVulcanIndexingModifierArgs args)
         {
-            if (!(args.Content is MediaData media)) return;
-            if (!IsMediaReadable(args)) return;
+            if (!IsMediaReadable(args, out var isPipeline, out var media)) return;
             var mediaBytes = _mediaReader.ReadToEnd(media);
             var base64Contents = Convert.ToBase64String(mediaBytes);
             var mimeType = media.MimeType;
+
+            var stringContents = _byteConvertor.ConvertToString(mediaBytes, mimeType);
+
+            if (!string.IsNullOrWhiteSpace(stringContents))
+            {
+                args.AdditionalItems[MediaStringContents] = stringContents;
+            }
+
+            if (!isPipeline) return;
 
 #if NEST2
             var mediaFields = new Dictionary<string, object>
@@ -69,16 +77,15 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer
             // 5x: only send base64 content if pipeline is enabled
             args.AdditionalItems[MediaContents] = base64contents;
 #endif
-            var stringContents = _byteConvertor.ConvertToString(mediaBytes, mimeType);
-
-            if (!string.IsNullOrWhiteSpace(stringContents))
-            {
-                args.AdditionalItems[MediaStringContents] = stringContents;
-            }
         }
 
-        private bool IsMediaReadable(IVulcanIndexingModifierArgs args)
+        private bool IsMediaReadable(IVulcanIndexingModifierArgs args, out bool isPipeline, out MediaData media)
         {
+            media = args.Content as MediaData;
+            isPipeline = false;
+
+            if (media == null) return false;
+
 #if NEST2
             // for 2x, have to evaluate pipeline here
             if (_attachmentPipeline == null)
@@ -88,16 +95,19 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer
 
             if (_attachmentPipeline?.IsMatch(args.Content) == true)
             {
-                return true;
+                return isPipeline = true;
             }
 #endif
 
-            if (args.PipelineId == Implementation.VulcanAttachmentPipelineInstaller.PipelineId) return true;
+            if (args.PipelineId == Implementation.VulcanAttachmentPipelineInstaller.PipelineId)
+            {
+                return isPipeline = true;
+            }
 
             if (_converterType == null)
             {
                 _converterType = _byteConvertor.GetType();
-            }
+            }            
 
             // default converter does nothing so don't read it
             return _converterType != typeof(DefaultVulcanBytesToStringConverter);
