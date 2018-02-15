@@ -284,11 +284,9 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                                 .MatchMappingType("string") //that are a string
                                 .Mapping(dynmap => dynmap.Keyword(s => s
                                     .IgnoreAbove(CreateIndexCustomizer.IgnoreAbove) // needed for: document contains at least one immense term in field
-                                    .IncludeInAll(false)
                                     .Fields(f => f
                                         .Text(ana => ana
                                             .Name(VulcanFieldConstants.AnalyzedModifier)
-                                            .IncludeInAll(false)
                                             .Store()
                                         )
                                     ))
