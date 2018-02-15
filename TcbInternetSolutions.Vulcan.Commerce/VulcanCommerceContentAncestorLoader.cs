@@ -38,13 +38,12 @@ namespace TcbInternetSolutions.Vulcan.Commerce
 
             if (content is VariationContent)
             {
-                //var productAncestors = _RelationRepository.GetParents<Relation>(content.ContentLink);
-                var productAncestors = _relationRepository.GetRelationsByTarget(content.ContentLink)?.OfType<ProductVariation>().ToList();
+                var productAncestors = (content as VariationContent).GetParentProducts();
 
                 if (productAncestors?.Any() == true)
                 {
-                    ancestors.AddRange(productAncestors.Select(GetLinkFromProductVariant));
-                    ancestors.AddRange(productAncestors.SelectMany(pa => GetAncestorCategoriesIterative(GetLinkFromProductVariant(pa), false)));
+                    ancestors.AddRange(productAncestors);
+                    ancestors.AddRange(productAncestors.SelectMany(pa => GetAncestorCategoriesIterative(pa, false)));
                 }
             }
 
@@ -62,7 +61,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
 
             try
             {
-                categories = _relationRepository.GetRelationsBySource<NodeRelation>(contentLink)?.ToList();
+                categories = _relationRepository.GetParents<NodeRelation>(contentLink)?.ToList();
             }
             catch (Exception)
             {
@@ -72,8 +71,8 @@ namespace TcbInternetSolutions.Vulcan.Commerce
 
             if (categories?.Any() == true)
             {
-                ancestors.AddRange(categories.Select(GetLinkFromRelation));
-                ancestors.AddRange(categories.SelectMany(c => GetAncestorCategoriesIterative(GetLinkFromRelation(c), true)));
+                ancestors.AddRange(categories.Select(c => c.Parent));
+                ancestors.AddRange(categories.SelectMany(c => GetAncestorCategoriesIterative(c.Parent, true)));
             }
 
             // ReSharper disable once InvertIf
@@ -85,16 +84,6 @@ namespace TcbInternetSolutions.Vulcan.Commerce
             }
 
             return ancestors;
-        }
-
-        private static ContentReference GetLinkFromProductVariant(ProductVariation p)
-        {
-            return p.Source; // should this be Parent?
-        }
-
-        private static ContentReference GetLinkFromRelation(Relation n)
-        {
-            return n.Target; // should this be Child?
         }
     }
 }
