@@ -11,7 +11,7 @@
     <tags>Vulcan UI Management ElasticSearch</tags>
     <dependencies>
       <dependency id="EPiServer.CMS.UI.Core" version="[11,12)" />
-      <dependency id="TcbInternetSolutions.Vulcan.Core" version="[5,6)" />
+      <dependency id="TcbInternetSolutions.Vulcan.Core" version="[5.*,6)" />
     </dependencies>
   </metadata>
   <files>
