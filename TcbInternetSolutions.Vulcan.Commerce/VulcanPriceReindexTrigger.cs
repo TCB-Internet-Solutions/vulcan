@@ -46,9 +46,10 @@ namespace TcbInternetSolutions.Vulcan.Commerce
             var clients = _vulcanHandler.GetClients();
             if (clients?.Any() != true) return;
 
+            var codes = variantCodes as IList<string> ?? variantCodes.ToList();
             foreach (var client in clients)
             {
-                foreach (var variantCode in variantCodes)
+                foreach (var variantCode in codes)
                 {
                     var variantLink = _referenceConverter.GetContentLink(variantCode);
 
