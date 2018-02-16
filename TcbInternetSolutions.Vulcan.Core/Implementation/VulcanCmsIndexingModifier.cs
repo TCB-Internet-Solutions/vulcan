@@ -1,91 +1,86 @@
 ﻿namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
-    using EPiServer;
     using EPiServer.Core;
     using EPiServer.DataAbstraction;
     using EPiServer.Security;
     using EPiServer.ServiceLocation;
+    using Extensions;
     using System;
     using System.Collections.Generic;
-    using System.IO;
     using System.Linq;
-    using TcbInternetSolutions.Vulcan.Core.Extensions;
 
     /// <summary>
     /// Default CMS content indexing modifier
     /// </summary>
+    [ServiceConfiguration(typeof(IVulcanIndexingModifier), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanCmsIndexingModifier : IVulcanIndexingModifier
-    {
-        Injected<IContentLoader> ContentLoader;
+    {        
+        private readonly IContentSecurityRepository _contentSecurityDescriptor;
+        private readonly IEnumerable<IVulcanContentAncestorLoader> _vulcanContentAncestorLoaders;
 
-        Injected<IVulcanHandler> VulcanHandler;
+        /// <summary>
+        /// DI Constructor
+        /// </summary>
+        /// <param name="contentSecurityRepository"></param>
+        /// <param name="vulcanContentAncestorLoader"></param>
+        public VulcanCmsIndexingModifier(IContentSecurityRepository contentSecurityRepository, IEnumerable<IVulcanContentAncestorLoader> vulcanContentAncestorLoader)
+        {
+            _contentSecurityDescriptor = contentSecurityRepository;
+            _vulcanContentAncestorLoaders = vulcanContentAncestorLoader;
+        }
 
         /// <summary>
         /// Writes additional IContent information to stream
         /// </summary>
-        /// <param name="content"></param>
-        /// <param name="writableStream"></param>
-        public virtual void ProcessContent(IContent content, Stream writableStream)
+        /// <param name="args"></param>
+        public virtual void ProcessContent(IVulcanIndexingModifierArgs args)
         {
-            var streamWriter = new StreamWriter(writableStream);
+            // index ancestors
             var ancestors = new List<ContentReference>();
 
-            if (VulcanHandler.Service.IndexingModifers?.Any() == true)
+            if (_vulcanContentAncestorLoaders?.Any() == true)
             {
-                foreach (var indexingModifier in VulcanHandler.Service.IndexingModifers)
+                foreach (var ancestorLoader in _vulcanContentAncestorLoaders)
                 {
-                    IEnumerable<ContentReference> ancestorsFound = null;
+                    var ancestorsFound = ancestorLoader.GetAncestors(args.Content)?.ToList();
 
-                    try
-                    {
-                        ancestorsFound = indexingModifier.GetAncestors(content);
-                    }
-                    catch (NotImplementedException) { }
-
-                    if (ancestorsFound != null && ancestorsFound.Any())
+                    if (ancestorsFound?.Any() == true)
                     {
                         ancestors.AddRange(ancestorsFound);
                     }
                 }
             }
 
-            // index ancestors
-            streamWriter.Write(",\"" + VulcanFieldConstants.Ancestors + "\":[");
-            streamWriter.Write(string.Join(",", ancestors.Select(x => x.ToReferenceWithoutVersion()).Distinct().Select(x => "\"" + x.ToString() + "\"")));
-            streamWriter.Write("]");
-            
-            // index read permission
-            var repo = ServiceLocator.Current.GetInstance<IContentSecurityRepository>();
-            var permissions = repo.Get(content.ContentLink);
+            args.AdditionalItems[VulcanFieldConstants.Ancestors] = ancestors.Select(x => x.ToReferenceWithoutVersion()).Distinct();
+
+            // index read permission            
+            var permissions = _contentSecurityDescriptor.Get(args.Content.ContentLink);
 
             if (permissions != null) // will be null for commerce products, compatibility handled in commerce modifier
             {
-                streamWriter.Write(",\"" + VulcanFieldConstants.ReadPermission + "\":[");
-                streamWriter.Write(string.Join(",", permissions.Entries.
+                args.AdditionalItems[VulcanFieldConstants.ReadPermission] = permissions.Entries.
                             Where(x =>
                                 x.Access.HasFlag(AccessLevel.Read) ||
                                 x.Access.HasFlag(AccessLevel.Administer) ||
-                                x.Access.HasFlag(AccessLevel.FullAccess))
-                            .Select(x => StringExtensions.JsonEscapeString(x.Name)) // json escape adds quotes
-                        ));
-                streamWriter.Write("]");
+                                x.Access.HasFlag(AccessLevel.FullAccess)).Select(x => x.Name);
+                
             }
 
             // index VulcanSearchableAttribute
-            List<string> contents = new List<string>();
-            var properties = content.GetType().GetProperties().Where(prop => Attribute.IsDefined(prop, typeof(VulcanSearchableAttribute)));
+            var contents = new List<string>();
+            var properties = args.Content.GetType().GetProperties().Where(prop => Attribute.IsDefined(prop, typeof(VulcanSearchableAttribute)));
 
             foreach (var p in properties)
             {
-                object value = p.GetValue(content);
+                var value = p.GetValue(args.Content);
 
                 // Property to string conversions
                 if (p.PropertyType == typeof(ContentArea))
                 {
-                    value = ContentAreaExtensions.GetContentAreaContents(value as ContentArea);
+                    value = (value as ContentArea).GetContentAreaContents();
                 }
 
-                string v = value?.ToString();
+                var v = value?.ToString();
 
                 if (!string.IsNullOrWhiteSpace(v))
                 {
@@ -93,19 +88,7 @@
                 }
             }
 
-            streamWriter.Write(",\"" + VulcanFieldConstants.CustomContents + "\":" + StringExtensions.JsonEscapeString(string.Join(" ", contents)));
-
-            streamWriter.Flush();
-        }
-
-        /// <summary>
-        /// Gets IContent ancestors
-        /// </summary>
-        /// <param name="content"></param>
-        /// <returns></returns>
-        public IEnumerable<ContentReference> GetAncestors(IContent content)
-        {
-            return ContentLoader.Service.GetAncestors(content.ContentLink)?.Select(c => c.ContentLink);
+            args.AdditionalItems[VulcanFieldConstants.CustomContents] = string.Join(" ", contents);
         }
     }
 }

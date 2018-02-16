@@ -11,7 +11,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     [ServiceConfiguration(typeof(IVulcanSearchContentLoader), Lifecycle = ServiceInstanceScope.Transient)]
     public class VulcanSearchContentLoader : IVulcanSearchContentLoader
     {
-        private IContentLoader _ContentLoader;
+        private readonly IContentLoader _contentLoader;
 
         /// <summary>
         /// Constructor
@@ -19,7 +19,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <param name="contentLoader"></param>
         public VulcanSearchContentLoader(IContentLoader contentLoader)
         {
-            _ContentLoader = contentLoader;
+            _contentLoader = contentLoader;
         }
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <returns></returns>
         public virtual IContent GetContent(ContentReference contentLink)
         {
-            return _ContentLoader.Get<IContent>(contentLink);
+            return _contentLoader.Get<IContent>(contentLink);
         }
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <returns></returns>
         public virtual IEnumerable<ContentReference> GetSearchContentReferences(IVulcanContentIndexer contentIndexer)
         {
-            return _ContentLoader.GetDescendents(contentIndexer.GetRoot().Key);
+            return _contentLoader.GetDescendents(contentIndexer.GetRoot().Key);
         }
     }
 }

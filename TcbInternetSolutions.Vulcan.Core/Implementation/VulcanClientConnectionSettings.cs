@@ -1,6 +1,8 @@
-﻿using EPiServer.ServiceLocation;
+﻿using Elasticsearch.Net;
+using EPiServer.ServiceLocation;
 using Nest;
 using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Web.Configuration;
 
@@ -12,15 +14,25 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     [ServiceConfiguration(typeof(IVulcanClientConnectionSettings), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanClientConnectionSettings : IVulcanClientConnectionSettings
     {
-        IVulcanConnectionPoolFactory _VulcanConnectionpoolFactory;
+        private readonly IVulcanConnectionPoolFactory _vulcanConnectionpoolFactory;
+        private readonly IEnumerable<IVulcanIndexingModifier> _vulcanIndexerModifers;        
+        private readonly IVulcanModfiySerializerSettings _vulcanModfiySerializerSettings;
 
         /// <summary>
         /// Injected constructor
         /// </summary>
         /// <param name="connectionpoolFactory"></param>
-        public VulcanClientConnectionSettings(IVulcanConnectionPoolFactory connectionpoolFactory)
+        /// <param name="vulcanIndexingModifiers"></param>
+        /// <param name="vulcanModfiySerializerSettings"></param>
+        public VulcanClientConnectionSettings
+        (
+            IVulcanConnectionPoolFactory connectionpoolFactory,
+            IEnumerable<IVulcanIndexingModifier> vulcanIndexingModifiers,            
+            IVulcanModfiySerializerSettings vulcanModfiySerializerSettings)
         {
-            _VulcanConnectionpoolFactory = connectionpoolFactory;
+            _vulcanConnectionpoolFactory = connectionpoolFactory;
+            _vulcanIndexerModifers = vulcanIndexingModifiers;            
+            _vulcanModfiySerializerSettings = vulcanModfiySerializerSettings;
         }
 
         /// <summary>
@@ -39,23 +51,23 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <returns></returns>
         protected virtual ConnectionSettings CommonSettings()
         {
-            CompilationSection section = ConfigurationManager.GetSection("system.web/compilation") as CompilationSection;
-            bool isDebugMode = section != null ? section.Debug : false;
+            var section = ConfigurationManager.GetSection("system.web/compilation") as CompilationSection;
+            var isDebugMode = section?.Debug ?? false;
             var url = ConfigurationManager.AppSettings["VulcanUrl"];
-            var Index = ConfigurationManager.AppSettings["VulcanIndex"];
+            var index = ConfigurationManager.AppSettings["VulcanIndex"];
 
-            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(url) || url == "SET THIS")
+            if (string.IsNullOrWhiteSpace(url) || url == "SET THIS")
             {
                 throw new Exception("You need to specify the Vulcan Url in AppSettings");
             }
 
-            if (string.IsNullOrWhiteSpace(Index) || string.IsNullOrWhiteSpace(Index) || Index == "SET THIS")
+            if (string.IsNullOrWhiteSpace(index) || index == "SET THIS")
             {
                 throw new Exception("You need to specify the Vulcan Index in AppSettings");
             }
 
-            var connectionPool = _VulcanConnectionpoolFactory.CreateConnectionPool(url);
-            var settings = new ConnectionSettings(connectionPool, s => new VulcanCustomJsonSerializer(s));
+            var connectionPool = _vulcanConnectionpoolFactory.CreateConnectionPool(url);            
+            var settings = new ConnectionSettings(connectionPool, CreateJsonSerializer);
             var username = ConfigurationManager.AppSettings["VulcanUsername"];
             var password = ConfigurationManager.AppSettings["VulcanPassword"];
 
@@ -64,8 +76,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 settings.BasicAuthentication(username, password);
             }
 
-            bool enableCompression = false;
-            bool.TryParse(ConfigurationManager.AppSettings["VulcanEnableHttpCompression"], out enableCompression);
+            bool.TryParse(ConfigurationManager.AppSettings["VulcanEnableHttpCompression"], out var enableCompression);
 
             // Enable bytes to be retrieved in debug mode
             settings.DisableDirectStreaming(isDebugMode);
@@ -74,6 +85,16 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             settings.EnableHttpCompression(enableCompression);
 
             return settings;
+        }
+
+        /// <summary>
+        /// Creates default serializer for Vulcan, only override in advanced cases
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        protected virtual IElasticsearchSerializer CreateJsonSerializer(ConnectionSettings s)
+        {
+            return new VulcanCustomJsonSerializer(s, _vulcanIndexerModifers, _vulcanModfiySerializerSettings.Modifier);
         }
     }
 }

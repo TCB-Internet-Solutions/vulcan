@@ -1,4 +1,6 @@
-﻿namespace TcbInternetSolutions.Vulcan.Core.Implementation
+﻿using System.Collections.Concurrent;
+
+namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
     using EPiServer;
     using EPiServer.Core;
@@ -19,20 +21,48 @@
     public class VulcanHandler : IVulcanHandler
     {
         /// <summary>
-        /// Vulcan logger
+        /// Vulcan logger, uses getter to avoid lock issues
         /// </summary>
-        protected static ILogger Logger = LogManager.GetLogger(typeof(VulcanHandler));
+        protected static ILogger Logger => LogManager.GetLogger(typeof(VulcanHandler));
 
         /// <summary>
         /// List of vulcan clients
         /// </summary>
-        protected Dictionary<CultureInfo, IVulcanClient> clients = new Dictionary<CultureInfo, IVulcanClient>();
+        protected ConcurrentDictionary<CultureInfo, IVulcanClient> Clients = new ConcurrentDictionary<CultureInfo, IVulcanClient>();
 
-        private Dictionary<Type, List<IVulcanConditionalContentIndexInstruction>> conditionalContentIndexInstructions = new Dictionary<Type, List<IVulcanConditionalContentIndexInstruction>>();
+        private readonly Dictionary<Type, List<IVulcanConditionalContentIndexInstruction>> _conditionalContentIndexInstructions;
+        private readonly IVulcanPipelineSelector _vulcanPipelineSelector;
+        private readonly IEnumerable<IVulcanPipelineInstaller> _vulcanPipelineInstallers;
+        private readonly object _lockObject = new object();
 
-        private IEnumerable<IVulcanIndexingModifier> indexingModifiers = null;
+        /// <summary>
+        /// DI Constructor
+        /// </summary>
+        /// <param name="vulcanIndexingModifiers"></param>
+        /// <param name="vulcanClientConnectionSettings"></param>
+        /// <param name="contentLoader"></param>
+        /// <param name="vulcanCreateIndexCustomizer"></param>
+        /// <param name="vulcanPipelineSelector"></param>
+        /// <param name="vulcanPipelineInstallers"></param>
+        public VulcanHandler
+        (
+            IEnumerable<IVulcanIndexingModifier> vulcanIndexingModifiers,
+            IVulcanClientConnectionSettings vulcanClientConnectionSettings,
+            IContentLoader contentLoader,
+            IVulcanCreateIndexCustomizer vulcanCreateIndexCustomizer,
+            IVulcanPipelineSelector vulcanPipelineSelector,
+            IEnumerable<IVulcanPipelineInstaller> vulcanPipelineInstallers
+        )
+        {
+            IndexingModifers = vulcanIndexingModifiers;
+            CommonConnectionSettings = vulcanClientConnectionSettings;
+            ContentLoader = contentLoader;
+            CreateIndexCustomizer = vulcanCreateIndexCustomizer;
+            _vulcanPipelineSelector = vulcanPipelineSelector;
+            _vulcanPipelineInstallers = vulcanPipelineInstallers;
 
-        private object lockObject = new object();
+            _conditionalContentIndexInstructions = new Dictionary<Type, List<IVulcanConditionalContentIndexInstruction>>();
+        }
 
         /// <summary>
         /// Deleted indices handler
@@ -42,38 +72,28 @@
         /// <summary>
         /// Index name
         /// </summary>
-        public virtual string Index => CommonConnectionSettings.Service.Index;
+        public virtual string Index => CommonConnectionSettings.Index;
 
         /// <summary>
         /// Indexing modifiers
         /// </summary>
-        public virtual IEnumerable<IVulcanIndexingModifier> IndexingModifers
-        {
-            get
-            {
-                if (indexingModifiers == null)
-                {
-                    var typeModifiers = typeof(IVulcanIndexingModifier).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
-                    indexingModifiers = typeModifiers.Select(t => (IVulcanIndexingModifier)Activator.CreateInstance(t));
-                }
+        public virtual IEnumerable<IVulcanIndexingModifier> IndexingModifers { get; }
 
-                return indexingModifiers;
-            }
-        }
         /// <summary>
         /// Inected connection settings
         /// </summary>
-        protected Injected<IVulcanClientConnectionSettings> CommonConnectionSettings { get; set; }
+        protected IVulcanClientConnectionSettings CommonConnectionSettings { get; set; }
 
         /// <summary>
         /// Injected content loader
         /// </summary>
-        protected Injected<IContentLoader> ContentLoader { get; set; }
+        protected IContentLoader ContentLoader { get; set; }
 
         /// <summary>
         /// Injected create index customizer
         /// </summary>
-        protected Injected<IVulcanCreateIndexCustomizer> CreateIndexCustomizer { get; }
+        protected IVulcanCreateIndexCustomizer CreateIndexCustomizer { get; }
+
         /// <summary>
         /// Adds index instruction
         /// </summary>
@@ -81,12 +101,14 @@
         /// <param name="instruction"></param>
         public void AddConditionalContentIndexInstruction<T>(Func<T, bool> instruction) where T : IContent
         {
-            if (!conditionalContentIndexInstructions.ContainsKey(typeof(T)))
+            var typeT = typeof(T);
+
+            if (!_conditionalContentIndexInstructions.ContainsKey(typeT))
             {
-                conditionalContentIndexInstructions.Add(typeof(T), new List<IVulcanConditionalContentIndexInstruction>());
+                _conditionalContentIndexInstructions.Add(typeT, new List<IVulcanConditionalContentIndexInstruction>());
             }
 
-            conditionalContentIndexInstructions[typeof(T)].Add(new VulcanConditionalContentIndexInstruction<T>(instruction));
+            _conditionalContentIndexInstructions[typeT].Add(new VulcanConditionalContentIndexInstruction<T>(instruction));
         }
 
         /// <summary>
@@ -96,18 +118,17 @@
         /// <returns></returns>
         public bool AllowContentIndexing(IContent objectToIndex)
         {
-            bool allowIndex = true; // default is true;
+            var allowIndex = true; // default is true;
 
-            foreach (var kvp in conditionalContentIndexInstructions)
+            foreach (var kvp in _conditionalContentIndexInstructions)
             {
-                if (kvp.Key.IsAssignableFrom(objectToIndex.GetType()))
-                {
-                    foreach (var instruction in kvp.Value)
-                    {
-                        allowIndex = instruction.AllowContentIndexing(objectToIndex);
+                if (!kvp.Key.IsInstanceOfType(objectToIndex)) continue;
 
-                        if (!allowIndex) break; // we only care about first FALSE
-                    }
+                foreach (var instruction in kvp.Value)
+                {
+                    allowIndex = instruction.AllowContentIndexing(objectToIndex);
+
+                    if (!allowIndex) break; // we only care about first FALSE
                 }
             }
 
@@ -122,14 +143,14 @@
         {
             IVulcanClient client;
 
-            if (!(content is ILocalizable))
+            if (content is ILocalizable localizable)
             {
-                client = GetClient(CultureInfo.InvariantCulture);
+                client = GetClient(localizable.Language);
 
             }
             else
             {
-                client = GetClient((content as ILocalizable).Language);
+                client = GetClient(CultureInfo.InvariantCulture);
             }
 
             client.DeleteContent(content);
@@ -139,13 +160,13 @@
         /// Delete content for all clients
         /// </summary>
         /// <param name="contentLink"></param>
-        public virtual void DeleteContentEveryLanguage(ContentReference contentLink)
+        /// <param name="typeName"></param>
+        public virtual void DeleteContentEveryLanguage(ContentReference contentLink, string typeName)
         {
             // we don't know what language(s), or even if invariant, so send a delete request to all
-
             foreach (var client in GetClients())
             {
-                client.DeleteContent(contentLink);
+                client.DeleteContent(contentLink, typeName);
             }
         }
 
@@ -154,22 +175,22 @@
         /// </summary>
         public virtual void DeleteIndex()
         {
-            lock (lockObject)
+            lock (_lockObject)
             {
-                var client = CreateElasticClient(CommonConnectionSettings.Service.ConnectionSettings); // use a raw elasticclient because we just need this to be quick
+                var client = CreateElasticClient(CommonConnectionSettings.ConnectionSettings); // use a raw elasticclient because we just need this to be quick
                 var indices = client.CatIndices();
 
-                if (indices != null && indices.Records != null && indices.Records.Any())
+                if (indices?.Records?.Any() == true)
                 {
                     var indicesToDelete = new List<string>();
 
-                    foreach (var index in indices.Records.Where(i => i.Index.StartsWith(Index + "_")).Select(i => i.Index))
+                    foreach (var index in indices.Records.Where(i => i.Index.StartsWith($"{Index}_")).Select(i => i.Index))
                     {
                         var response = client.DeleteIndex(index);
 
                         if (!response.IsValid)
                         {
-                            Logger.Error("Could not run a delete index: " + response.DebugInformation);
+                            Logger.Error($"Could not run a delete index: {response.DebugInformation}");
                         }
                         else
                         {
@@ -180,18 +201,11 @@
                     DeletedIndices?.Invoke(indicesToDelete);
                 }
 
-                // todo: this is a temp fix to keep multiple templates from getting added, shouldn't exist long term....
-                if (client.IndexTemplateExists("analyzer_disabling").Exists)
-                {
-                    // clean up template that was too generic in a shared environment
-                    client.DeleteIndexTemplate("analyzer_disabling");
-                }
-
-                clients = new Dictionary<CultureInfo, IVulcanClient>(); // need to force a re-creation                
+                Clients.Clear(); // need to force a re-creation                
             }
         }
 
-        /// <summary>
+        /// <summary> 
         /// Get a Vulcan client
         /// </summary>
         /// <param name="language">Pass in null for current culture, a specific culture or CultureInfo.InvariantCulture to get a client for non-language specific data</param>
@@ -200,17 +214,15 @@
         {
             var cultureInfo = language ?? CultureInfo.CurrentUICulture;
 
-            IVulcanClient storedClient;
-
-            if (clients.TryGetValue(cultureInfo, out storedClient))
+            if (Clients.TryGetValue(cultureInfo, out var storedClient))
                 return storedClient;
 
-            lock (lockObject)
+            lock (_lockObject)
             {
-                // we now know what our culture is (current culture or invariant), but we need to choose the language analyzer                
-                var languageAnalyzer = VulcanHelper.GetAnalyzer(cultureInfo);
+                // todo: need some sort of check here to make sure we still need to create a client
+
                 var indexName = VulcanHelper.GetIndexName(Index, cultureInfo);
-                var settings = CommonConnectionSettings.Service.ConnectionSettings;
+                var settings = CommonConnectionSettings.ConnectionSettings;
                 settings.InferMappingFor<ContentMixin>(pd => pd.Ignore(p => p.MixinInstance));
                 settings.DefaultIndex(indexName);
 
@@ -223,26 +235,24 @@
                 {
                     throw new Exception("Could not get Nodes info to check Elasticsearch Version. Check that you are correctly connected to Elasticsearch?");
                 }
-                else
-                {
-                    var node = nodesInfo.Nodes.First(); // just use first
 
-                    if (string.IsNullOrWhiteSpace(node.Value.Version)) // just use first
-                    {
-                        throw new Exception("Could not find a version on node to check Elasticsearch Version. Check that you are correctly connected to Elasticsearch?");
-                    }
-                    else
-                    {
-                        if (node.Value.Version.StartsWith("1."))
-                        {
-                            throw new Exception("Sorry, Vulcan only works with Elasticsearch version 2.x or higher. The Elasticsearch node you are currently connected to is version " + node.Value.Version);
-                        }
-                    }
+                var node = nodesInfo.Nodes.First(); // just use first
+
+                if (string.IsNullOrWhiteSpace(node.Value.Version)) // just use first
+                {
+                    throw new Exception("Could not find a version on node to check Elasticsearch Version. Check that you are correctly connected to Elasticsearch?");
+                }
+
+                if (node.Value.Version.StartsWith("1."))
+                {
+                    throw new Exception("Sorry, Vulcan only works with Elasticsearch version 2.x or higher. The Elasticsearch node you are currently connected to is version " + node.Value.Version);
                 }
 
                 client.RunCustomIndexTemplates(Index, Logger);
 
                 // keep our base last with lowest possible Order
+
+#if NEST2                
                 client.PutIndexTemplate($"{Index}_analyzer_disabling", ad => ad
                         .Order(0)
                         .Template($"{Index}*") //match on all created indices for index name
@@ -252,21 +262,42 @@
                                 .MatchMappingType("string") //that are a string
                                 .Mapping(dynmap => dynmap.String(s => s
                                     .NotAnalyzed()
-                                    .IgnoreAbove(CreateIndexCustomizer.Service.IgnoreAbove) // needed for: document contains at least one immense term in field
+                                    .IgnoreAbove(CreateIndexCustomizer.IgnoreAbove) // needed for: document contains at least one immense term in field
                                     .IncludeInAll(false)
                                     .Fields(f => f
                                         .String(ana => ana
                                             .Name(VulcanFieldConstants.AnalyzedModifier)
                                             .IncludeInAll(false)
-                                            .Store(true)
+                                            .Store()
                                         )
                                     ))
                                 )
                             )))));
-
+#elif NEST5
+                // note: strings are no more in ES5, for not analyzed text use Keyword and for analyzed use Text
+                client.PutIndexTemplate($"{Index}_analyzer_disabling", ad => ad
+                        .Order(0)
+                        .Template($"{Index}*") //match on all created indices for index name
+                        .Mappings(mappings => mappings.Map("_default_", map => map.DynamicTemplates(
+                            dyn => dyn.DynamicTemplate("analyzer_template", dt => dt
+                                .Match("*") //matches all fields
+                                .MatchMappingType("string") //that are a string
+                                .Mapping(dynmap => dynmap.Keyword(s => s
+                                    .IgnoreAbove(CreateIndexCustomizer.IgnoreAbove) // needed for: document contains at least one immense term in field
+                                    .IncludeInAll(false)
+                                    .Fields(f => f
+                                        .Text(ana => ana
+                                            .Name(VulcanFieldConstants.AnalyzedModifier)
+                                            .IncludeInAll(false)
+                                            .Store()
+                                        )
+                                    ))
+                                )
+                            )))));
+#endif
                 if (!client.IndexExists(indexName).Exists)
                 {
-                    var response = client.CreateIndex(indexName, CreateIndexCustomizer.Service.CustomizeIndex);
+                    var response = client.CreateIndex(indexName, CreateIndexCustomizer.CustomizeIndex);
 
                     if (!response.IsValid)
                     {
@@ -283,15 +314,37 @@
                 }
 
                 InitializeAnalyzer(client);
-                client.RunCustomizers(Logger); // allows for customizations
 
-                var openResponse = client.OpenIndex(indexName);
-                var initShards = client.ClusterHealth(x => x.WaitForActiveShards(CreateIndexCustomizer.Service.WaitForActiveShards)); // fixes empty results on first request
+                // run installers
+                foreach (var installer in _vulcanPipelineInstallers)
+                {
+                    installer.Install(client);
+                }
 
-                clients.Add(cultureInfo, client);
+                // allows for customizations
+                client.RunCustomizers(Logger); 
+                client.RunCustomMappers(Logger);
 
-                return client;
+                client.OpenIndex(indexName);
+
+                if (CreateIndexCustomizer.WaitForActiveShards > 0)
+                {
+                    // Init shards to attempt to fix empty results on first request
+                    client.ClusterHealth(x => x.WaitForActiveShards(
+#if NEST2
+                        CreateIndexCustomizer.WaitForActiveShards
+#elif NEST5
+                        CreateIndexCustomizer.WaitForActiveShards.ToString()
+#endif
+                    ));
+                }
+
+                storedClient = client;
             }
+
+            Clients[cultureInfo] = storedClient;
+
+            return storedClient;
         }
 
         /// <summary>
@@ -300,21 +353,27 @@
         /// <returns></returns>
         public virtual IVulcanClient[] GetClients()
         {
-            var clients = new List<IVulcanClient>();
-            var client = CreateElasticClient(CommonConnectionSettings.Service.ConnectionSettings);
+            var clientList = new List<IVulcanClient>();
+            var client = CreateElasticClient(CommonConnectionSettings.ConnectionSettings);
             var indices = client.CatIndices();
 
-            if (indices != null && indices.Records != null && indices.Records.Any())
-            {
-                foreach (var index in indices.Records.Where(i => i.Index.StartsWith(Index + "_")).Select(i => i.Index))
-                {
-                    var cultureName = index.Substring(Index.Length + 1);
+            if (indices?.Records?.Any() != true) return clientList.ToArray();
 
-                    clients.Add(GetClient(cultureName.Equals("invariant", StringComparison.InvariantCultureIgnoreCase) ? CultureInfo.InvariantCulture : new CultureInfo(cultureName)));
-                }
-            }
+            clientList.AddRange
+            (
+                indices.Records
+                    .Where(i => i.Index.StartsWith(Index + "_")).Select(i => i.Index)
+                    .Select(index => index.Substring(Index.Length + 1))
+                    .Select(cultureName =>
+                        GetClient(cultureName.Equals("invariant", StringComparison.OrdinalIgnoreCase) ?
+                            CultureInfo.InvariantCulture :
+                            new CultureInfo(cultureName)
+                        )
+                    )
+            );
 
-            return clients.ToArray();
+            return clientList.ToArray();
+            
         }
 
         /// <summary>
@@ -325,13 +384,13 @@
         {
             IVulcanClient client;
 
-            if (!(content is ILocalizable))
+            if (content is ILocalizable localizable)
             {
-                client = GetClient(CultureInfo.InvariantCulture);
+                client = GetClient(localizable.Language);
             }
             else
             {
-                client = GetClient((content as ILocalizable).Language);
+                client = GetClient(CultureInfo.InvariantCulture);
             }
 
             client.IndexContent(content);
@@ -343,20 +402,20 @@
         /// <param name="content"></param>
         public virtual void IndexContentEveryLanguage(IContent content)
         {
-            if (!(content is ILocalizable))
+            if (content is ILocalizable localizable)
+            {
+                foreach (var language in localizable.ExistingLanguages)
+                {
+                    var client = GetClient(language);
+
+                    client.IndexContent(ContentLoader.Get<IContent>(content.ContentLink.ToReferenceWithoutVersion(), language));
+                }
+            }
+            else
             {
                 var client = GetClient(CultureInfo.InvariantCulture);
 
                 client.IndexContent(content);
-            }
-            else
-            {
-                foreach (var language in (content as ILocalizable).ExistingLanguages)
-                {
-                    var client = GetClient(language);
-
-                    client.IndexContent(ContentLoader.Service.Get<IContent>(content.ContentLink.ToReferenceWithoutVersion(), language));
-                }
             }
         }
 
@@ -366,12 +425,11 @@
         /// <param name="contentLink"></param>
         public virtual void IndexContentEveryLanguage(ContentReference contentLink)
         {
-            if (!ContentReference.IsNullOrEmpty(contentLink))
-            {
-                var content = ContentLoader.Service.Get<IContent>(contentLink);
+            if (ContentReference.IsNullOrEmpty(contentLink)) return;
 
-                if (content != null) IndexContentEveryLanguage(content);
-            }
+            var content = ContentLoader.Get<IContent>(contentLink);
+
+            if (content != null) IndexContentEveryLanguage(content);
         }
 
         /// <summary>
@@ -389,7 +447,7 @@
         /// <param name="culture"></param>
         /// <returns></returns>
         protected virtual IVulcanClient CreateVulcanClient(string index, ConnectionSettings settings, CultureInfo culture) =>
-            new VulcanClient(index, settings, culture);
+            new VulcanClient(index, settings, culture, ContentLoader, this, _vulcanPipelineSelector);
 
         /// <summary>
         /// Get elision articles
@@ -401,19 +459,19 @@
             switch (language)
             {
                 case "catalan":
-                    return new string[] { "d", "l", "m", "n", "s", "t" };
+                    return new[] { "d", "l", "m", "n", "s", "t" };
 
                 case "french":
-                    return new string[] { "l", "m", "t", "qu", "n", "s", "j", "d", "c", "jusqu", "quoiqu", "lorsqu", "puisqu" };
+                    return new[] { "l", "m", "t", "qu", "n", "s", "j", "d", "c", "jusqu", "quoiqu", "lorsqu", "puisqu" };
 
                 case "irish":
-                    return new string[] { "h", "n", "t" };
+                    return new[] { "h", "n", "t" };
 
                 case "italian":
-                    return new string[] { "c", "l", "all", "dall", "dell", "nell", "sull", "coll", "pell", "gl", "agl", "dagl", "degl", "negl", "sugl", "un", "m", "t", "s", "v", "d" };
+                    return new[] { "c", "l", "all", "dall", "dell", "nell", "sull", "coll", "pell", "gl", "agl", "dagl", "degl", "negl", "sugl", "un", "m", "t", "s", "v", "d" };
 
                 default:
-                    return new string[] { "" };
+                    return new[] { "" };
             }
         }
 
@@ -427,51 +485,51 @@
             switch (language)
             {
                 case "arabic":
-                    return new string[] { "lowercase", "synonyms", "stop", "arabic_normalization", "stemmer" };
+                    return new[] { "lowercase", "synonyms", "stop", "arabic_normalization", "stemmer" };
 
                 case "catalan":
                 case "french":
                 case "italian":
-                    return new string[] { "elision", "lowercase", "synonyms", "stop", "stemmer" };
+                    return new[] { "elision", "lowercase", "synonyms", "stop", "stemmer" };
 
                 case "cjk":
-                    return new string[] { "cjk_width", "lowercase", "cjk_bigram", "synonyms", "stop" };
+                    return new[] { "cjk_width", "lowercase", "cjk_bigram", "synonyms", "stop" };
 
                 case "dutch":
-                    return new string[] { "lowercase", "synonyms", "stop", "override", "stemmer" };
+                    return new[] { "lowercase", "synonyms", "stop", "override", "stemmer" };
 
                 case "english":
-                    return new string[] { "possessive", "lowercase", "synonyms", "stop", "stemmer" };
+                    return new[] { "possessive", "lowercase", "synonyms", "stop", "stemmer" };
 
                 case "german":
-                    return new string[] { "lowercase", "synonyms", "stop", "german_normalization", "stemmer" };
+                    return new[] { "lowercase", "synonyms", "stop", "german_normalization", "stemmer" };
 
                 case "greek":
-                    return new string[] { "custom_lowercase", "synonyms", "stop", "stemmer" };
+                    return new[] { "custom_lowercase", "synonyms", "stop", "stemmer" };
 
                 case "hindi":
-                    return new string[] { "lowercase", "indic_normalization", "hindi_normalization", "synonyms", "stop", "stemmer" };
+                    return new[] { "lowercase", "indic_normalization", "hindi_normalization", "synonyms", "stop", "stemmer" };
 
                 case "irish":
-                    return new string[] { "stop", "elision", "custom_lowercase", "synonyms", "stemmer" };
+                    return new[] { "stop", "elision", "custom_lowercase", "synonyms", "stemmer" };
 
                 case "persian":
-                    return new string[] { "lowercase", "arabic_normalization", "persian_normalization", "synonyms", "stop" };
+                    return new[] { "lowercase", "arabic_normalization", "persian_normalization", "synonyms", "stop" };
 
                 case "sorani":
-                    return new string[] { "sorani_normalization", "lowercase", "synonyms", "stop", "stemmer" };
+                    return new[] { "sorani_normalization", "lowercase", "synonyms", "stop", "stemmer" };
 
                 case "turkish":
-                    return new string[] { "apostrophe", "custom_lowercase", "synonyms", "stop", "stemmer" };
+                    return new[] { "apostrophe", "custom_lowercase", "synonyms", "stop", "stemmer" };
 
                 case "thai":
-                    return new string[] { "lowercase", "synonyms", "stop" };
+                    return new[] { "lowercase", "synonyms", "stop" };
 
                 case "standard":
-                    return new string[] { "lowercase", "synonyms" };
+                    return new[] { "lowercase", "synonyms" };
 
                 default:
-                    return new string[] { "lowercase", "synonyms", "stop", "stemmer" };
+                    return new[] { "lowercase", "synonyms", "stop", "stemmer" };
             }
         }
 
@@ -509,16 +567,18 @@
         /// </summary>
         /// <param name="language"></param>
         /// <returns></returns>
-        protected virtual string GetStopwordsLanguage(string language)
+        protected virtual IEnumerable<string> GetStopwordsLanguage(string language)
         {
+            var stopWord = language;
+
             switch (language)
             {
                 case "cjk":
-                    return "english";
-
-                default:
-                    return language;
+                    stopWord = "english";
+                    break;
             }
+
+            return new[] { $"_{stopWord}_" };
         }
 
         /// <summary>
@@ -567,22 +627,20 @@
             if (language != "standard")
             {
                 // first, stop words
-
                 response = client.UpdateIndexSettings(client.IndexName, uix => uix
                     .IndexSettings(ixs => ixs
                         .Analysis(ana => ana
                             .TokenFilters(tf => tf
                                 .Stop("stop", sw => sw
-                                    .StopWords("_" + GetStopwordsLanguage(language) + "_"))))));
+                                    .StopWords(GetStopwordsLanguage(language)))))));
 
                 if (!response.IsValid)
                 {
-                    Logger.Error("Could not set up stop words for " + client.IndexName + ": " + response.DebugInformation);
+                    Logger.Error($"Could not set up stop words for {client.IndexName}: {response.DebugInformation}");
                 }
 
                 // next, stemmer
-
-                if (!(new string[] { "cjk", "persian", "thai" }.Contains(language)))
+                if (!new[] { "cjk", "persian", "thai" }.Contains(language))
                 {
                     response = client.UpdateIndexSettings(client.IndexName, uix => uix
                         .IndexSettings(ixs => ixs
@@ -593,12 +651,11 @@
 
                     if (!response.IsValid)
                     {
-                        Logger.Error("Could not set up stemmers for " + client.IndexName + ": " + response.DebugInformation);
+                        Logger.Error($"Could not set up stemmers for {client.IndexName}: {response.DebugInformation}");
                     }
                 }
 
                 // next, stemmer overrides
-
                 if (language == "dutch")
                 {
                     response = client.UpdateIndexSettings(client.IndexName, uix => uix
@@ -613,13 +670,12 @@
 
                     if (!response.IsValid)
                     {
-                        Logger.Error("Could not set up stemmer overrides for " + client.IndexName + ": " + response.DebugInformation);
+                        Logger.Error($"Could not set up stemmer overrides for {client.IndexName}: {response.DebugInformation}");
                     }
                 }
 
                 // next, elision
-
-                if (new string[] { "catalan", "french", "irish", "italian" }.Contains(language))
+                if (new[] { "catalan", "french", "irish", "italian" }.Contains(language))
                 {
                     response = client.UpdateIndexSettings(client.IndexName, uix => uix
                         .IndexSettings(ixs => ixs
@@ -630,12 +686,11 @@
 
                     if (!response.IsValid)
                     {
-                        Logger.Error("Could not set up elisions for " + client.IndexName + ": " + response.DebugInformation);
+                        Logger.Error($"Could not set up elisions for {client.IndexName}: {response.DebugInformation}");
                     }
                 }
 
                 // next, possessive
-
                 if (language == "english")
                 {
                     response = client.UpdateIndexSettings(client.IndexName, uix => uix
@@ -647,13 +702,12 @@
 
                     if (!response.IsValid)
                     {
-                        Logger.Error("Could not set up possessives for " + client.IndexName + ": " + response.DebugInformation);
+                        Logger.Error($"Could not set up possessives for {client.IndexName}: {response.DebugInformation}");
                     }
                 }
 
                 // next, lowercase
-
-                if (new string[] { "greek", "irish", "turkish" }.Contains(language))
+                if (new[] { "greek", "irish", "turkish" }.Contains(language))
                 {
                     response = client.UpdateIndexSettings(client.IndexName, uix => uix
                         .IndexSettings(ixs => ixs
@@ -675,32 +729,31 @@
                         .TokenFilters(tf => tf
                             .Synonym("synonyms", syn => syn
                                 .Synonyms(GetSynonyms(client))))
-                        .Analyzers(a => a
-                            .Custom("default", cad => cad
-                                .Tokenizer("standard")
-                                .Filters(GetFilters(language)))))));
+                            .Analyzers(a => a
+                                .Custom("default", cad => cad
+                                    .Tokenizer("standard")
+                                    .Filters(GetFilters(language)))))));
 
             if (!response.IsValid)
             {
-                Logger.Error("Could not set up custom analyzers for " + client.IndexName + ": " + response.DebugInformation);
+                Logger.Error($"Could not set up custom analyzers for {client.IndexName}: {response.DebugInformation}");
             }
 
-            if (language == "persian")
-            {
-                response = client.UpdateIndexSettings(client.IndexName, uix => uix
-                    .IndexSettings(ixs => ixs
-                        .Analysis(ana => ana
-                            .CharFilters(cf => cf
-                                .Mapping("zero_width_spaces", stm => stm
-                                    .Mappings("\\u200C=> ")))
-                            .Analyzers(a => a
-                                .Custom("default", cad => cad
-                                    .CharFilters("zero_width_spaces"))))));
+            if (language != "persian") return;
 
-                if (!response.IsValid)
-                {
-                    Logger.Error("Could not set up char filters for " + client.IndexName + ": " + response.DebugInformation);
-                }
+            response = client.UpdateIndexSettings(client.IndexName, uix => uix
+                .IndexSettings(ixs => ixs
+                    .Analysis(ana => ana
+                        .CharFilters(cf => cf
+                            .Mapping("zero_width_spaces", stm => stm
+                                .Mappings("\\u200C=> ")))
+                        .Analyzers(a => a
+                            .Custom("default", cad => cad
+                                .CharFilters("zero_width_spaces"))))));
+
+            if (!response.IsValid)
+            {
+                Logger.Error("Could not set up char filters for " + client.IndexName + ": " + response.DebugInformation);
             }
         }
     }

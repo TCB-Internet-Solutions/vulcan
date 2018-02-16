@@ -5,6 +5,6 @@
     /// <summary>
     /// Allows properties to be indexed in custom search field
     /// </summary>
-    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Property)]
     public class VulcanSearchableAttribute : Attribute { }
 }

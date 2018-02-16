@@ -1,55 +1,42 @@
 ﻿namespace TcbInternetSolutions.Vulcan.Core.Extensions
 {
-
+    using Core;
     using EPiServer;
     using EPiServer.Core;
     using EPiServer.Logging;
-    using EPiServer.Security;
     using EPiServer.ServiceLocation;
     using EPiServer.Web.Routing;
+    using Implementation;
     using Nest;
     using Newtonsoft.Json.Linq;
     using System;
     using System.Collections.Generic;
     using System.Globalization;
     using System.Linq;
-    using TcbInternetSolutions.Vulcan.Core;
-    using TcbInternetSolutions.Vulcan.Core.Implementation;
     using static VulcanFieldConstants;
 
     /// <summary>
     /// Vulcan client extensions
     /// </summary>
-    public static class IVulcanClientExtensions
+    public static class VulcanClientExtensions
     {
-        private static readonly UrlResolver urlResolver = ServiceLocator.Current.GetInstance<UrlResolver>();
+        /// <summary>
+        /// IUrlResolver dependency
+        /// </summary>
+        public static Injected<IUrlResolver> UrlResolver { get; set; }
 
-        static Injected<IVulcanHandler> VulcanHandler;
-
-        private static IEnumerable<IVulcanCustomizer> _Customizers;
-
-        // todo: setup configurable module to register
+        /// <summary>
+        /// IVulcanHandler dependency
+        /// </summary>
+        public static Injected<IVulcanHandler> VulcanHandler { get; set; }
 
         /// <summary>
         /// Gets a list of Vulcan customizers
         /// </summary>
-        public static IEnumerable<IVulcanCustomizer> Customizers
-        {
-            get
-            {
-                if (_Customizers == null)
-                {
-                    var types = typeof(IVulcanCustomizer).GetSearchTypesFor(VulcanFieldConstants.DefaultFilter);
-
-                    _Customizers = types.Select(t => (IVulcanCustomizer)Activator.CreateInstance(t));
-                }
-
-                return _Customizers;
-            }
-        }
+        public static IEnumerable<IVulcanCustomizer> Customizers => ServiceLocator.Current.GetAllInstances<IVulcanCustomizer>();
 
         /// <summary>
-        /// Allows for customizations on analyzers and mappings.
+        /// Allows for customizations on analyzers.
         /// </summary>
         /// <param name="client"></param>
         /// <param name="logger"></param>
@@ -64,13 +51,22 @@
 
                     if (updateResponse?.IsValid == false)
                     {
-                        logger.Error("Could not update index " + client.IndexName + ": " + updateResponse.DebugInformation);
+                        logger.Error($"Could not update index {client.IndexName}: {updateResponse.DebugInformation}");
                     }
                 }
                 catch (NotImplementedException) { }
             }
 
-            // then run the mappings
+        }
+
+        /// <summary>
+        /// Allows customization on mappings
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="logger"></param>
+        public static void RunCustomMappers(this IVulcanClient client, ILogger logger)
+        {
+            // run the mappings
             foreach (var customizer in Customizers)
             {
                 try
@@ -79,7 +75,7 @@
 
                     if (mappingResponse?.IsValid == false)
                     {
-                        logger.Error("Could not add mapping for index " + client.IndexName + ": " + mappingResponse.DebugInformation);
+                        logger.Error($"Could not add mapping for index {client.IndexName}: {mappingResponse.DebugInformation}");
                     }
                 }
                 catch (NotImplementedException) { }
@@ -102,7 +98,7 @@
 
                     if (updateIndexTemplate?.IsValid == false)
                     {
-                        logger.Error("Could not update index template " + client.IndexName + ": " + updateIndexTemplate.DebugInformation);
+                        logger.Error($"Could not update index template {client.IndexName}: {updateIndexTemplate.DebugInformation}");
                     }
                 }
                 catch (NotImplementedException) { }
@@ -118,8 +114,8 @@
         /// <returns></returns>
         public static ISearchResponse<T> PocoSearch<T>(this IVulcanClient client, Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null) where T : class
         {
-            var tempClient = client.Language == CultureInfo.InvariantCulture ? client : VulcanHandler.Service.GetClient(CultureInfo.InvariantCulture);
-            SearchDescriptor<T> resolvedDescriptor = searchDescriptor?.Invoke(new SearchDescriptor<T>()) ?? new SearchDescriptor<T>();
+            var tempClient = client.Language.Equals(CultureInfo.InvariantCulture) ? client : VulcanHandler.Service.GetClient(CultureInfo.InvariantCulture);
+            var resolvedDescriptor = searchDescriptor?.Invoke(new SearchDescriptor<T>()) ?? new SearchDescriptor<T>();
             resolvedDescriptor = resolvedDescriptor.Type(typeof(T).FullName);
 
             return tempClient.Search<T>(resolvedDescriptor);
@@ -133,33 +129,24 @@
         /// <returns></returns>
         public static VulcanSearchHit DefaultBuildSearchHit(IHit<IContent> contentHit, IContentLoader contentLoader)
         {
-            ContentReference contentReference = null;
+            if (!ContentReference.TryParse(contentHit.Id, out var contentReference) || !contentLoader.TryGet(contentReference, out IContent content))
+                throw new Exception($"{nameof(contentHit)} doesn't implement IContent!");
 
-            if (ContentReference.TryParse(contentHit.Id, out contentReference))
+            var localizable = content as ILocalizable;
+            var searchDescriptionCheck = contentHit.Fields.FirstOrDefault(x => x.Key == SearchDescriptionField);
+            var storedDescription = (searchDescriptionCheck.Value as JArray)?.FirstOrDefault()?.ToString();
+            // ReSharper disable once SuspiciousTypeConversion.Global
+            var description = storedDescription ?? (content as IVulcanSearchHitDescription)?.VulcanSearchDescription ?? string.Empty;
+
+            var result = new VulcanSearchHit
             {
-                IContent content;
+                Id = content.ContentLink,
+                Title = content.Name,
+                Summary = description,
+                Url = UrlResolver.Service.GetUrl(contentReference, localizable?.Language.Name ?? "", new UrlResolverArguments()) // fixes null ref exception caused by extension
+            };
 
-                if (contentLoader.TryGet(contentReference, out content))
-                {
-                    var searchDescriptionCheck = contentHit.Fields.Where(x => x.Key == SearchDescriptionField).FirstOrDefault();
-                    string storedDescription = searchDescriptionCheck.Value != null ? (searchDescriptionCheck.Value as JArray).FirstOrDefault().ToString() : null;
-                    var fallbackDescription = content as IVulcanSearchHitDescription;
-                    string description = storedDescription != null ? storedDescription.ToString() :
-                            fallbackDescription != null ? fallbackDescription.VulcanSearchDescription : string.Empty;
-
-                    var result = new VulcanSearchHit()
-                    {
-                        Id = content.ContentLink,
-                        Title = content.Name,
-                        Summary = description,
-                        Url = urlResolver.GetUrl(contentReference)
-                    };
-
-                    return result;
-                }
-            }
-
-            throw new Exception($"{nameof(contentHit)} doesn't implement IContent!");
+            return result;
         }
 
         /// <summary>
@@ -173,7 +160,6 @@
         /// <param name="includeTypes"></param>
         /// <param name="excludeTypes"></param>
         /// <param name="buildSearchHit">Can be used to customize how VulcanSearchHit is populated. Default is IVulcanClientExtensions.DefaultBuildSearchHit</param>
-        /// <param name="requireIsSearchable"></param>
         /// <returns></returns>
         public static VulcanSearchHitList GetSearchHits(this IVulcanClient client,
                         string searchText,
@@ -182,8 +168,7 @@
                         IEnumerable<ContentReference> searchRoots = null,
                         IEnumerable<Type> includeTypes = null,
                         IEnumerable<Type> excludeTypes = null,
-                        Func<IHit<IContent>, IContentLoader, VulcanSearchHit> buildSearchHit = null,
-                        bool requireIsSearchable = false
+                        Func<IHit<IContent>, IContentLoader, VulcanSearchHit> buildSearchHit = null
             )
         {
             QueryContainer searchTextQuery = new QueryContainerDescriptor<IContent>();
@@ -194,13 +179,13 @@
                 searchTextQuery = new QueryContainerDescriptor<IContent>().SimpleQueryString(sqs => sqs
                     .Fields(f => f
                                 .AllAnalyzed()
-                                .Field($"{VulcanFieldConstants.MediaContents}.content")
-                                .Field($"{VulcanFieldConstants.MediaContents}.content_type"))
+                                .Field($"{MediaContents}.content")
+                                .Field($"{MediaContents}.content_type"))
                     .Query(searchText)
                 );
             }
 
-            searchTextQuery = searchTextQuery.FilterForPublished<IContent>(requireIsSearchable);
+            searchTextQuery = searchTextQuery.FilterForPublished<IContent>();
 
             return GetSearchHits(client, searchTextQuery, page, pageSize, searchRoots, includeTypes, excludeTypes, buildSearchHit);
         }
@@ -229,15 +214,15 @@
         {
             if (includeTypes == null)
             {
-                var pageTypes = typeof(PageData).GetSearchTypesFor((x => x.IsClass && !x.IsAbstract));
-                var mediaTypes = typeof(MediaData).GetSearchTypesFor((x => x.IsClass && !x.IsAbstract));
+                var pageTypes = typeof(PageData).GetSearchTypesFor(x => x.IsClass && !x.IsAbstract);
+                var mediaTypes = typeof(MediaData).GetSearchTypesFor(x => x.IsClass && !x.IsAbstract);
 
                 includeTypes = pageTypes.Union(mediaTypes);
             }
 
             // restrict to start page and global blocks if not otherwise specified
             if (searchRoots == null && !ContentReference.IsNullOrEmpty(ContentReference.StartPage))
-                searchRoots = new ContentReference[] { ContentReference.StartPage, ContentReference.GlobalBlockFolder };
+                searchRoots = new[] { ContentReference.StartPage, ContentReference.GlobalBlockFolder };
 
             buildSearchHit = buildSearchHit ?? DefaultBuildSearchHit;
             pageSize = pageSize < 1 ? 10 : pageSize;
@@ -246,14 +231,14 @@
             var hits = client.SearchContent<VulcanContentHit>(d => d
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
-                    .Fields(fs => fs.Field(SearchDescriptionField).Field(p => p.ContentLink)) // only return contentLink
+                    .FielddataFields(fs => fs.Field(SearchDescriptionField).Field(p => p.ContentLink)) // only return contentLink
                     .Query(q => query)
                     //.Highlight(h => h.Encoder("html").Fields(f => f.Field("*")))
-                    .Aggregations(agg => agg.Terms("types", t => t.Field(VulcanFieldConstants.TypeField))),
-                    includeNeutralLanguage: true,
+                    .Aggregations(agg => agg.Terms("types", t => t.Field(TypeField))),
                     typeFilter: searchForTypes,
-                    principleReadFilter: PrincipalInfo.Current.Principal,
-                    rootReferences: searchRoots
+                    principleReadFilter: UserExtensions.GetUser(),
+                    rootReferences: searchRoots,
+                    includeNeutralLanguage: true
             );
 
             var contentLoader = ServiceLocator.Current.GetInstance<IContentLoader>();

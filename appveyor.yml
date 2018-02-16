@@ -1,4 +1,6 @@
+image: Visual Studio 2017
 configuration: Release
+platform: Any CPU
 before_build:
 - cmd: nuget restore
 - ps: .\.nuget\setVersion.ps1    

@@ -13,20 +13,33 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
     /// </summary>
     public static class UserExtensions
     {
-        private static Injected<IVirtualRoleRepository> _VirtualRoleRepository { get; }
+        /// <summary>
+        /// IVirtualRoleRepository dependency
+        /// </summary>
+        public static Injected<IVirtualRoleRepository> VirtualRoleRepository { get; set; }
+
+        /// <summary>
+        /// IUserImpersonation dependency
+        /// </summary>
+        public static Injected<IUserImpersonation> UserImpersonation { get; set; }
+
+        /// <summary>
+        /// IPrincipalAccessor
+        /// </summary>
+        public static Injected<IPrincipalAccessor> PrincipalAccessor { get; set; }
 
         /// <summary>
         /// Gets current principal
         /// </summary>
         /// <returns></returns>
-        public static IPrincipal GetUser() => PrincipalInfo.Current.Principal;
+        public static IPrincipal GetUser() => PrincipalAccessor.Service.Principal;
 
         /// <summary>
         /// Gets principal from username
         /// </summary>
         /// <param name="username"></param>
         /// <returns></returns>
-        public static IPrincipal GetUser(string username) => PrincipalInfo.CreatePrincipal(username);
+        public static IPrincipal GetUser(string username) =>  UserImpersonation.Service.CreatePrincipal(username);
             
         /// <summary>
         /// Gets roles for given principle
@@ -38,20 +51,22 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
             if (principle == null)
                 throw new ArgumentNullException(nameof(principle));
 
-            var userPrinciple = new PrincipalInfo(principle);
-            var list = new List<string>(userPrinciple.RoleList);           
+            // todo: is PrincipalInfo needed for roleslist
+            //var userPrinciple = new PrincipalInfo(principle);
+            var list = new List<string>();
 
-            foreach (string name in _VirtualRoleRepository.Service.GetAllRoles())
+            foreach (var name in VirtualRoleRepository.Service.GetAllRoles())
             {
-                VirtualRoleProviderBase virtualRoleProvider;
-
-                if (_VirtualRoleRepository.Service.TryGetRole(name, out virtualRoleProvider) && virtualRoleProvider.IsInVirtualRole(userPrinciple.Principal, null))
+                if (VirtualRoleRepository.Service.TryGetRole(name, out var virtualRoleProvider) && virtualRoleProvider.IsInVirtualRole(principle, null))
+                {
                     list.Add(name);
-
+                }
             }
 
             if (Roles.Enabled)
-                list.AddRange(Roles.GetRolesForUser(userPrinciple.Name));
+            {
+                list.AddRange(Roles.GetRolesForUser(principle.Identity.Name));
+            }
 
             return list.Distinct();
         }

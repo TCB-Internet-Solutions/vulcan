@@ -10,7 +10,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
     /// </summary>
     public static class FieldExtensions
     {
-        internal static DefaultContractResolver fallbackNameResolver = new CamelCasePropertyNamesContractResolver();
+        internal static DefaultContractResolver FallbackNameResolver = new CamelCasePropertyNamesContractResolver();
 
         /// <summary>
         /// Creates field search for all analyzed fields.
@@ -35,29 +35,22 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
         {
             MemberExpression memberExpression = null;
 
-            if (field.Body.NodeType == ExpressionType.Convert)
+            switch (field.Body.NodeType)
             {
-                memberExpression = ((UnaryExpression)field.Body).Operand as MemberExpression;
-            }
-            else if (field.Body.NodeType == ExpressionType.MemberAccess)
-            {
-                memberExpression = field.Body as MemberExpression;
-            }
-
-            if (memberExpression != null)
-            {
-                resolver = resolver ?? fallbackNameResolver;
-                var name = resolver.GetResolvedPropertyName(memberExpression.Member.Name);
-
-                if (memberExpression.Type == typeof(string))
-                {
-                    return descriptor.Field($"{name}.{VulcanFieldConstants.AnalyzedModifier}", boost);
-                }
-
-                return descriptor.Field(name, boost);
+                case ExpressionType.Convert:
+                    memberExpression = ((UnaryExpression)field.Body).Operand as MemberExpression;
+                    break;
+                case ExpressionType.MemberAccess:
+                    memberExpression = field.Body as MemberExpression;
+                    break;
             }
 
-            return descriptor;
+            if (memberExpression == null) return descriptor;
+
+            resolver = resolver ?? FallbackNameResolver;
+            var name = resolver.GetResolvedPropertyName(memberExpression.Member.Name);
+
+            return descriptor.Field(memberExpression.Type == typeof(string) ? $"{name}.{VulcanFieldConstants.AnalyzedModifier}" : name, boost);
         }
     }
 }

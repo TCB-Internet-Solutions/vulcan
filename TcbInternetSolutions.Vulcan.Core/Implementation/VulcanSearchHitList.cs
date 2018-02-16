@@ -10,7 +10,9 @@
     /// </summary>
     public class VulcanSearchHitList
     {
-        private long _Took;
+        private long _took;
+
+        private List<VulcanSearchHit> _results;
 
         /// <summary>
         /// Constructor
@@ -23,10 +25,10 @@
         /// <param name="results"></param>
         public VulcanSearchHitList(IEnumerable<VulcanSearchHit> results)
         {
-            Items = results?.ToList();
-            _Took = -1;
+            _took = -1;
+            _results = results?.ToList();
         }
-
+        
         /// <summary>
         /// Vulcan response context
         /// </summary>
@@ -35,7 +37,11 @@
         /// <summary>
         /// Found items
         /// </summary>
-        public virtual List<VulcanSearchHit> Items { get; set; }
+        public virtual List<VulcanSearchHit> Items
+        {
+            get => _results;
+            set => _results = value;
+        }
 
         /// <summary>
         /// Page
@@ -59,14 +65,20 @@
         {
             get
             {
-                if (_Took < -1 && ResponseContext != null)
-                    _Took = ResponseContext.Took;
+                if (_took < -1 && ResponseContext != null)
+                {
+#if NEST2
+                    _took = ResponseContext.TookAsLong;
+#elif NEST5
+                    _took = ResponseContext.Took;
+#endif
+                }
 
-                return _Took;
+                return _took;
             }
             set
             {
-                _Took = value;
+                _took = value;
             }
 
         }

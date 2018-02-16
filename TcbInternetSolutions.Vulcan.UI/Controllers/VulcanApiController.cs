@@ -1,53 +1,52 @@
 ﻿using System;
 using System.Globalization;
 using System.Web.Mvc;
+using TcbInternetSolutions.Vulcan.Core;
 
 namespace TcbInternetSolutions.Vulcan.UI.Controllers
 {
     [Authorize(Roles="Administrators, WebAdmins, CmsAdmins, VulcanAdmins")]
     public class VulcanApiController : Base.BaseController
     {
+        public VulcanApiController(IVulcanHandler vulcanHandler) : base(vulcanHandler) { }
+
         [HttpGet]
-        public ActionResult ListSynonyms(string Language)
+        public ActionResult ListSynonyms(string language)
         {
-            var client = VulcanHandler.Service.GetClient(string.IsNullOrWhiteSpace(Language) ? CultureInfo.InvariantCulture : new CultureInfo(Language));
+            var client = VulcanHandler.GetClient(string.IsNullOrWhiteSpace(language) ? CultureInfo.InvariantCulture : new CultureInfo(language));
 
             return Json(client.GetSynonyms(), JsonRequestBehavior.AllowGet);
         }
 
         [HttpPost]
-        public ActionResult AddSynonym(string Language, string Term, string Synonyms, bool BiDirectional)
+        public ActionResult AddSynonym(string language, string term, string synonyms, bool biDirectional)
         {
-            if(string.IsNullOrWhiteSpace(Term))
+            if(string.IsNullOrWhiteSpace(term))
             {
-                throw new Exception("AddSynonym: Term cannot be blank");
+                throw new Exception($"AddSynonym: {nameof(term)} cannot be blank");
             }
             
-            if(string.IsNullOrWhiteSpace(Synonyms))
+            if(string.IsNullOrWhiteSpace(synonyms))
             {
-                throw new Exception("AddSynonym: Synonyms cannot be blank");
+                throw new Exception($"AddSynonym: {nameof(synonyms)} cannot be blank");
             }
 
-            var client = VulcanHandler.Service.GetClient(string.IsNullOrWhiteSpace(Language) ? CultureInfo.InvariantCulture : new CultureInfo(Language));
-
-            var SynonymsArray = Synonyms.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
-
-            client.AddSynonym(Term, Synonyms.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries), BiDirectional);
+            var client = VulcanHandler.GetClient(string.IsNullOrWhiteSpace(language) ? CultureInfo.InvariantCulture : new CultureInfo(language));
+            client.AddSynonym(term, synonyms.Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries), biDirectional);
 
             return Json("OK");
         }
 
         [HttpPost]
-        public ActionResult RemoveSynonym(string Language, string Term)
+        public ActionResult RemoveSynonym(string language, string term)
         {
-            if (string.IsNullOrWhiteSpace(Term))
+            if (string.IsNullOrWhiteSpace(term))
             {
-                throw new Exception("RemoveSynonym: Term cannot be blank");
+                throw new Exception($"RemoveSynonym: {nameof(term)} cannot be blank");
             }
 
-            var client = VulcanHandler.Service.GetClient(string.IsNullOrWhiteSpace(Language) ? CultureInfo.InvariantCulture : new CultureInfo(Language));
-
-            client.RemoveSynonym(Term);
+            var client = VulcanHandler.GetClient(string.IsNullOrWhiteSpace(language) ? CultureInfo.InvariantCulture : new CultureInfo(language));
+            client.RemoveSynonym(term);
 
             return Json("OK");
         }

@@ -1,78 +1,115 @@
 ﻿namespace TcbInternetSolutions.Vulcan.AttachmentIndexer
 {
     using EPiServer.Core;
-    using EPiServer.Logging;
     using EPiServer.ServiceLocation;
     using System;
-    using System.IO;
-    using static TcbInternetSolutions.Vulcan.Core.VulcanFieldConstants;
     using System.Collections.Generic;
-    using TcbInternetSolutions.Vulcan.Core.Extensions;
+    using Core;
+    using Core.Implementation;
+    using static Core.VulcanFieldConstants;
 
     /// <summary>
     /// Adds attachment content to serialized data
     /// </summary>
-    public class VulcanAttachmentIndexModifier : Core.IVulcanIndexingModifier
+    [ServiceConfiguration(typeof(IVulcanIndexingModifier), Lifecycle = ServiceInstanceScope.Singleton)]
+    public class VulcanAttachmentIndexModifier : IVulcanIndexingModifier
     {
-        private ILogger _Logger = LogManager.GetLogger(typeof(VulcanAttachmentIndexModifier));
+        private readonly IVulcanMediaReader _mediaReader;
+        private readonly IVulcanBytesToStringConverter _byteConvertor;
+        private readonly IVulcanPipelineSelector _vulcanPipelineSelector;
 
-        static Injected<IVulcanAttachmentInspector> _AttachmentInspector;
+        // store the attachment pipeline for NEST 2 since its a singleton and no need to get it for every asset
+        private IVulcanPipeline _attachmentPipeline;
 
-        static Injected<IVulcanAttachmentIndexerSettings> _AttachmentSettings;
-
-        static Injected<IVulcanMediaReader> _MediaReader;
+        private Type _converterType;
 
         /// <summary>
-        /// Gets ancestors
-        /// </summary>
-        /// <param name="content"></param>
-        /// <returns></returns>
-        public IEnumerable<ContentReference> GetAncestors(IContent content) => null;
+        /// DI Constructor
+        /// </summary>        
+        /// <param name="vulcanMediaReader"></param>
+        /// <param name="vulcanBytesToStringConverter"></param>
+        /// <param name="vulcanPipelineSelector"></param>
+        public VulcanAttachmentIndexModifier
+        (
+            IVulcanMediaReader vulcanMediaReader,
+            IVulcanBytesToStringConverter vulcanBytesToStringConverter,
+            IVulcanPipelineSelector vulcanPipelineSelector
+        )
+        {
+            _mediaReader = vulcanMediaReader;
+            _byteConvertor = vulcanBytesToStringConverter;
+            _vulcanPipelineSelector = vulcanPipelineSelector;
+        }
 
         /// <summary>
         /// Adds attachment content to serialized data
         /// </summary>
-        /// <param name="content"></param>
-        /// <param name="writableStream"></param>
-        public void ProcessContent(IContent content, Stream writableStream)
+        /// <param name="args"></param>
+        public void ProcessContent(IVulcanIndexingModifierArgs args)
         {
-            var media = content as MediaData;
+            if (!IsMediaReadable(args, out var isPipeline, out var media)) return;
+            var mediaBytes = _mediaReader.ReadToEnd(media);
+            var base64Contents = Convert.ToBase64String(mediaBytes);
+            var mimeType = media.MimeType;
 
-            if (media != null && _AttachmentInspector.Service.AllowIndexing(media))
+            var stringContents = _byteConvertor.ConvertToString(mediaBytes, mimeType);
+
+            if (!string.IsNullOrWhiteSpace(stringContents))
             {
-                var streamWriter = new StreamWriter(writableStream);
-                byte[] mediaBytes = _MediaReader.Service.ReadToEnd(media);
-                string mimeType = media.MimeType;
-
-                if (mediaBytes?.LongLength > 0)
-                {
-                    if (_AttachmentSettings.Service.EnableAttachmentPlugins)
-                    {
-                        Implementation.VulcanAttachmentPropertyMapper.AddMapping(media);
-
-                        streamWriter.Write(",\"" + MediaContents + "\":{");
-                        string base64contents = Convert.ToBase64String(mediaBytes);
-                        long fileByteSize = mediaBytes.LongLength;
-
-                        streamWriter.Write("\"_name\": \"" + media.Name + "\",");
-                        streamWriter.Write("\"_indexed_chars\": \"-1\","); // indexes entire document instead of first 100000 chars   
-                        streamWriter.Write("\"_content_type\": \"" + mimeType + "\",");
-                        streamWriter.Write("\"_content_length\": \"" + fileByteSize + "\",");
-                        streamWriter.Write("\"_content\": \"" + base64contents + "\"");
-                        streamWriter.Write("}");
-                    }
-
-                    var converter = Helpers.GetBytesToStringConverter();
-                    string stringContents = converter?.ConvertToString(mediaBytes, mimeType);
-
-                    if (!string.IsNullOrWhiteSpace(stringContents))
-                    {
-                        streamWriter.Write(",\"" + MediaStringContents + "\": " + stringContents.JsonEscapeString()); // json escape adds quotes
-                    }
-                }
-
-                streamWriter.Flush();
+                args.AdditionalItems[MediaStringContents] = stringContents;
             }
+
+            if (!isPipeline) return;
+
+#if NEST2
+            var mediaFields = new Dictionary<string, object>
+            {
+                ["_name"] = media.Name,
+                ["_indexed_chars"] = -1,// indexes entire document instead of first 100000 chars   
+                ["_content_type"] = mimeType,
+                ["_content_length"] = mediaBytes.LongLength,
+                ["_content"] = base64Contents
+            };
+
+            args.AdditionalItems[MediaContents] = mediaFields;
+#elif NEST5
+            // 5x: only send base64 content if pipeline is enabled
+            args.AdditionalItems[MediaContents] = base64Contents;
+#endif
+        }
+
+        private bool IsMediaReadable(IVulcanIndexingModifierArgs args, out bool isPipeline, out MediaData media)
+        {
+            media = args.Content as MediaData;
+            isPipeline = false;
+
+            if (media == null) return false;
+
+            if (_attachmentPipeline == null)
+            {
+                _attachmentPipeline = _vulcanPipelineSelector.GetPipelineById(Implementation.VulcanAttachmentPipelineInstaller.PipelineId);
+            }
+
+#if NEST2
+            // for 2x, have to evaluate pipeline here
+            if (_attachmentPipeline?.IsMatch(args.Content) == true)
+            {
+                return isPipeline = true;
+            }
+#endif
+
+            if (args.PipelineId == Implementation.VulcanAttachmentPipelineInstaller.PipelineId)
+            {
+                return isPipeline = true;
+            }
+
+            if (_converterType == null)
+            {
+                _converterType = _byteConvertor.GetType();
+            }            
+
+            // default converter does nothing so don't read it
+            return _converterType != typeof(DefaultVulcanBytesToStringConverter);
         }
     }
 }

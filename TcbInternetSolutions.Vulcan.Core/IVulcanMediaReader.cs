@@ -1,6 +1,6 @@
 ﻿using EPiServer.Core;
 
-namespace TcbInternetSolutions.Vulcan.AttachmentIndexer
+namespace TcbInternetSolutions.Vulcan.Core
 {
     /// <summary>
     /// Converts mediadata to byte array

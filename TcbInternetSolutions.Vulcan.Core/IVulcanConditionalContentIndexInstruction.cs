@@ -1,6 +1,6 @@
 ﻿using EPiServer.Core;
 
-namespace TcbInternetSolutions.Vulcan.Core.Implementation
+namespace TcbInternetSolutions.Vulcan.Core
 {
     /// <summary>
     /// Determines if content can be indexed

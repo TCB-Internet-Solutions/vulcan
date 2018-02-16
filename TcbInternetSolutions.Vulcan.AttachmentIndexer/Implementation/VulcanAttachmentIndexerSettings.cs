@@ -11,11 +11,9 @@
     [ServiceConfiguration(typeof(IVulcanAttachmentIndexerSettings), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanAttachmentIndexerSettings : IVulcanAttachmentIndexerSettings
     {
-        private IEnumerable<string> _SupportedFileExtensions = null;
-
-        private bool? _EnabledAttachmentPlugins;
-
-        private bool? _EnableAttachmentFileLimit;
+        private bool? _enableAttachmentFileLimit;
+        private bool? _enabledAttachmentPlugins;
+        private IEnumerable<string> _supportedFileExtensions;
 
         /// <summary>
         /// Determines if Elasticsearch has plugins to handle base64 data
@@ -24,21 +22,13 @@
         {
             get
             {
-                if (_EnabledAttachmentPlugins == null)
-                {
-                    string settings = ConfigurationManager.AppSettings["VulcanIndexAttachmentPluginsEnabled"];
-
-                    if (string.IsNullOrWhiteSpace(settings))
-                    {
-                        _EnabledAttachmentPlugins = true;
-                    }
-                    else
-                    {
-                        return settings == "true" || settings == "1";
-                    }
+                if (_enabledAttachmentPlugins == null)
+                {                    
+                    _enabledAttachmentPlugins =
+                        GetSetting(ConfigurationManager.AppSettings["VulcanIndexAttachmentPluginsEnabled"], true);
                 }
 
-                return _EnabledAttachmentPlugins.Value;
+                return _enabledAttachmentPlugins.Value;
             }
         }
         /// <summary>
@@ -48,22 +38,13 @@
         {
             get
             {
-                if (_EnableAttachmentFileLimit == null)
-                {
-                    string settings = ConfigurationManager.AppSettings["VulcanIndexAttachmentFileLimitEnabled"];
-
-                    if (string.IsNullOrWhiteSpace(settings))
-                    {
-                        _EnableAttachmentFileLimit = false;
-                    }
-                    else
-                    {
-                        _EnableAttachmentFileLimit = settings == "true" || settings == "1";
-
-                    }
+                if (_enableAttachmentFileLimit == null)
+                {                    
+                    _enableAttachmentFileLimit =
+                        GetSetting(ConfigurationManager.AppSettings["VulcanIndexAttachmentFileLimitEnabled"], false);
                 }
 
-                return _EnableAttachmentFileLimit.Value;
+                return _enableAttachmentFileLimit.Value;
             }
         }
 
@@ -79,22 +60,26 @@
         {
             get
             {
-                if (_SupportedFileExtensions == null)
-                {
-                    var allowedExtensions = ConfigurationManager.AppSettings["VulcanIndexAttachmentFileExtensions"];
+                if (_supportedFileExtensions != null) return _supportedFileExtensions;
 
-                    if (string.IsNullOrWhiteSpace(allowedExtensions))
-                    {
-                        _SupportedFileExtensions = new string[] { "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "rtf" };
-                    }
-                    else
-                    {
-                        _SupportedFileExtensions = allowedExtensions.Split(new char[] { ',', '|', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                    }
-                }
+                var allowedExtensions = ConfigurationManager.AppSettings["VulcanIndexAttachmentFileExtensions"];
 
-                return _SupportedFileExtensions;
+                _supportedFileExtensions = string.IsNullOrWhiteSpace(allowedExtensions) ?
+                    new[] { "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "rtf" } :
+                    allowedExtensions.Split(new[] { ',', '|', ';' }, StringSplitOptions.RemoveEmptyEntries);
+
+                return _supportedFileExtensions;
             }
+        }
+
+        private static bool GetSetting(string setting, bool defaultValue)
+        {
+            if (string.IsNullOrWhiteSpace(setting))
+            {
+                return defaultValue;
+            }
+
+            return setting.Equals("true") || setting.Equals("1");
         }
     }
 }

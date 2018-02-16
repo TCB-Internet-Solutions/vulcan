@@ -1,7 +1,7 @@
-﻿namespace TcbInternetSolutions.Vulcan.AttachmentIndexer
+﻿namespace TcbInternetSolutions.Vulcan.Core
 {
     /// <summary>
-    /// Converts byte array to string
+    /// Converts byte array to string, default implementation does nothing, to override use an IConfigurableModule with a ModuleDependency on ServiceConfiguration
     /// </summary>
     public interface IVulcanBytesToStringConverter
     {

@@ -4,4 +4,9 @@
     <add key="VulcanUrl" value="SET THIS" xdt:Transform="InsertIfMissing" xdt:Locator="Match(key)" />
     <add key="VulcanIndex" value="SET THIS" xdt:Transform="InsertIfMissing" xdt:Locator="Match(key)" />
   </appSettings>
+  <episerver.shell xdt:Transform="InsertIfMissing">
+    <protectedModules xdt:Transform="InsertIfMissing">
+      <add name="TcbInternetSolutions.Vulcan.UI" xdt:Transform="InsertIfMissing" xdt:Locator="Match(name)" />
+    </protectedModules>
+  </episerver.shell>
 </configuration>

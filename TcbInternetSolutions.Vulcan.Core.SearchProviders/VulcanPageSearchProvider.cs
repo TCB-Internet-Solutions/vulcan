@@ -1,5 +1,6 @@
 ﻿namespace TcbInternetSolutions.Vulcan.Core.SearchProviders
 {
+    using Core;
     using EPiServer;
     using EPiServer.Core;
     using EPiServer.DataAbstraction;
@@ -8,7 +9,6 @@
     using EPiServer.Shell;
     using EPiServer.Shell.Search;
     using EPiServer.Web;
-    using TcbInternetSolutions.Vulcan.Core;
 
     /// <summary>
     /// UI search provider for PageData
@@ -63,7 +63,7 @@
         /// <summary>
         /// Gets the CMS page category.
         /// </summary>
-        public override string Category => _LocalizationService.GetString("/vulcan/searchprovider/pages/name");
+        public override string Category => LocalizationService.GetString("/vulcan/searchprovider/pages/name");
 
         /// <summary>
         /// Gets the name of the localization page type.

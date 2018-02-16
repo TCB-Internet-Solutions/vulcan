@@ -1,7 +1,6 @@
-﻿using EPiServer.Web;
+﻿using EPiServer.Framework.Cache;
+using EPiServer.Web;
 using System.Collections.Generic;
-using System;
-using EPiServer;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
@@ -10,6 +9,17 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     /// </summary>
     public class VulcanCmsIndexer : IVulcanContentIndexer
     {
+        private readonly ISynchronizedObjectInstanceCache _synchronizedObjectInstanceCache;
+
+        /// <summary>
+        /// DI Constructor
+        /// </summary>
+        /// <param name="synchronizedObjectInstanceCache"></param>
+        public VulcanCmsIndexer(ISynchronizedObjectInstanceCache synchronizedObjectInstanceCache)
+        {
+            _synchronizedObjectInstanceCache = synchronizedObjectInstanceCache;
+        }
+
         /// <summary>
         /// Default cache clear interval
         /// </summary>
@@ -25,7 +35,14 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// </summary>
         public void ClearCache()
         {
-            CacheManager.Clear();
+            //CacheManager.Clear(); //this has been deprecated
+            var cacheKeys = GetCacheKeys();
+
+            foreach(var key in cacheKeys)
+            {
+                _synchronizedObjectInstanceCache.RemoveLocal(key);
+                _synchronizedObjectInstanceCache.RemoveRemote(key);
+            }
         }
 
         /// <summary>
@@ -34,5 +51,19 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <returns></returns>
         public virtual KeyValuePair<EPiServer.Core.ContentReference, string> GetRoot() =>
             new KeyValuePair<EPiServer.Core.ContentReference, string>(SiteDefinition.Current.RootPage, "CMS");
+
+        private static IEnumerable<string> GetCacheKeys()
+        {
+            var enumerator = System.Web.HttpRuntime.Cache.GetEnumerator();
+            var cacheKeys = new List<string>();
+
+            while (enumerator.MoveNext())
+            {
+                var key = enumerator.Key?.ToString() ?? string.Empty;
+                cacheKeys.Add(key);
+            }
+
+            return cacheKeys;
+        }
     }
 }

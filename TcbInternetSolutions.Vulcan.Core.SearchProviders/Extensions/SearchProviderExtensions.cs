@@ -1,7 +1,6 @@
 ﻿using EPiServer.Core;
 using EPiServer.Editor;
 using EPiServer.Shell;
-using System.IO;
 using System.Linq;
 
 namespace TcbInternetSolutions.Vulcan.Core.SearchProviders.Extensions
@@ -30,7 +29,7 @@ namespace TcbInternetSolutions.Vulcan.Core.SearchProviders.Extensions
         /// </returns>
         public static string GetUri(this IContent content, bool createVersionUnspecificLink)
         {
-            ContentReference contentReference = createVersionUnspecificLink ? content.ContentLink.ToReferenceWithoutVersion() : content.ContentLink;
+            var contentReference = createVersionUnspecificLink ? content.ContentLink.ToReferenceWithoutVersion() : content.ContentLink;
 
             return PageEditing.GetEditUrl(contentReference);
         }
@@ -40,6 +39,6 @@ namespace TcbInternetSolutions.Vulcan.Core.SearchProviders.Extensions
         /// </summary>
         /// <param name="content">The content.</param>
         /// <param name="uiDescriptorRegistry"/>
-        public static string GetTypeIdentifier(this IContent content, UIDescriptorRegistry uiDescriptorRegistry) => Enumerable.FirstOrDefault(uiDescriptorRegistry.GetTypeIdentifiers(content.GetType()));
+        public static string GetTypeIdentifier(this IContent content, UIDescriptorRegistry uiDescriptorRegistry) => uiDescriptorRegistry.GetTypeIdentifiers(content.GetType()).FirstOrDefault();
     }
 }

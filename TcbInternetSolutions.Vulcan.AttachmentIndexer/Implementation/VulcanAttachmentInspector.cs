@@ -1,4 +1,6 @@
-﻿namespace TcbInternetSolutions.Vulcan.AttachmentIndexer.Implementation
+﻿using System;
+
+namespace TcbInternetSolutions.Vulcan.AttachmentIndexer.Implementation
 {
     using Core.Extensions;
     using EPiServer.Core;
@@ -11,7 +13,7 @@
     [ServiceConfiguration(typeof(IVulcanAttachmentInspector), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanAttachmentInspector : IVulcanAttachmentInspector
     {
-        IVulcanAttachmentIndexerSettings _AttachmentSettings;
+        private readonly IVulcanAttachmentIndexerSettings _attachmentSettings;
 
         /// <summary>
         /// Constructor
@@ -19,7 +21,7 @@
         /// <param name="attachmentSettings"></param>
         public VulcanAttachmentInspector(IVulcanAttachmentIndexerSettings attachmentSettings)
         {
-            _AttachmentSettings = attachmentSettings;
+            _attachmentSettings = attachmentSettings;
         }
 
         /// <summary>
@@ -29,31 +31,29 @@
         /// <returns></returns>
         public virtual bool AllowIndexing(MediaData media)
         {
-            if (media == null)
+            if (media == null || !_attachmentSettings.EnableAttachmentPlugins)
                 return false;
 
-            bool allowed = true;
+            var allowed = true;
             var ext = media.SearchFileExtension();
 
             if (!string.IsNullOrWhiteSpace(ext))
             {
-                allowed = _AttachmentSettings?.SupportedFileExtensions?.Any(x => string.Compare(ext, x.Trim().TrimStart('.'), true) == 0) == true;
+                allowed = _attachmentSettings?.SupportedFileExtensions?.Any(x => string.Compare(ext, x.Trim().TrimStart('.'), StringComparison.OrdinalIgnoreCase) == 0) == true;
             }
 
-            if (allowed && _AttachmentSettings.EnableFileSizeLimit)
+            if (!allowed || !_attachmentSettings.EnableFileSizeLimit) return allowed;
+            long fileByteSize = -1;
+
+            if (media.BinaryData != null)
             {
-                long fileByteSize = -1;
-
-                if (media?.BinaryData != null)
+                using (var stream = media.BinaryData.OpenRead())
                 {
-                    using (var stream = media.BinaryData.OpenRead())
-                    {
-                        fileByteSize = stream.Length;
-                    }
+                    fileByteSize = stream.Length;
                 }
-
-                allowed = _AttachmentSettings.FileSizeLimit <= fileByteSize;
             }
+
+            allowed = fileByteSize > 1 && _attachmentSettings.FileSizeLimit <= fileByteSize;
 
             return allowed;
         }

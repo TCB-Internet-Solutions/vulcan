@@ -14,7 +14,7 @@
         /// <summary>
         /// Constructor
         /// </summary>
-        public VulcanPocoIndexingJobBase()
+        protected VulcanPocoIndexingJobBase()
         {
             IsStoppable = true;
         }
