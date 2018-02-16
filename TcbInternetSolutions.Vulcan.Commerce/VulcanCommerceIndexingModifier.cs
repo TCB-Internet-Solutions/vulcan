@@ -5,6 +5,7 @@ using EPiServer.ServiceLocation;
 using Mediachase.Commerce.Markets;
 using Mediachase.Commerce.Pricing;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using TcbInternetSolutions.Vulcan.Core;
 
@@ -29,9 +30,8 @@ namespace TcbInternetSolutions.Vulcan.Commerce
             switch (args.Content)
             {
                 case VariationContent variationContent:
-
                     var marketPrices = GetDefaultPrices(variationContent);
-                    var prices = new Dictionary<string, decimal>();
+                    var prices = new Dictionary<string, string>();
 
                     if (marketPrices?.Any() == true)
                     {
@@ -39,7 +39,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                         {
                             foreach (var price in market.Value)
                             {
-                                prices[market.Key + "_" + price.Key] = price.Value;
+                                prices[market.Key + "_" + price.Key] = price.Value.ToString(CultureInfo.InvariantCulture.NumberFormat);
                             }
                         }
                     }
@@ -107,8 +107,8 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                         }
                     }
 
-                    var flatPricesLow = new Dictionary<string, decimal>();
-                    var flatPricesHigh = new Dictionary<string, decimal>();
+                    var flatPricesLow = new Dictionary<string, string>();
+                    var flatPricesHigh = new Dictionary<string, string>();
 
                     if (pricesLow.Any())
                     {
@@ -116,7 +116,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                         {
                             foreach (var price in market.Value)
                             {
-                                flatPricesLow[market.Key + "_" + price.Key] = price.Value;
+                                flatPricesLow[market.Key + "_" + price.Key] = price.Value.ToString(CultureInfo.InvariantCulture.NumberFormat);
                             }
                         }
                     }
@@ -126,7 +126,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                         {
                             foreach (var price in market.Value)
                             {
-                                flatPricesHigh[market.Key + "_" + price.Key] = price.Value;
+                                flatPricesHigh[market.Key + "_" + price.Key] = price.Value.ToString(CultureInfo.InvariantCulture.NumberFormat);
                             }
                         }
                     }
@@ -145,11 +145,6 @@ namespace TcbInternetSolutions.Vulcan.Commerce
             };
 
             args.AdditionalItems[VulcanFieldConstants.ReadPermission] = commercePermissionEntries.Select(x => x.Name);
-            //streamWriter.Write(",\"" + VulcanFieldConstants.ReadPermission + "\":[");
-            //streamWriter.Write(string.Join(",", commercePermissionEntries.Select(x => "\"" + x.Name + "\"")));
-            //streamWriter.Write("]");
-
-            //streamWriter.Flush();
         }
 
         private Dictionary<string, Dictionary<string, decimal>> GetDefaultPrices(VariationContent variation)
