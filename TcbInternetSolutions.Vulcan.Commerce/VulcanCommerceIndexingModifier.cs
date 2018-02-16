@@ -114,9 +114,32 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                         }
                     }
 
-                    args.AdditionalItems["__pricesLow"] = pricesLow;
-                    args.AdditionalItems["__pricesHigh"] = pricesHigh;
+                    var flatPricesLow = new Dictionary<string, string>();
+                    var flatPricesHigh = new Dictionary<string, string>();
 
+                    if (pricesLow?.Any() == true)
+                    {
+                        foreach (var market in pricesLow)
+                        {
+                            foreach (var price in market.Value)
+                            {
+                                flatPricesLow[market.Key + "_" + price.Key] = price.Value.ToString(CultureInfo.InvariantCulture.NumberFormat);
+                            }
+                        }
+                    }
+                    if (pricesHigh?.Any() == true)
+                    {
+                        foreach (var market in pricesHigh)
+                        {
+                            foreach (var price in market.Value)
+                            {
+                                flatPricesHigh[market.Key + "_" + price.Key] = price.Value.ToString(CultureInfo.InvariantCulture.NumberFormat);
+                            }
+                        }
+                    }
+
+                    if (flatPricesLow.Any()) args.AdditionalItems["__pricesLow"] = flatPricesLow;
+                    if (flatPricesHigh.Any()) args.AdditionalItems["__pricesHigh"] = flatPricesHigh;
                     //streamWriter.Write(",\"__pricesLow\":{");
                     //WritePrices(streamWriter, pricesLow);
                     //streamWriter.Write("}");
