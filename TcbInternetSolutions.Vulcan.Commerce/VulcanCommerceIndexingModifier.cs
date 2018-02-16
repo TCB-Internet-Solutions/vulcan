@@ -5,7 +5,6 @@ using EPiServer.ServiceLocation;
 using Mediachase.Commerce.Markets;
 using Mediachase.Commerce.Pricing;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using TcbInternetSolutions.Vulcan.Core;
 
@@ -111,7 +110,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                     var flatPricesLow = new Dictionary<string, decimal>();
                     var flatPricesHigh = new Dictionary<string, decimal>();
 
-                    if (pricesLow?.Any() == true)
+                    if (pricesLow.Any())
                     {
                         foreach (var market in pricesLow)
                         {
@@ -121,7 +120,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                             }
                         }
                     }
-                    if (pricesHigh?.Any() == true)
+                    if (pricesHigh.Any())
                     {
                         foreach (var market in pricesHigh)
                         {
