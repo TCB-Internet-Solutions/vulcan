@@ -12,7 +12,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
 {
     [ServiceConfiguration(typeof(IVulcanIndexingModifier), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanCommerceIndexingModifier : IVulcanIndexingModifier
-    {        
+    {
         private readonly IMarketService _marketService;
         private readonly IPriceDetailService _priceDetailService;
         private readonly IContentLoader _contentLoader;
@@ -176,7 +176,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                 if (variantPrices == null || totalCount <= 0) continue;
 
                 foreach (var price in variantPrices)
-                {                    
+                {
                     if (price.MinQuantity != 0 || price.CustomerPricing != CustomerPricing.AllCustomers) continue;// this is a default price
 
                     if (!prices.ContainsKey(price.UnitPrice.Currency.CurrencyCode))
