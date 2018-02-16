@@ -32,7 +32,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                 case VariationContent variationContent:
 
                     var marketPrices = GetDefaultPrices(variationContent);
-                    var prices = new Dictionary<string, string>();
+                    var prices = new Dictionary<string, decimal>();
 
                     if (marketPrices?.Any() == true)
                     {
@@ -40,7 +40,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                         {
                             foreach (var price in market.Value)
                             {
-                                prices[market.Key + "_" + price.Key] = price.Value.ToString(CultureInfo.InvariantCulture.NumberFormat);
+                                prices[market.Key + "_" + price.Key] = price.Value;
                             }
                         }
                     }
@@ -108,8 +108,8 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                         }
                     }
 
-                    var flatPricesLow = new Dictionary<string, string>();
-                    var flatPricesHigh = new Dictionary<string, string>();
+                    var flatPricesLow = new Dictionary<string, decimal>();
+                    var flatPricesHigh = new Dictionary<string, decimal>();
 
                     if (pricesLow?.Any() == true)
                     {
@@ -117,7 +117,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                         {
                             foreach (var price in market.Value)
                             {
-                                flatPricesLow[market.Key + "_" + price.Key] = price.Value.ToString(CultureInfo.InvariantCulture.NumberFormat);
+                                flatPricesLow[market.Key + "_" + price.Key] = price.Value;
                             }
                         }
                     }
@@ -127,7 +127,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                         {
                             foreach (var price in market.Value)
                             {
-                                flatPricesHigh[market.Key + "_" + price.Key] = price.Value.ToString(CultureInfo.InvariantCulture.NumberFormat);
+                                flatPricesHigh[market.Key + "_" + price.Key] = price.Value;
                             }
                         }
                     }
