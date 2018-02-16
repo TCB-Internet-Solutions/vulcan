@@ -10,8 +10,6 @@ using TcbInternetSolutions.Vulcan.Core;
 
 namespace TcbInternetSolutions.Vulcan.Commerce
 {
-    // todo: review how to fix warnings in VulcanCommerceContentAncestorLoader
-
     /// <summary>
     /// Gets ancestors for CMS content
     /// </summary>
@@ -36,9 +34,9 @@ namespace TcbInternetSolutions.Vulcan.Commerce
         {
             var ancestors = new List<ContentReference>();
 
-            if (content is VariationContent)
+            if (content is VariationContent variationContent)
             {
-                var productAncestors = (content as VariationContent).GetParentProducts();
+                var productAncestors = variationContent.GetParentProducts()?.ToList();
 
                 if (productAncestors?.Any() == true)
                 {

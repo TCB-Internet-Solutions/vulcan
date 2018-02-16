@@ -29,7 +29,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Initialization
             _contentRepository = context.Locate.ContentRepository();
             _vulcanHandler = context.Locate.Advanced.GetInstance<IVulcanHandler>();
 
-            // TODO: Add content events to work with content area attribute to sync block changes that are searchable.
+            // todo: Add content events to work with content area attribute to sync block changes that are searchable.
 
             _contentEvents.PublishedContent += Service_PublishedContent;
             _contentEvents.MovedContent += Service_MovedContent;
