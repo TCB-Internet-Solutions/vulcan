@@ -5,7 +5,6 @@ using EPiServer.ServiceLocation;
 using Mediachase.Commerce.Markets;
 using Mediachase.Commerce.Pricing;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using TcbInternetSolutions.Vulcan.Core;
 
@@ -13,7 +12,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
 {
     [ServiceConfiguration(typeof(IVulcanIndexingModifier), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanCommerceIndexingModifier : IVulcanIndexingModifier
-    {        
+    {
         private readonly IMarketService _marketService;
         private readonly IPriceDetailService _priceDetailService;
         private readonly IContentLoader _contentLoader;
@@ -30,8 +29,9 @@ namespace TcbInternetSolutions.Vulcan.Commerce
             switch (args.Content)
             {
                 case VariationContent variationContent:
+
                     var marketPrices = GetDefaultPrices(variationContent);
-                    var prices = new Dictionary<string, string>();
+                    var prices = new Dictionary<string, decimal>();
 
                     if (marketPrices?.Any() == true)
                     {
@@ -39,7 +39,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                         {
                             foreach (var price in market.Value)
                             {
-                                prices[market.Key + "_" + price.Key] = price.Value.ToString(CultureInfo.InvariantCulture.NumberFormat);
+                                prices[market.Key + "_" + price.Key] = price.Value;
                             }
                         }
                     }
@@ -107,8 +107,8 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                         }
                     }
 
-                    var flatPricesLow = new Dictionary<string, string>();
-                    var flatPricesHigh = new Dictionary<string, string>();
+                    var flatPricesLow = new Dictionary<string, decimal>();
+                    var flatPricesHigh = new Dictionary<string, decimal>();
 
                     if (pricesLow.Any())
                     {
@@ -116,7 +116,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                         {
                             foreach (var price in market.Value)
                             {
-                                flatPricesLow[market.Key + "_" + price.Key] = price.Value.ToString(CultureInfo.InvariantCulture.NumberFormat);
+                                flatPricesLow[market.Key + "_" + price.Key] = price.Value;
                             }
                         }
                     }
@@ -126,7 +126,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                         {
                             foreach (var price in market.Value)
                             {
-                                flatPricesHigh[market.Key + "_" + price.Key] = price.Value.ToString(CultureInfo.InvariantCulture.NumberFormat);
+                                flatPricesHigh[market.Key + "_" + price.Key] = price.Value;
                             }
                         }
                     }
@@ -145,6 +145,11 @@ namespace TcbInternetSolutions.Vulcan.Commerce
             };
 
             args.AdditionalItems[VulcanFieldConstants.ReadPermission] = commercePermissionEntries.Select(x => x.Name);
+            //streamWriter.Write(",\"" + VulcanFieldConstants.ReadPermission + "\":[");
+            //streamWriter.Write(string.Join(",", commercePermissionEntries.Select(x => "\"" + x.Name + "\"")));
+            //streamWriter.Write("]");
+
+            //streamWriter.Flush();
         }
 
         private Dictionary<string, Dictionary<string, decimal>> GetDefaultPrices(VariationContent variation)
@@ -171,7 +176,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                 if (variantPrices == null || totalCount <= 0) continue;
 
                 foreach (var price in variantPrices)
-                {                    
+                {
                     if (price.MinQuantity != 0 || price.CustomerPricing != CustomerPricing.AllCustomers) continue;// this is a default price
 
                     if (!prices.ContainsKey(price.UnitPrice.Currency.CurrencyCode))
