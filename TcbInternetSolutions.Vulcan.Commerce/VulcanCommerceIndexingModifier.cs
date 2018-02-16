@@ -27,16 +27,10 @@ namespace TcbInternetSolutions.Vulcan.Commerce
 
         public void ProcessContent(IVulcanIndexingModifierArgs args)
         {
-            //var streamWriter = new StreamWriter(writableStream);
-
             switch (args.Content)
             {
                 case VariationContent variationContent:
-                    //streamWriter.Write(",\"__prices\":{");
-                    //WritePrices(streamWriter, GetDefaultPrices(variationContent));
-                    //streamWriter.Write("}");
 
-                    // todo: verify that this equivalent to WritePrices
                     var marketPrices = GetDefaultPrices(variationContent);
                     var prices = new Dictionary<string, string>();
 
@@ -114,15 +108,33 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                         }
                     }
 
-                    args.AdditionalItems["__pricesLow"] = pricesLow;
-                    args.AdditionalItems["__pricesHigh"] = pricesHigh;
+                    var flatPricesLow = new Dictionary<string, string>();
+                    var flatPricesHigh = new Dictionary<string, string>();
 
-                    //streamWriter.Write(",\"__pricesLow\":{");
-                    //WritePrices(streamWriter, pricesLow);
-                    //streamWriter.Write("}");
-                    //streamWriter.Write(",\"__pricesHigh\":{");
-                    //WritePrices(streamWriter, pricesHigh);
-                    //streamWriter.Write("}");
+                    if (pricesLow?.Any() == true)
+                    {
+                        foreach (var market in pricesLow)
+                        {
+                            foreach (var price in market.Value)
+                            {
+                                flatPricesLow[market.Key + "_" + price.Key] = price.Value.ToString(CultureInfo.InvariantCulture.NumberFormat);
+                            }
+                        }
+                    }
+                    if (pricesHigh?.Any() == true)
+                    {
+                        foreach (var market in pricesHigh)
+                        {
+                            foreach (var price in market.Value)
+                            {
+                                flatPricesHigh[market.Key + "_" + price.Key] = price.Value.ToString(CultureInfo.InvariantCulture.NumberFormat);
+                            }
+                        }
+                    }
+
+                    if (flatPricesLow.Any()) args.AdditionalItems["__pricesLow"] = flatPricesLow;
+                    if (flatPricesHigh.Any()) args.AdditionalItems["__pricesHigh"] = flatPricesHigh;
+
                     break;
             }
 
@@ -179,44 +191,5 @@ namespace TcbInternetSolutions.Vulcan.Commerce
 
             return prices;
         }
-
-        //private void WritePrices(StreamWriter streamWriter, Dictionary<string, Dictionary<string, decimal>> markets)
-        //{
-        //    if (markets != null)
-        //    {
-        //        var first = true;
-
-        //        foreach (var market in markets)
-        //        {
-        //            if (market.Value.Any())
-        //            {
-        //                if (first)
-        //                {
-        //                    first = false;
-        //                }
-        //                else
-        //                {
-        //                    streamWriter.Write(",");
-        //                }
-
-        //                var firstPrice = true;
-
-        //                foreach (var price in market.Value)
-        //                {
-        //                    if (firstPrice)
-        //                    {
-        //                        firstPrice = false;
-        //                    }
-        //                    else
-        //                    {
-        //                        streamWriter.Write(",");
-        //                    }
-
-        //                    streamWriter.Write("\"" + market.Key + "_" + price.Key + "\":" + price.Value.ToString(CultureInfo.InvariantCulture.NumberFormat));
-        //                }
-        //            }
-        //        }
-        //    }
-        //}
     }
 }
