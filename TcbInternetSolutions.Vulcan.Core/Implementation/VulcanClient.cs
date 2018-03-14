@@ -216,7 +216,7 @@
 
             var indexName = IndexName;
 
-            if (Language.Equals(CultureInfo.InvariantCulture) && includeNeutralLanguage)
+            if (!(Language.Equals(CultureInfo.InvariantCulture)) && includeNeutralLanguage)
             {
                 indexName += "," + VulcanHelper.GetIndexName(VulcanHandler.Index, CultureInfo.InvariantCulture);
             }
