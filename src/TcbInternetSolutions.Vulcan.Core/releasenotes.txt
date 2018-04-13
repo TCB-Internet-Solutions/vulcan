@@ -1,0 +1,2 @@
+﻿Changed to new netstandard csproj.
+Added IVulcanApplicationSettings for cross platform setting support.

@@ -1,0 +1,46 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- ReSharper disable UnknownProperty -->
+  <Import Project="..\targets\AddReleaseNotes.targets" />
+  <Import Project="..\targets\AddReadmeMarkdown.targets" />
+  <Import Project="..\targets\CommonBuild.props" />
+
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);NEST5</DefineConstants>
+    <TargetFrameworks>net461;netstandard2.0</TargetFrameworks>
+    <PackageId>TcbInternetSolutions.Vulcan.Core</PackageId>
+    <Authors>Dan Matthews, Brad McDavid</Authors>
+    <Copyright>Copyright $(CurrentYear)</Copyright>
+    <Description>Vulcan, the lightweight Elasticsearch client for Episerver</Description>
+    <!--follow semantic versioning may include prelease information too-->
+    <PackageVersion>4.0.0</PackageVersion>
+    <!--leave releasenotes blank to read in from releasenotes.txt-->
+    <PackageReleaseNotes></PackageReleaseNotes>
+    <PackageTags>ElasticSearch Nest Search</PackageTags>
+
+    <!--adds readme.md as readme.txt in package-->
+    <IncludeReadMeMarkdown>true</IncludeReadMeMarkdown>
+
+    <!--Provide intellisense for developers-->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!--useful to allow others to debug -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <IncludeSource>true</IncludeSource>
+
+    <!--set assembly info version from CI prop if possible-->
+    <BuildInfo Condition="'$(CIBuildNumber)' != ''"> Commit: $(RepositoryCommit) Branch: $(RepositoryBranch) Build: $(CIBuildNumber)</BuildInfo>
+    <InformationalVersion>$(PackageVersion) $(BuildInfo)</InformationalVersion>
+
+    <!--do not change unless you want to deal with assembly redirects-->
+    <AssemblyVersion>4.0.0.0</AssemblyVersion>
+    <FileVersion>4.0.0.0</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="Resources\**\*.*" Pack="true" PackagePath="." />
+    <PackageReference Include="NEST" Version="[5.3.1,6)" />
+    <PackageReference Include="EPiServer.CMS.Core" Version="[11.2.1,12)" />
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.1" />
+  </ItemGroup>
+</Project>

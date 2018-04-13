@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <!--get info for appveyor builds-->
+    <CIBuildNumber Condition="'$(APPVEYOR)' == 'True'">$(APPVEYOR_BUILD_NUMBER)</CIBuildNumber>
+    <RepositoryBranch Condition="'$(APPVEYOR)' == 'True'">$(APPVEYOR_REPO_BRANCH)</RepositoryBranch>
+    <RepositoryCommit Condition="'$(APPVEYOR)' == 'True'">$(APPVEYOR_REPO_COMMIT)</RepositoryCommit>
+
+    <!--otherwise use VSTS-->
+    <CIBuildNumber Condition="'$(BUILD_SOURCEVERSION)' != ''">$(BUILD_BUILDNUMBER)</CIBuildNumber>
+    <RepositoryBranch Condition="'$(BUILD_SOURCEVERSION)' != ''">$(BUILD_SOURCEVERSION)</RepositoryBranch>
+    <RepositoryCommit Condition="'$(BUILD_SOURCEVERSION)' != ''">$(BUILD_SOURCEBRANCHNAME)</RepositoryCommit>
+
+    <CurrentYear>$([System.DateTime]::Now.ToString(yyyy))</CurrentYear>
+  </PropertyGroup>
+</Project>

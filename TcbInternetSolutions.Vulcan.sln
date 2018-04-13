@@ -1,36 +1,37 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.2037
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcbInternetSolutions.Vulcan.Core", "TcbInternetSolutions.Vulcan.Core\TcbInternetSolutions.Vulcan.Core.csproj", "{74975F21-F58D-4204-9CCA-4CA890E3BF12}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcbInternetSolutions.Vulcan.UI", "TcbInternetSolutions.Vulcan.UI\TcbInternetSolutions.Vulcan.UI.csproj", "{F202B17A-A8D8-41DE-89E6-B48054E6EB24}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcbInternetSolutions.Vulcan.Commerce", "TcbInternetSolutions.Vulcan.Commerce\TcbInternetSolutions.Vulcan.Commerce.csproj", "{107DF714-4C78-4AA3-8F42-2C7AF9579212}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6AADB6AF-EDDF-4E41-A87E-C97B8156AF6E}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
 		appveyor.yml = appveyor.yml
+		.nuget\NuGet.Config = .nuget\NuGet.Config
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcbInternetSolutions.Vulcan.AttachmentIndexer", "TcbInternetSolutions.Vulcan.AttachmentIndexer\TcbInternetSolutions.Vulcan.AttachmentIndexer.csproj", "{CCAB8ACF-3A0A-4570-A1BE-CB3B78CFB05D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TcbInternetSolutions.Vulcan.Core", "src\TcbInternetSolutions.Vulcan.Core\TcbInternetSolutions.Vulcan.Core.csproj", "{193748AD-DB0C-424B-931D-CC69F2CF0F1A}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{1A4B37FC-D534-4278-80B0-BA632F30E4AC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TcbInternetSolutions.Vulcan.AttachmentIndexer", "src\TcbInternetSolutions.Vulcan.AttachmentIndexer\TcbInternetSolutions.Vulcan.AttachmentIndexer.csproj", "{3C98395B-5E08-44D0-AC3A-0A6440C1C802}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TcbInternetSolutions.Vulcan.Core.SearchProviders", "src\TcbInternetSolutions.Vulcan.Core.SearchProviders\TcbInternetSolutions.Vulcan.Core.SearchProviders.csproj", "{D86F5B46-620F-4E37-AF82-767B9244C577}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TcbInternetSolutions.Vulcan.UI", "src\TcbInternetSolutions.Vulcan.UI\TcbInternetSolutions.Vulcan.UI.csproj", "{99A27C94-DF6B-46CE-92AD-D35E2E6A0BC6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TcbInternetSolutions.Vulcan.Commerce", "src\TcbInternetSolutions.Vulcan.Commerce\TcbInternetSolutions.Vulcan.Commerce.csproj", "{D35DF614-19C1-4CC8-9C46-982916B94C96}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TcbInternetSolutions.Vulcan.Commerce.SearchProviders", "src\TcbInternetSolutions.Vulcan.Commerce.SearchProviders\TcbInternetSolutions.Vulcan.Commerce.SearchProviders.csproj", "{864615C1-2F0F-4639-805A-095A0C4CDECF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed", "src\TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed\TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed.csproj", "{C39A098C-D47C-45C6-AC74-3FEF10597866}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "targets", "targets", "{09CE4433-208F-49F8-A60A-6A609C7485DE}"
 	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\nuget.exe = .nuget\nuget.exe
-		.nuget\pack.ps1 = .nuget\pack.ps1
-		.nuget\setVersion.ps1 = .nuget\setVersion.ps1
+		src\targets\AddReadMeMarkdown.targets = src\targets\AddReadMeMarkdown.targets
+		src\targets\AddReleaseNotes.targets = src\targets\AddReleaseNotes.targets
+		src\targets\CommonBuild.props = src\targets\CommonBuild.props
+		src\targets\ZipEpiserverModule.targets = src\targets\ZipEpiserverModule.targets
 	EndProjectSection
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcbInternetSolutions.Vulcan.Core.SearchProviders", "TcbInternetSolutions.Vulcan.Core.SearchProviders\TcbInternetSolutions.Vulcan.Core.SearchProviders.csproj", "{DCF03871-5019-4ADB-AB36-61F6F38C749D}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcbInternetSolutions.Vulcan.Commerce.SearchProviders", "TcbInternetSolutions.Vulcan.Commerce.SearchProviders\TcbInternetSolutions.Vulcan.Commerce.SearchProviders.csproj", "{F351568A-1809-4FD8-996E-D71E3D799970}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed", "TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed\TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed.csproj", "{B7B27438-DAEE-40A2-8739-38799581C8CF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -38,36 +39,39 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{74975F21-F58D-4204-9CCA-4CA890E3BF12}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{74975F21-F58D-4204-9CCA-4CA890E3BF12}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{74975F21-F58D-4204-9CCA-4CA890E3BF12}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{74975F21-F58D-4204-9CCA-4CA890E3BF12}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F202B17A-A8D8-41DE-89E6-B48054E6EB24}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F202B17A-A8D8-41DE-89E6-B48054E6EB24}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F202B17A-A8D8-41DE-89E6-B48054E6EB24}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F202B17A-A8D8-41DE-89E6-B48054E6EB24}.Release|Any CPU.Build.0 = Release|Any CPU
-		{107DF714-4C78-4AA3-8F42-2C7AF9579212}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{107DF714-4C78-4AA3-8F42-2C7AF9579212}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{107DF714-4C78-4AA3-8F42-2C7AF9579212}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{107DF714-4C78-4AA3-8F42-2C7AF9579212}.Release|Any CPU.Build.0 = Release|Any CPU
-		{CCAB8ACF-3A0A-4570-A1BE-CB3B78CFB05D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CCAB8ACF-3A0A-4570-A1BE-CB3B78CFB05D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CCAB8ACF-3A0A-4570-A1BE-CB3B78CFB05D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CCAB8ACF-3A0A-4570-A1BE-CB3B78CFB05D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DCF03871-5019-4ADB-AB36-61F6F38C749D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DCF03871-5019-4ADB-AB36-61F6F38C749D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DCF03871-5019-4ADB-AB36-61F6F38C749D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DCF03871-5019-4ADB-AB36-61F6F38C749D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F351568A-1809-4FD8-996E-D71E3D799970}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F351568A-1809-4FD8-996E-D71E3D799970}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F351568A-1809-4FD8-996E-D71E3D799970}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F351568A-1809-4FD8-996E-D71E3D799970}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B7B27438-DAEE-40A2-8739-38799581C8CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B7B27438-DAEE-40A2-8739-38799581C8CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B7B27438-DAEE-40A2-8739-38799581C8CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B7B27438-DAEE-40A2-8739-38799581C8CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{193748AD-DB0C-424B-931D-CC69F2CF0F1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{193748AD-DB0C-424B-931D-CC69F2CF0F1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{193748AD-DB0C-424B-931D-CC69F2CF0F1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{193748AD-DB0C-424B-931D-CC69F2CF0F1A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C98395B-5E08-44D0-AC3A-0A6440C1C802}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C98395B-5E08-44D0-AC3A-0A6440C1C802}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C98395B-5E08-44D0-AC3A-0A6440C1C802}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C98395B-5E08-44D0-AC3A-0A6440C1C802}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D86F5B46-620F-4E37-AF82-767B9244C577}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D86F5B46-620F-4E37-AF82-767B9244C577}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D86F5B46-620F-4E37-AF82-767B9244C577}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D86F5B46-620F-4E37-AF82-767B9244C577}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99A27C94-DF6B-46CE-92AD-D35E2E6A0BC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99A27C94-DF6B-46CE-92AD-D35E2E6A0BC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99A27C94-DF6B-46CE-92AD-D35E2E6A0BC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99A27C94-DF6B-46CE-92AD-D35E2E6A0BC6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D35DF614-19C1-4CC8-9C46-982916B94C96}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D35DF614-19C1-4CC8-9C46-982916B94C96}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D35DF614-19C1-4CC8-9C46-982916B94C96}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D35DF614-19C1-4CC8-9C46-982916B94C96}.Release|Any CPU.Build.0 = Release|Any CPU
+		{864615C1-2F0F-4639-805A-095A0C4CDECF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{864615C1-2F0F-4639-805A-095A0C4CDECF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{864615C1-2F0F-4639-805A-095A0C4CDECF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{864615C1-2F0F-4639-805A-095A0C4CDECF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C39A098C-D47C-45C6-AC74-3FEF10597866}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C39A098C-D47C-45C6-AC74-3FEF10597866}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C39A098C-D47C-45C6-AC74-3FEF10597866}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C39A098C-D47C-45C6-AC74-3FEF10597866}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7B846582-AAC0-497A-A35C-BC1E5EE66413}
 	EndGlobalSection
 EndGlobal

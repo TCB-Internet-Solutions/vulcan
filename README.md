@@ -8,11 +8,13 @@ Firstly, what is it not; It’s NOT Episerver Find and it’s NOT supported – 
 ## What is Vulcan?
 It is a small, lightweight wrapper around Elasticsearch’s NEST client that provides helpers and tools to index and search for CMS and Commerce content. It’s simple and as it’s Open Source, you can do what you like with it when it comes to extending and customizing it. You can even host your own Elasticsearch instance, so it could be very cost effective!
 
-## Coming Soon
+## About Versioning
 
-Elastic Search / NEST 5.x support. Its actually in the code base now, just disabled using conditional compilation symbols of NEST2 and NEST5.
+Starting with 4.x versions, anytime a dependency has a breaking change, such as Episerver 12 or Elasticsearch 6, Vulcan will also update all package major versions to make it simpler for developer consumption. There may also still be other breaking changes introduced as well, but all will Vulcan packages will increment to same major version for each occurrence.
 
 ## Breaking Changes
+
+Now supports Elasticsearch 5.x!
 
 Much of the project has been rewritten to take advantage of Episerver's dependency injection system. In doing so, many implementations no longer have empty constructors. Also, implementations for interfaces such as **IVulcanIndexer** and **IVulcanIndexingModifier**, are no longer discovered, they must be manually registered during Episerver initialization.
 

@@ -1,0 +1,1 @@
+﻿Changed to new netstandard csproj.

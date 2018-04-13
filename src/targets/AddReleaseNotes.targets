@@ -1,0 +1,11 @@
+<Project>
+  <Target Name="AddReleaseNotes" BeforeTargets="GenerateNuspec">
+    <PropertyGroup>
+      <ReleaseNotesPath Condition="'$(ReleaseNotesPath)' == ''">releasenotes.txt</ReleaseNotesPath>
+      <ReleaseNotes Condition="'$(PackageReleaseNotes)' == ''">$([System.IO.File]::ReadAllText($(ReleaseNotesPath)))</ReleaseNotes>
+      <PackageReleaseNotes Condition="'$(PackageReleaseNotes)' == ''">$(ReleaseNotes)</PackageReleaseNotes>
+    </PropertyGroup>
+
+    <Message Importance="high" Condition="'$(ReleaseNotes)' != ''" Text="Added release notes: $(ReleaseNotes)" />
+  </Target>
+</Project>
