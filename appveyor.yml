@@ -1,13 +1,11 @@
-image: Visual Studio 2017
+﻿image: Visual Studio 2017
 configuration: Release
 platform: Any CPU
 before_build:
 - cmd: nuget restore
-- ps: .\.nuget\setVersion.ps1    
 build:
   verbosity: minimal
 after_test:
-- ps: .\.nuget\pack.ps1    
+- cmd: dotnet pack --output ..\..\
 artifacts:
   - path: '*.nupkg'
-    name: nuget

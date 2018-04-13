@@ -1,0 +1,20 @@
+<Project>
+  <Target Name="AddReadMeMarkdown" BeforeTargets="_GetPackageFiles">
+    <PropertyGroup>
+      <IncludeReadMeMarkdown Condition="'$(IncludeReadMeMarkdown)' == ''">false</IncludeReadMeMarkdown>
+    </PropertyGroup>
+
+    <Copy Condition="'$(IncludeReadMeMarkdown)' == 'true'" 
+      SourceFiles="readme.md"  
+      DestinationFiles="bin\readme.txt"  />
+
+    <ItemGroup>
+      <None Condition="'$(IncludeReadMeMarkdown)' == 'true'"
+            Include="bin\readme.txt" 
+            pack="true" 
+            PackagePath="."
+        />
+    </ItemGroup>
+
+  </Target>
+</Project>

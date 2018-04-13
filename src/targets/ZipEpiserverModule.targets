@@ -1,0 +1,22 @@
+<Project>
+  <Target Name="ZipEpiserverModule" BeforeTargets="_GetPackageFiles">
+    <PropertyGroup>
+      <ModuleName>$(EpiModuleFolderName)</ModuleName>
+      <ZipFile>bin\$(EpiModuleFolderName).zip</ZipFile>
+      <BuildEvent>
+        powershell.exe -nologo -noprofile -ExecutionPolicy Bypass -command "&amp; { if (Test-Path $(ZipFile)) { Remove-Item $(ZipFile) } }"
+        powershell.exe -nologo -noprofile -ExecutionPolicy Bypass -command "&amp; { Add-Type -A 'System.IO.Compression.FileSystem'; [IO.Compression.ZipFile]::CreateFromDirectory('$(EpiModuleFolderName)', '$(ZipFile)'); }"
+      </BuildEvent>
+      <EpiModulePackagePath Condition="'$(EpiModulePackagePath)' == ''">.\Content\modules\_protected\$(EpiModuleFolderName)</EpiModulePackagePath>
+    </PropertyGroup>
+
+    <Exec Command="$(BuildEvent)" Condition="'$(EpiModuleFolderName)' != ''" />
+
+    <ItemGroup>
+      <None Include="$(ModuleName)\*.config" Condition="'$(EpiModuleFolderName)' != ''" pack="true" PackagePath="$(EpiModulePackagePath)" />
+      <None Include="$(ZipFile)" Condition="'$(EpiModuleFolderName)' != ''" pack="true" PackagePath="$(EpiModulePackagePath)" />
+    </ItemGroup>
+
+    <Message Importance="high" Text="Created module in $(EpiModulePackagePath)" />
+  </Target>
+</Project>

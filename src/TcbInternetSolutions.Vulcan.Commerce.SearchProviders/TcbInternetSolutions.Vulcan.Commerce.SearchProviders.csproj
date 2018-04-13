@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- ReSharper disable UnknownProperty -->
+  <Import Project="..\targets\AddReleaseNotes.targets" />
+  <Import Project="..\targets\AddReadmeMarkdown.targets" />
+  <Import Project="..\targets\CommonBuild.props" />
+
+  <PropertyGroup>
+    <NoWarn>1701;1702;1705;CS1591</NoWarn>
+    <TargetFrameworks>net461;</TargetFrameworks>
+    <PackageId>TcbInternetSolutions.Vulcan.Commerce.SearchProviders</PackageId>
+    <Authors>Dan Matthews, Brad McDavid</Authors>
+    <Copyright>Copyright $(CurrentYear)</Copyright>
+    <Description>Commerce Search Provider support for Vulcan, the lightweight Elasticsearch client for Episerver</Description>    
+    <!--follow semantic versioning may include prelease information too-->
+    <PackageVersion>4.0.0</PackageVersion>
+    <!--leave releasenotes blank to read in from releasenotes.txt-->
+    <PackageReleaseNotes></PackageReleaseNotes>
+    <PackageTags>ElasticSearch Nest Commerce</PackageTags>
+
+    <!--adds readme.md as readme.txt in package-->
+    <IncludeReadMeMarkdown>false</IncludeReadMeMarkdown>
+
+    <!--Provide intellisense for developers-->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!--useful to allow others to debug -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <IncludeSource>true</IncludeSource>
+
+    <!--set assembly info version from CI prop if possible-->
+    <BuildInfo Condition="'$(CIBuildNumber)' != ''"> Commit: $(RepositoryCommit) Branch: $(RepositoryBranch) Build: $(CIBuildNumber)</BuildInfo>
+    <InformationalVersion>$(PackageVersion) $(BuildInfo)</InformationalVersion>
+
+    <!--do not change unless you want to deal with assembly redirects-->
+    <AssemblyVersion>4.0.0.0</AssemblyVersion>
+    <FileVersion>4.0.0.0</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NEST" Version="[5.3.1,6)" />
+    <PackageReference Include="EPiServer.Commerce.Core" Version="[11.5.0,12)" />
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TcbInternetSolutions.Vulcan.Core.SearchProviders\TcbInternetSolutions.Vulcan.Core.SearchProviders.csproj" />
+    <ProjectReference Include="..\TcbInternetSolutions.Vulcan.Core\TcbInternetSolutions.Vulcan.Core.csproj" />
+  </ItemGroup>
+</Project>
