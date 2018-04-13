@@ -43,7 +43,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="*.xdt" Package="true" PackagePath="." />
+    <Content Include="*.xdt" Package="true"/>
   </ItemGroup>
 
   <ItemGroup>
