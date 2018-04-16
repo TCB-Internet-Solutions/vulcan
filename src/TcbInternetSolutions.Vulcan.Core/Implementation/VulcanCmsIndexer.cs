@@ -1,13 +1,14 @@
 ﻿using EPiServer.Framework.Cache;
 using EPiServer.Web;
 using System.Collections.Generic;
+using TcbInternetSolutions.Vulcan.Core.Internal;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
     /// <summary>
     /// Default CMS content indexer
     /// </summary>
-    public class VulcanCmsIndexer : IVulcanContentIndexer
+    public class VulcanCmsIndexer : IVulcanContentIndexerWithCacheClearing
     {
         private readonly ISynchronizedObjectInstanceCache _synchronizedObjectInstanceCache;
 

@@ -13,33 +13,20 @@
         private readonly string _supportedExtensionsAsString;
         private IEnumerable<string> _supportedFileExtensions;
 
-#if NET461
         /// <summary>
-        /// Netframework constructor
+        /// Constructor
         /// </summary>
         public VulcanAttachmentIndexerSettings()
-        {
-            _supportedExtensionsAsString = System.Configuration.ConfigurationManager.AppSettings["VulcanIndexAttachmentFileExtensions"];
+        {            
+            _supportedExtensionsAsString = Core.Internal.AppConfigurationHelper.TryGetValueFromAppKey(key: "VulcanIndexAttachmentFileExtensions");
 
             EnableAttachmentPlugins =
-                GetSetting(System.Configuration.ConfigurationManager.AppSettings["VulcanIndexAttachmentPluginsEnabled"],
-                    true);
+                Core.Internal.AppConfigurationHelper.TryGetBoolFromKey(key: "VulcanIndexAttachmentPluginsEnabled", defaultValue: true);
 
             EnableFileSizeLimit =
-                        GetSetting(System.Configuration.ConfigurationManager.AppSettings["VulcanIndexAttachmentFileLimitEnabled"], false);
+                Core.Internal.AppConfigurationHelper.TryGetBoolFromKey(key: "VulcanIndexAttachmentFileLimitEnabled", defaultValue: false);
         }
-#else
-        /// <summary>
-        /// Netcore constructor
-        /// </summary>
-        public VulcanAttachmentIndexerSettings()
-        {
-            //todo: settings for netcore
-            _supportedExtensionsAsString = null;
-            EnableFileSizeLimit = false;
-            EnableAttachmentPlugins = false;
-        }
-#endif
+
         /// <summary>
         /// Determines if Elasticsearch has plugins to handle base64 data
         /// </summary>
@@ -74,15 +61,6 @@
             }
         }
 
-        // ReSharper disable once UnusedMember.Local
-        private static bool GetSetting(string setting, bool defaultValue)
-        {
-            if (string.IsNullOrWhiteSpace(setting))
-            {
-                return defaultValue;
-            }
-
-            return setting.Equals("true") || setting.Equals("1");
-        }
+        
     }
 }

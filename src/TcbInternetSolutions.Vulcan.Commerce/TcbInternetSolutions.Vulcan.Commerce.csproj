@@ -14,6 +14,7 @@
     <Description>Commerce support for Vulcan, the lightweight Elasticsearch client for Episerver</Description>    
     <!--follow semantic versioning may include prelease information too-->
     <PackageVersion>4.0.0</PackageVersion>
+    <PackageVersion Condition="'$(VersionSuffix)' != ''">$(PackageVersion)-$(VersionSuffix)</PackageVersion>
     <!--leave releasenotes blank to read in from releasenotes.txt-->
     <PackageReleaseNotes></PackageReleaseNotes>
     <PackageTags>ElasticSearch Nest Commerce</PackageTags>

@@ -1,10 +1,5 @@
 ﻿using EPiServer.ServiceLocation;
 
-#if NET461
-using System.Configuration;
-using System.Web.Configuration;
-#endif
-
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
     /// <summary>
@@ -13,36 +8,18 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     [ServiceConfiguration(typeof(IVulcanApplicationSettings), Lifecycle = ServiceInstanceScope.Singleton)]
     public class VulcanApplicationSettings : IVulcanApplicationSettings
     {
-#if NET461
         /// <summary>
         /// Netframework constructor
         /// </summary>
         public VulcanApplicationSettings()
         {
-            var section = ConfigurationManager.GetSection("system.web/compilation") as CompilationSection;
-            IsDebugMode = section?.Debug ?? false;
-            Url = ConfigurationManager.AppSettings["Url"];
-            IndexNamePrefix = ConfigurationManager.AppSettings["IndexNamePrefix"];
-            Username = ConfigurationManager.AppSettings["Username"];
-            Password = ConfigurationManager.AppSettings["Password"];
-            bool.TryParse(ConfigurationManager.AppSettings["VulcanEnableHttpCompression"], out var enableCompression);
-            EnableHttpCompression = enableCompression;
+            IsDebugMode = Internal.AppConfigurationHelper.IsDebugMode();
+            Url = Internal.AppConfigurationHelper.TryGetValueFromAppKey(key: "VulcanUrl");
+            IndexNamePrefix = Internal.AppConfigurationHelper.TryGetValueFromAppKey(key: "VulcanIndex");
+            Username = Internal.AppConfigurationHelper.TryGetValueFromAppKey(key: "VulcanUsername");
+            Password = Internal.AppConfigurationHelper.TryGetValueFromAppKey(key: "VulcanPassword");
+            EnableHttpCompression = Internal.AppConfigurationHelper.TryGetBoolFromKey(key: "VulcanEnableHttpCompression", defaultValue: false);
         }
-#else
-        /// <summary>
-        /// Netstandard constructor
-        /// </summary>
-        public VulcanApplicationSettings()
-        {
-            // todo: add settings for netcore
-            IsDebugMode = false;
-            EnableHttpCompression = false;
-            Url = string.Empty;
-            IndexNamePrefix = string.Empty;
-            Password = null;
-            Username = null;
-        }
-#endif
 
         /// <summary>
         /// Is debug mode enabled

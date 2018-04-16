@@ -3,7 +3,6 @@
   <!-- ReSharper disable UnknownProperty -->
   <Import Project="..\targets\AddReleaseNotes.targets" />
   <Import Project="..\targets\AddReadmeMarkdown.targets" />
-  <Import Project="..\targets\ZipEpiserverModule.targets" />
   <Import Project="..\targets\CommonBuild.props" />
 
   <PropertyGroup>
@@ -16,6 +15,7 @@
     <Description>User Interface for Vulcan, the lightweight Elasticsearch client for Episerver</Description>    
     <!--follow semantic versioning may include prelease information too-->
     <PackageVersion>4.0.0</PackageVersion>
+    <PackageVersion Condition="'$(VersionSuffix)' != ''">$(PackageVersion)-$(VersionSuffix)</PackageVersion>
     <!--leave releasenotes blank to read in from releasenotes.txt-->
     <PackageReleaseNotes></PackageReleaseNotes>
     <PackageTags>Vulcan UI Management ElasticSearch</PackageTags>
@@ -25,9 +25,6 @@
 
     <!--Provide intellisense for developers-->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-
-    <EpiModuleFolderName>$(PackageId)</EpiModuleFolderName>
-    <EpiModulePackagePath>.\Content\modules\_protected\$(PackageId)</EpiModulePackagePath>
 
     <!--useful to allow others to debug -->
     <IncludeSymbols>true</IncludeSymbols>
@@ -43,7 +40,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="*.xdt" Package="true"/>
+    <Content Include="$(PackageId)\**\*.*" Pack="true" PackagePath="content\modules\_protected\$(PackageId)" />
+    <Content Include="*.xdt" Package="true" PackagePath="content" />
   </ItemGroup>
 
   <ItemGroup>

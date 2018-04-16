@@ -10,42 +10,42 @@ namespace TcbInternetSolutions.Vulcan.Core
         /// <summary>
         /// Analyzed modifier
         /// </summary>
-        public const string AnalyzedModifier = "analyzed";
+        public static readonly string AnalyzedModifier = "analyzed";
 
         /// <summary>
         /// Ancestors field
         /// </summary>
-        public const string Ancestors = "__ancestors";
+        public static readonly string Ancestors = "__ancestors";
 
         /// <summary>
         /// Read permission field
         /// </summary>
-        public const string ReadPermission = "__readPermission";
+        public static readonly string ReadPermission = "__readPermission";
 
         /// <summary>
         /// Custom contents field
         /// </summary>
-        public const string CustomContents = "__customContents";
+        public static readonly string CustomContents = "__customContents";
 
         /// <summary>
         /// Binary media contents field, needs mapper-attachments
         /// </summary>
-        public const string MediaContents = "__mediaContents";
+        public static readonly string MediaContents = "__mediaContents";
 
         /// <summary>
         /// Media string contents, needs a custom IVulcanByteToStringConverter
         /// </summary>
-        public const string MediaStringContents = "__mediaStringContents";
+        public static readonly string MediaStringContents = "__mediaStringContents";
 
         /// <summary>
         /// Type field
         /// </summary>
-        public const string TypeField = "_type";
+        public static readonly string TypeField = "_type";
 
         /// <summary>
         /// Used by default build search hit, but requires a custom Index Modifier to set.
         /// </summary>
-        public const string SearchDescriptionField = "_vulcanSearchDescription";
+        public static readonly string SearchDescriptionField = "_vulcanSearchDescription";
 
         /// <summary>
         /// Filters for classes that are not abstracts

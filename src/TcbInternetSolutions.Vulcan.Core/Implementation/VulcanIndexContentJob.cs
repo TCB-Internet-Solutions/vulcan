@@ -1,13 +1,14 @@
-﻿namespace TcbInternetSolutions.Vulcan.Core.Implementation
-{
-    using EPiServer.Core;
-    using EPiServer.Logging;
-    using EPiServer.PlugIn;
-    using EPiServer.Scheduler;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
+﻿using EPiServer.Core;
+using EPiServer.Logging;
+using EPiServer.PlugIn;
+using EPiServer.Scheduler;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using TcbInternetSolutions.Vulcan.Core.Internal;
 
+namespace TcbInternetSolutions.Vulcan.Core.Implementation
+{
     /// <summary>
     /// Default index job
     /// </summary>
@@ -15,6 +16,7 @@
     public class VulcanIndexContentJob : ScheduledJobBase
     {
         private static readonly ILogger Logger = LogManager.GetLogger();
+        private readonly IEnumerable<IVulcanFeature> _vulcanFeatures;
         private readonly IVulcanHandler _vulcanHandler;
         private readonly IVulcanIndexContentJobSettings _vulcanIndexContentJobSettings;
         private readonly IEnumerable<IVulcanIndexer> _vulcanIndexers;
@@ -30,13 +32,15 @@
         /// <param name="vulcanPocoIndexingJob"></param>
         /// <param name="vulcanIndexers"></param>
         /// <param name="vulcanIndexContentJobSettings"></param>
+        /// <param name="vulcanFeatures"></param>
         public VulcanIndexContentJob
         (
             IVulcanSearchContentLoader vulcanSearchContentLoader,
             IVulcanHandler vulcanHandler,
             IVulcanPocoIndexingJob vulcanPocoIndexingJob,
             IVulcanIndexContentJobSettings vulcanIndexContentJobSettings,
-            IEnumerable<IVulcanIndexer> vulcanIndexers
+            IEnumerable<IVulcanIndexer> vulcanIndexers,
+            IEnumerable<IVulcanFeature> vulcanFeatures
         )
         {
             _vulcanSearchContentLoader = vulcanSearchContentLoader;
@@ -44,6 +48,7 @@
             _vulcanPocoIndexHandler = vulcanPocoIndexingJob;
             _vulcanIndexers = vulcanIndexers;
             _vulcanIndexContentJobSettings = vulcanIndexContentJobSettings;
+            _vulcanFeatures = vulcanFeatures;
             IsStoppable = true;
         }
 
@@ -56,6 +61,7 @@
             OnStatusChanged($"Starting execution of {GetType()}");
             _vulcanHandler.DeleteIndex(); // delete all language indexes
             var totalIndexedCount = 0;
+            var isCacheScopeFeature = _vulcanFeatures?.LastOrDefault(x => x is IVulcanFeatureCacheScope) as IVulcanFeatureCacheScope;
 
             foreach (var indexer in EnumerateIndexers())
             {
@@ -73,11 +79,12 @@
                     var contentRecord = 0;
                     foreach (var contentReference in EnumerateContent(contentReferences))
                     {
-                        if (cmsIndexer.ClearCacheItemInterval >= 0)
+                        if (isCacheScopeFeature?.Enabled != true &&
+                            cmsIndexer is IVulcanContentIndexerWithCacheClearing cacheClearingIndexer && cacheClearingIndexer.ClearCacheItemInterval >= 0)
                         {
-                            if (contentRecord % cmsIndexer.ClearCacheItemInterval == 0)
+                            if (contentRecord % cacheClearingIndexer.ClearCacheItemInterval == 0)
                             {
-                                cmsIndexer.ClearCache();
+                                cacheClearingIndexer.ClearCache();
                             }
                         }
 
@@ -91,7 +98,7 @@
 
                         try
                         {
-                            content = _vulcanSearchContentLoader.GetContent(contentReference);
+                            content = LoadWithCacheScope(contentReference, isCacheScopeFeature);
                         }
                         catch (OutOfMemoryException)
                         {
@@ -100,7 +107,7 @@
                             // try once more
                             try
                             {
-                                content = _vulcanSearchContentLoader.GetContent(contentReference);
+                                content = LoadWithCacheScope(contentReference, isCacheScopeFeature);
                             }
                             catch (Exception eNested)
                             {
@@ -149,5 +156,15 @@
 
         private IEnumerable<IVulcanIndexer> EnumerateIndexers() =>
             _vulcanIndexContentJobSettings.EnableParallelIndexers ? _vulcanIndexers.AsParallel() : _vulcanIndexers;
+
+        private IContent LoadWithCacheScope(ContentReference c, IVulcanFeatureCacheScope vulcanFeatureCache)
+        {
+            if (vulcanFeatureCache?.Enabled != true) return _vulcanSearchContentLoader.GetContent(c);
+
+            using (new ContentCacheScope { SlidingExpiration = vulcanFeatureCache.CacheDuration })
+            {
+                return _vulcanSearchContentLoader.GetContent(c);
+            }
+        }
     }
 }

@@ -21,7 +21,7 @@ namespace TcbInternetSolutions.Vulcan.AttachmentIndexer.Implementation
         /// <summary>
         /// Attachment Pipeline ID
         /// </summary>
-        public const string PipelineId = "vulcan-attachment";
+        public static readonly string PipelineId = "vulcan-attachment";
 
         // 5.x support uses https://www.elastic.co/guide/en/elasticsearch/plugins/5.2/ingest-attachment.html
         // not which 2.x uses https://www.elastic.co/guide/en/elasticsearch/plugins/5.2/mapper-attachments.html

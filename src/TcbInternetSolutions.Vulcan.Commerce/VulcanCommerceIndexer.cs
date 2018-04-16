@@ -1,11 +1,11 @@
 ﻿using Mediachase.Commerce.Catalog;
 using Mediachase.Commerce.Engine.Caching;
 using System.Collections.Generic;
-using TcbInternetSolutions.Vulcan.Core;
+using TcbInternetSolutions.Vulcan.Core.Internal;
 
 namespace TcbInternetSolutions.Vulcan.Commerce
 {
-    public class VulcanCommerceIndexer : IVulcanContentIndexer
+    public class VulcanCommerceIndexer : IVulcanContentIndexerWithCacheClearing
     {
         private readonly ReferenceConverter _referenceConverter;
 
