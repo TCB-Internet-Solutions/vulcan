@@ -1,2 +1,1 @@
-﻿Changed to new netstandard csproj.
-Added IVulcanApplicationSettings for cross platform setting support.
+﻿Support for Epi Commerce 12.
