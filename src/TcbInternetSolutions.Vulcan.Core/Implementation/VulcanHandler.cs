@@ -214,11 +214,13 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         {
             var cultureInfo = language ?? CultureInfo.CurrentUICulture;
 
-            if (Clients.TryGetValue(cultureInfo, out var storedClient))
-                return storedClient;
+            IVulcanClient storedClient;
 
             lock (_lockObject)
             {
+                if (Clients.TryGetValue(cultureInfo, out storedClient))
+                    return storedClient;
+                
                 // todo: need some sort of check here to make sure we still need to create a client
 
                 var indexName = VulcanHelper.GetIndexName(Index, cultureInfo);

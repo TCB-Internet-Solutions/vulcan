@@ -5,6 +5,8 @@ using EPiServer.Scheduler;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using TcbInternetSolutions.Vulcan.Core.Internal;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
@@ -63,84 +65,133 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             var totalIndexedCount = 0;
             var isCacheScopeFeature = _vulcanFeatures?.LastOrDefault(x => x is IVulcanFeatureCacheScope) as IVulcanFeatureCacheScope;
 
-            foreach (var indexer in EnumerateIndexers())
+            if (_vulcanIndexContentJobSettings.EnableParallelIndexers)
             {
-                var pocoIndexer = indexer as IVulcanPocoIndexer;
-                var cmsIndexer = indexer as IVulcanContentIndexer;
-
-                if (pocoIndexer?.IncludeInDefaultIndexJob == true)
+                Parallel.ForEach(EnumerateIndexers(), indexer => {
+                    ExecuteIndexer(indexer, isCacheScopeFeature, ref totalIndexedCount);
+                });
+            }
+            else
+            {
+                foreach (var indexer in EnumerateIndexers())
                 {
-                    _vulcanPocoIndexHandler.Index(pocoIndexer, OnStatusChanged, ref totalIndexedCount, ref _stopSignaled);
+                    ExecuteIndexer(indexer, isCacheScopeFeature, ref totalIndexedCount);
                 }
-                else if (cmsIndexer != null) // default episerver content
-                {
-                    var contentReferences = _vulcanSearchContentLoader.GetSearchContentReferences(cmsIndexer).ToList();
+            }
 
-                    var contentRecord = 0;
+            return $"Vulcan successfully indexed {totalIndexedCount} item(s) across {_vulcanIndexers.Count()} indexers!";
+        }
+
+        private void ExecuteIndexer(IVulcanIndexer indexer, IVulcanFeatureCacheScope isCacheScopeFeature, ref int totalIndexedCount)
+        {
+            var pocoIndexer = indexer as IVulcanPocoIndexer;
+            var cmsIndexer = indexer as IVulcanContentIndexer;
+
+            if (pocoIndexer?.IncludeInDefaultIndexJob == true)
+            {
+                _vulcanPocoIndexHandler.Index(pocoIndexer, OnStatusChanged, ref totalIndexedCount, ref _stopSignaled);
+            }
+            else if (cmsIndexer != null) // default episerver content
+            {
+                var contentReferences = _vulcanSearchContentLoader.GetSearchContentReferences(cmsIndexer).ToList();
+
+                var contentRecord = 0;
+                var totalCount = contentReferences.Count;
+
+                if (_vulcanIndexContentJobSettings.EnableParallelContent)
+                {
+                    var thisIndexerCount = 0;
+
+                    Parallel.ForEach(contentReferences, contentReference =>
+                    {
+                        if (!_stopSignaled)
+                        {
+                            if (IndexContent(contentReference, contentRecord, cmsIndexer, isCacheScopeFeature, totalCount))
+                            {
+                                Interlocked.Increment(ref thisIndexerCount);
+                            }
+
+                            Interlocked.Increment(ref contentRecord);
+                        }
+                    });
+
+                    Interlocked.Exchange(ref totalIndexedCount, totalIndexedCount + thisIndexerCount);
+                }
+                else
+                {
                     foreach (var contentReference in EnumerateContent(contentReferences))
                     {
-                        if (isCacheScopeFeature?.Enabled != true &&
-                            cmsIndexer is IVulcanContentIndexerWithCacheClearing cacheClearingIndexer && cacheClearingIndexer.ClearCacheItemInterval >= 0)
-                        {
-                            if (contentRecord % cacheClearingIndexer.ClearCacheItemInterval == 0)
-                            {
-                                cacheClearingIndexer.ClearCache();
-                            }
-                        }
 
-                        // only update this every 100 records (reduce load on db)
-                        if (contentRecord % 100 == 0)
+                        if (IndexContent(contentReference, contentRecord, cmsIndexer, isCacheScopeFeature, totalCount))
                         {
-                            OnStatusChanged($"{indexer.IndexerName} indexing item {contentRecord + 1} of {contentReferences.Count} items of {cmsIndexer.GetRoot().Value} content");
-                        }
-
-                        IContent content = null;
-
-                        try
-                        {
-                            content = LoadWithCacheScope(contentReference, isCacheScopeFeature);
-                        }
-                        catch (OutOfMemoryException)
-                        {
-                            Logger.Warning($"Vulcan encountered an OutOfMemory exception, attempting again to index content item {contentReference}...");
-
-                            // try once more
-                            try
-                            {
-                                content = LoadWithCacheScope(contentReference, isCacheScopeFeature);
-                            }
-                            catch (Exception eNested)
-                            {
-                                Logger.Error($"Vulcan could not recover from an out of memory exception when it tried again to index content item  {contentReference} : {eNested}");
-                            }
-                        }
-                        catch (Exception eOther)
-                        {
-                            Logger.Error($"Vulcan could not index content item {contentReference} : {eOther}");
-                        }
-
-                        if (content == null)
-                        {
-                            Logger.Error($"Vulcan could not index content item {contentReference}: content was null");
-                        }
-                        else
-                        {
-                            Logger.Information($"Vulcan indexed content with reference: {contentRecord} and name: {content.Name}");
-                            _vulcanHandler.IndexContentEveryLanguage(content);
                             totalIndexedCount++;
-                        }
-
-                        if (_stopSignaled)
-                        {
-                            return "Stop of job was called";
                         }
 
                         contentRecord++;
                     }
                 }
             }
+        }
 
-            return $"Vulcan successfully indexed {totalIndexedCount} item(s) across {_vulcanIndexers.Count()} indexers!";
+        private bool IndexContent(ContentReference contentReference, int contentRecord, IVulcanContentIndexer cmsIndexer, IVulcanFeatureCacheScope isCacheScopeFeature, int totalCount)
+        {
+            if (isCacheScopeFeature?.Enabled != true &&
+                                                cmsIndexer is IVulcanContentIndexerWithCacheClearing cacheClearingIndexer && cacheClearingIndexer.ClearCacheItemInterval >= 0)
+            {
+                if (contentRecord % cacheClearingIndexer.ClearCacheItemInterval == 0)
+                {
+                    cacheClearingIndexer.ClearCache();
+                }
+            }
+
+            // only update this every 100 records (reduce load on db)
+            if (contentRecord % 100 == 0)
+            {
+                OnStatusChanged($"{cmsIndexer.IndexerName} indexing item {contentRecord + 1} of {totalCount} items of {cmsIndexer.GetRoot().Value} content");
+            }
+
+            IContent content = null;
+
+            try
+            {
+                content = LoadWithCacheScope(contentReference, isCacheScopeFeature);
+            }
+            catch (OutOfMemoryException)
+            {
+                Logger.Warning($"Vulcan encountered an OutOfMemory exception, attempting again to index content item {contentReference}...");
+
+                // try once more
+                try
+                {
+                    content = LoadWithCacheScope(contentReference, isCacheScopeFeature);
+                }
+                catch (Exception eNested)
+                {
+                    Logger.Error($"Vulcan could not recover from an out of memory exception when it tried again to index content item  {contentReference} : {eNested}");
+                }
+
+                return false;
+            }
+            catch (Exception eOther)
+            {
+                Logger.Error($"Vulcan could not index content item {contentReference} : {eOther}");
+
+                return false;
+            }
+
+            if (content == null)
+            {
+                Logger.Error($"Vulcan could not index content item {contentReference}: content was null");
+
+                return false;
+            }
+            else
+            {
+                Logger.Information($"Vulcan indexed content with reference: {contentReference} and name: {content.Name}");
+                _vulcanHandler.IndexContentEveryLanguage(content);
+
+                return true;
+            }
         }
 
         /// <summary>
