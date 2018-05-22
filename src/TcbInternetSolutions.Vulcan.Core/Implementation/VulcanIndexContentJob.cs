@@ -67,7 +67,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             if (_vulcanIndexContentJobSettings.EnableParallelIndexers)
             {
-                Parallel.ForEach(EnumerateIndexers(), indexer => {
+                Parallel.ForEach(EnumerateIndexers(), new ParallelOptions() { MaxDegreeOfParallelism = _vulcanIndexContentJobSettings.ParallelDegree }, indexer => {
                     ExecuteIndexer(indexer, isCacheScopeFeature, ref totalIndexedCount);
                 });
             }
@@ -102,7 +102,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 {
                     var thisIndexerCount = 0;
 
-                    Parallel.ForEach(contentReferences, contentReference =>
+                    Parallel.ForEach(contentReferences, new ParallelOptions() { MaxDegreeOfParallelism = _vulcanIndexContentJobSettings.ParallelDegree }, contentReference =>
                     {
                         if (!_stopSignaled)
                         {
