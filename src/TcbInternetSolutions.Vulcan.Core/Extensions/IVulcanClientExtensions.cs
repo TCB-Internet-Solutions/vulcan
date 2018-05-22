@@ -111,10 +111,11 @@
         /// <typeparam name="T"></typeparam>
         /// <param name="client"></param>
         /// <param name="searchDescriptor"></param>
+        /// <param name="alias"></param>
         /// <returns></returns>
         public static ISearchResponse<T> PocoSearch<T>(this IVulcanClient client, Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null, string alias = null) where T : class
         {
-            if (string.IsNullOrWhiteSpace(alias)) alias = "master";
+            VulcanHelper.GuardForNullAlias(ref alias);
 
             var tempClient = client.Language.Equals(CultureInfo.InvariantCulture) ? client : VulcanHandler.Service.GetClient(CultureInfo.InvariantCulture, alias);
             var resolvedDescriptor = searchDescriptor?.Invoke(new SearchDescriptor<T>()) ?? new SearchDescriptor<T>();

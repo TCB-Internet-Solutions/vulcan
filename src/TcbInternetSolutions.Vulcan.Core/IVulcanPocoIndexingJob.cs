@@ -14,6 +14,7 @@
         /// <param name="updateStatus"></param>
         /// <param name="count"></param>
         /// <param name="stopSignaled"></param>
+        /// <param name="alias"></param>
         /// <returns></returns>
         string Index(IVulcanPocoIndexer pocoIndexer, Action<string> updateStatus, ref int count, ref bool stopSignaled, string alias = null);
 
@@ -22,6 +23,7 @@
         /// </summary>
         /// <param name="pocoIndexer"></param>
         /// <param name="item"></param>
+        /// <param name="alias"></param>
         void IndexItem(IVulcanPocoIndexer pocoIndexer, object item, string alias = null);
 
         /// <summary>
@@ -29,6 +31,7 @@
         /// </summary>
         /// <param name="pocoIndexer"></param>
         /// <param name="item"></param>
+        /// <param name="alias"></param>
         void DeleteItem(IVulcanPocoIndexer pocoIndexer, object item, string alias = null);
     }
 }

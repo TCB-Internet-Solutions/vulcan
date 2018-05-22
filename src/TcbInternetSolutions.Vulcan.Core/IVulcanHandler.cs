@@ -48,6 +48,7 @@ namespace TcbInternetSolutions.Vulcan.Core
         /// Delete content by language
         /// </summary>
         /// <param name="content"></param>
+        /// <param name="alias"></param>
         void DeleteContentByLanguage(IContent content, string alias = null);
 
         /// <summary>
@@ -55,6 +56,7 @@ namespace TcbInternetSolutions.Vulcan.Core
         /// </summary>
         /// <param name="contentLink"></param>
         /// <param name="typeName"></param>
+        /// <param name="alias"></param>
         void DeleteContentEveryLanguage(ContentReference contentLink, string typeName, string alias = null);
 
         /// <summary>
@@ -66,11 +68,23 @@ namespace TcbInternetSolutions.Vulcan.Core
         /// Get vulcan client by culture
         /// </summary>
         /// <param name="language"></param>
+        /// <param name="alias"></param>
         /// <returns></returns>
         IVulcanClient GetClient(CultureInfo language = null, string alias = null);
 
+        /// <summary>
+        /// Switch to new indexAlias
+        /// </summary>
+        /// <param name="language"></param>
+        /// <param name="oldAlias"></param>
+        /// <param name="newAlias"></param>
         void SwitchAlias(CultureInfo language, string oldAlias, string newAlias);
 
+        /// <summary>
+        /// Switch all cultures to new indexAlias
+        /// </summary>
+        /// <param name="oldAlias"></param>
+        /// <param name="newAlias"></param>
         void SwitchAliasAllCultures(string oldAlias, string newAlias);
 
         /// <summary>
@@ -83,18 +97,21 @@ namespace TcbInternetSolutions.Vulcan.Core
         /// Index content by language
         /// </summary>
         /// <param name="content"></param>
+        /// <param name="alias"></param>
         void IndexContentByLanguage(IContent content, string alias = null);
 
         /// <summary>
         /// Index content for all languages
         /// </summary>
         /// <param name="contentLink"></param>
+        /// <param name="alias"></param>
         void IndexContentEveryLanguage(ContentReference contentLink, string alias = null);
 
         /// <summary>
         /// Index content for all languages
         /// </summary>
         /// <param name="content"></param>
+        /// <param name="alias"></param>
         void IndexContentEveryLanguage(IContent content, string alias = null);
     }
 }

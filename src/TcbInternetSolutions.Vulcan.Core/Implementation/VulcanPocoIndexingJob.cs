@@ -22,7 +22,7 @@
         /// </summary>
         protected IVulcanClient GetInvariantClient(string alias = null)
         {
-            if (string.IsNullOrWhiteSpace(alias)) alias = "master";
+            VulcanHelper.GuardForNullAlias(ref alias);
 
             return VulcanHander.GetClient(CultureInfo.InvariantCulture, alias);
         }
@@ -46,10 +46,10 @@
         /// </summary>
         /// <param name="pocoIndexer"></param>
         /// <param name="item"></param>
+        /// <param name="alias"></param>
         public virtual void DeleteItem(IVulcanPocoIndexer pocoIndexer, object item, string alias = null)
         {
-            if (string.IsNullOrWhiteSpace(alias)) alias = "master";
- 
+            VulcanHelper.GuardForNullAlias(ref alias);
             var id = pocoIndexer.GetItemIdentifier(item);
             var type = GetTypeName(item);
 
@@ -73,13 +73,14 @@
         /// <param name="updateStatus"></param>
         /// <param name="count"></param>
         /// <param name="stopSignaled"></param>
+        /// <param name="alias"></param>
         /// <returns></returns>
         public virtual string Index(IVulcanPocoIndexer pocoIndexer, Action<string> updateStatus, ref int count, ref bool stopSignaled, string alias = null)
         {
             if (pocoIndexer == null)
                 throw new ArgumentNullException($"{nameof(pocoIndexer)} cannot be null!");
 
-            if (string.IsNullOrWhiteSpace(alias)) alias = "master";
+            VulcanHelper.GuardForNullAlias(ref alias);
 
             var total = pocoIndexer.TotalItems;
             var pageSize = pocoIndexer.PageSize;
@@ -144,12 +145,12 @@
         /// </summary>
         /// <param name="pocoIndexer"></param>
         /// <param name="item"></param>
+        /// <param name="alias"></param>
         public virtual void IndexItem(IVulcanPocoIndexer pocoIndexer, object item, string alias = null)
         {
             var id = pocoIndexer.GetItemIdentifier(item);
             var type = GetTypeName(item);
-
-            if (string.IsNullOrWhiteSpace(alias)) alias = "master";
+            VulcanHelper.GuardForNullAlias(ref alias);
 
             try
             {

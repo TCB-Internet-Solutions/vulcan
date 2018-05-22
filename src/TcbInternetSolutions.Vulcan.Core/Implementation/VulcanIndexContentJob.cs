@@ -14,7 +14,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     /// <summary>
     /// Default index job
     /// </summary>
-    [ScheduledPlugIn(DisplayName = "Vulcan Index Content", SortIndex = 1100)]
+    [ScheduledPlugIn(DisplayName = "[Vulcan] Index Content", SortIndex = 1100)]
     public class VulcanIndexContentJob : ScheduledJobBase
     {
         private static readonly ILogger Logger = LogManager.GetLogger();
@@ -69,12 +69,14 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             {
                 _vulcanHandler.DeleteIndex(); // delete all language indexes
             }
+
             var totalIndexedCount = 0;
             var isCacheScopeFeature = _vulcanFeatures?.LastOrDefault(x => x is IVulcanFeatureCacheScope) as IVulcanFeatureCacheScope;
 
             if (_vulcanIndexContentJobSettings.EnableParallelIndexers)
             {
-                Parallel.ForEach(EnumerateIndexers(), new ParallelOptions() { MaxDegreeOfParallelism = _vulcanIndexContentJobSettings.ParallelDegree }, indexer => {
+                Parallel.ForEach(EnumerateIndexers(), new ParallelOptions() { MaxDegreeOfParallelism = _vulcanIndexContentJobSettings.ParallelDegree }, indexer =>
+                {
                     ExecuteIndexer(indexer, isCacheScopeFeature, ref totalIndexedCount);
                 });
             }
@@ -86,12 +88,13 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 }
             }
 
+            // ReSharper disable once InvertIf
             if (_vulcanIndexContentJobSettings.EnableAlwaysUp)
             {
                 Logger.Warning("Always up enabled... swapping indices...");
 
-                _vulcanHandler.SwitchAliasAllCultures("temp", "master");
-                _vulcanHandler.DeleteIndex("temp");
+                _vulcanHandler.SwitchAliasAllCultures(VulcanHelper.TempAlias, VulcanHelper.MasterAlias);
+                _vulcanHandler.DeleteIndex(VulcanHelper.TempAlias);
 
                 Logger.Warning("Index swap completed.");
             }
@@ -108,7 +111,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             {
                 if (_vulcanIndexContentJobSettings.EnableAlwaysUp)
                 {
-                    _vulcanPocoIndexHandler.Index(pocoIndexer, OnStatusChanged, ref totalIndexedCount, ref _stopSignaled, "temp");
+                    _vulcanPocoIndexHandler.Index(pocoIndexer, OnStatusChanged, ref totalIndexedCount, ref _stopSignaled, VulcanHelper.TempAlias);
                 }
                 else
                 {
@@ -118,7 +121,6 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             else if (cmsIndexer != null) // default episerver content
             {
                 var contentReferences = _vulcanSearchContentLoader.GetSearchContentReferences(cmsIndexer).ToList();
-
                 var contentRecord = 0;
                 var totalCount = contentReferences.Count;
 
@@ -174,7 +176,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 OnStatusChanged($"{cmsIndexer.IndexerName} indexing item {contentRecord + 1} of {totalCount} items of {cmsIndexer.GetRoot().Value} content");
             }
 
-            IContent content = null;
+            IContent content;
 
             try
             {
@@ -209,20 +211,12 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                 return false;
             }
-            else
-            {
-                Logger.Information($"Vulcan indexed content with reference: {contentReference} and name: {content.Name}");
-                if (_vulcanIndexContentJobSettings.EnableAlwaysUp)
-                {
-                    _vulcanHandler.IndexContentEveryLanguage(content, "temp");
-                }
-                else
-                {
-                    _vulcanHandler.IndexContentEveryLanguage(content);
-                }
 
-                return true;
-            }
+            Logger.Information($"Vulcan indexed content with reference: {contentReference} and name: {content.Name}");
+
+            _vulcanHandler.IndexContentEveryLanguage(content, _vulcanIndexContentJobSettings.EnableAlwaysUp ? VulcanHelper.TempAlias : null);
+                
+            return true;
         }
 
         /// <summary>

@@ -139,10 +139,10 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// Delete content by language
         /// </summary>
         /// <param name="content"></param>
+        /// <param name="alias"></param>
         public virtual void DeleteContentByLanguage(IContent content, string alias = null)
         {
-            if (string.IsNullOrWhiteSpace(alias)) alias = "master";
-
+            VulcanHelper.GuardForNullAlias(ref alias);
             IVulcanClient client;
 
             if (content is ILocalizable localizable)
@@ -163,9 +163,10 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// </summary>
         /// <param name="contentLink"></param>
         /// <param name="typeName"></param>
+        /// <param name="alias"></param>
         public virtual void DeleteContentEveryLanguage(ContentReference contentLink, string typeName, string alias = null)
         {
-            if (string.IsNullOrWhiteSpace(alias)) alias = "master";
+            VulcanHelper.GuardForNullAlias(ref alias);
 
             // we don't know what language(s), or even if invariant, so send a delete request to all
             foreach (var client in GetClients(alias))
@@ -212,7 +213,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 }
                 else
                 {
-                    // only indexes for a specific alias
+                    // only indexes for a specific indexAlias
 
                     var aliases = client.CatAliases();
 
@@ -238,7 +239,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                     }
                 }
 
-                if(Clients != null) Clients.Clear(); // need to force a re-creation                
+                Clients?.Clear(); // need to force a re-creation                
             }
         }
 
@@ -246,11 +247,12 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// Get a Vulcan client
         /// </summary>
         /// <param name="language">Pass in null for current culture, a specific culture or CultureInfo.InvariantCulture to get a client for non-language specific data</param>
+        /// <param name="alias"></param>
         /// <returns>A Vulcan client</returns>
         public virtual IVulcanClient GetClient(CultureInfo language = null, string alias = null)
         {
             var cultureInfo = language ?? CultureInfo.CurrentUICulture;
-            var aliasSafe = string.IsNullOrWhiteSpace(alias) ? "master" : alias;
+            var aliasSafe = string.IsNullOrWhiteSpace(alias) ? VulcanHelper.MasterAlias : alias;
 
             IVulcanClient storedClient;
 
@@ -338,23 +340,23 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 #endif
                 //if (!client.AliasExists(a => a.Name(aliasName)).Exists)
                 //{
-                //    client.Alias(d => d.Remove(r => r.Alias(aliasName).Index("*")));
+                //    client.IndexAlias(d => d.Remove(r => r.IndexAlias(aliasName).Index("*")));
                 //}
 
 
                 string actualIndexName = null;
 
-                if(client.AliasExists(a => a.Name(aliasName)).Exists)
+                if (client.AliasExists(a => a.Name(aliasName)).Exists)
                 {
                     var indices = client.GetAlias(a => a.Name(aliasName)).Indices;
 
-                    if(indices != null)
+                    if (indices != null)
                     {
                         if (indices.Any()) actualIndexName = indices.First().Key;
                     }
                 }
 
-                if(actualIndexName == null)
+                if (actualIndexName == null)
                 {
                     actualIndexName = VulcanHelper.GetRawIndexName(Index, cultureInfo);
 
@@ -366,7 +368,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                     }
                     else
                     {
-                        // set up the alias
+                        // set up the indexAlias
 
                         client.PutAlias(actualIndexName, aliasName);
                     }
@@ -389,7 +391,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 }
 
                 // allows for customizations
-                client.RunCustomizers(Logger); 
+                client.RunCustomizers(Logger);
                 client.RunCustomMappers(Logger);
 
                 client.OpenIndex(actualIndexName);
@@ -420,8 +422,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <returns></returns>
         public virtual IVulcanClient[] GetClients(string alias = null)
         {
-            if (string.IsNullOrWhiteSpace(alias)) alias = "master";
-
+            VulcanHelper.GuardForNullAlias(ref alias);
             var clientList = new List<IVulcanClient>();
             var client = CreateElasticClient(CommonConnectionSettings.ConnectionSettings);
 
@@ -448,16 +449,17 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             );
 
             return clientList.ToArray();
-            
+
         }
 
         /// <summary>
         /// Index content for language
         /// </summary>
         /// <param name="content"></param>
+        /// <param name="alias"></param>
         public virtual void IndexContentByLanguage(IContent content, string alias = null)
         {
-            if (string.IsNullOrWhiteSpace(alias)) alias = "master";
+            VulcanHelper.GuardForNullAlias(ref alias);
 
             IVulcanClient client;
 
@@ -477,9 +479,10 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// Index content for all langauges
         /// </summary>
         /// <param name="content"></param>
+        /// <param name="alias"></param>
         public virtual void IndexContentEveryLanguage(IContent content, string alias = null)
         {
-            if (string.IsNullOrWhiteSpace(alias)) alias = "master";
+            VulcanHelper.GuardForNullAlias(ref alias);
 
             if (content is ILocalizable localizable)
             {
@@ -502,6 +505,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// Index content for all languages
         /// </summary>
         /// <param name="contentLink"></param>
+        /// <param name="alias"></param>
         public virtual void IndexContentEveryLanguage(ContentReference contentLink, string alias = null)
         {
             if (ContentReference.IsNullOrEmpty(contentLink)) return;
@@ -522,6 +526,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// Gets a vulcan client
         /// </summary>
         /// <param name="index"></param>
+        /// <param name="alias"></param>
         /// <param name="settings"></param>
         /// <param name="culture"></param>
         /// <returns></returns>
@@ -836,13 +841,19 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             }
         }
 
+        /// <summary>
+        /// Swaps alias for culture
+        /// </summary>
+        /// <param name="language"></param>
+        /// <param name="oldAlias"></param>
+        /// <param name="newAlias"></param>
         public void SwitchAlias(CultureInfo language, string oldAlias, string newAlias)
         {
             lock (this)
             {
                 var cultureInfo = language ?? CultureInfo.CurrentUICulture;
-                if (oldAlias == null) oldAlias = "master";
-                if (newAlias == null) newAlias = "master";
+                VulcanHelper.GuardForNullAlias(ref oldAlias);
+                VulcanHelper.GuardForNullAlias(ref newAlias);
 
                 var client = CreateElasticClient(CommonConnectionSettings.ConnectionSettings); // use a raw elasticclient because we just need this to be quick
 
@@ -859,41 +870,41 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                 client.Refresh("*");
 
-                if(Clients != null) Clients.Clear(); // force a client refresh
+                Clients?.Clear(); // force a client refresh
             }
         }
 
+        /// <summary>
+        /// Swap all culture aliases
+        /// </summary>
+        /// <param name="oldAlias"></param>
+        /// <param name="newAlias"></param>
         public void SwitchAliasAllCultures(string oldAlias, string newAlias)
         {
             lock (this)
             {
-                if (oldAlias == null) oldAlias = "master";
-                if (newAlias == null) newAlias = "master";
-
+                VulcanHelper.GuardForNullAlias(ref oldAlias);
+                VulcanHelper.GuardForNullAlias(ref newAlias);
                 var aliasOldStart = Index + "-" + oldAlias + "_";
                 var aliasNewStart = Index + "-" + newAlias + "_";
-
                 var client = CreateElasticClient(CommonConnectionSettings.ConnectionSettings); // use a raw elasticclient because we just need this to be quick
-
                 var aliases = client.CatAliases()?.Records.Where(a => a.Alias.StartsWith(Index + "-"));
-
                 var handled = new List<string>();
 
-                if(aliases != null)
+                if (aliases != null)
                 {
-                    foreach(var alias in aliases)
+                    foreach (var alias in aliases)
                     {
                         if (!handled.Contains(alias.Alias))
                         {
                             // haven't handled this yet!
-
                             string checkAlias = null;
 
                             if (alias.Alias.StartsWith(aliasOldStart))
                             {
                                 checkAlias = alias.Alias.Replace("-" + oldAlias + "_", "-" + newAlias + "_");
                             }
-                            else if(alias.Alias.StartsWith(aliasNewStart))
+                            else if (alias.Alias.StartsWith(aliasNewStart))
                             {
                                 checkAlias = alias.Alias.Replace("-" + newAlias + "_", "-" + oldAlias + "_");
                             }
@@ -923,7 +934,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                                     client.Alias(bad => bad.Remove(a => a.Alias(alias.Alias).Index("*"))
                                                         .Add(a => a.Alias(checkAlias).Index(alias.Index)));
 
-                                    Logger.Warning("Vulcan switched index to new alias: " + alias.Alias + " to " + checkAlias);
+                                    Logger.Warning("Vulcan switched index to new indexAlias: " + alias.Alias + " to " + checkAlias);
                                 }
                             }
                         }
@@ -932,7 +943,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                 client.Refresh("*");
 
-                if(Clients == null) Clients.Clear(); // force a client refresh
+                Clients?.Clear(); // force a client refresh
             }
         }
     }

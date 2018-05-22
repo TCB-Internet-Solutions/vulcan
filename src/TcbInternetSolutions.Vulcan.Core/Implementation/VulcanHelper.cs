@@ -13,32 +13,17 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     public static class VulcanHelper
     {
         /// <summary>
-        /// Get index name for language
+        /// Master Alias
         /// </summary>
-        /// <param name="indexNameBase"></param>
-        /// <param name="language"></param>
-        /// <returns></returns>
-        public static string GetRawIndexName(string indexNameBase, CultureInfo language)
-        {
-            if (language == null)
-                throw new ArgumentNullException(nameof(language));
-
-            var suffix = "_";
-
-            if (language.Equals(CultureInfo.InvariantCulture))
-            {
-                suffix += "invariant";
-            }
-            else
-            {
-                suffix += language.Name.ToLowerInvariant(); // causing invalid index name w/o tolowerstring
-            }
-
-            return indexNameBase + "_" + DateTime.UtcNow.ToString("yyyyMMddhhmmss") + suffix;
-        }
+        public static readonly string MasterAlias = "master";
 
         /// <summary>
-        ///  Get alias-based name for index
+        /// Temp Alias
+        /// </summary>
+        public static readonly string TempAlias = "temp";
+
+        /// <summary>
+        ///  Get indexAlias-based name for index
         /// </summary>
         /// <param name="indexNameBase"></param>
         /// <param name="language"></param>
@@ -60,7 +45,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 suffix += language.Name.ToLowerInvariant(); // causing invalid index name w/o tolowerstring
             }
 
-            return indexNameBase + "-" + (string.IsNullOrWhiteSpace(alias) ? "master" : alias) + suffix;
+            return indexNameBase + "-" + (string.IsNullOrWhiteSpace(alias) ? MasterAlias : alias) + suffix;
         }
 
         /// <summary>
@@ -160,9 +145,42 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             return "standard";
         }
 
+        /// <summary>
+        /// Get index name for language
+        /// </summary>
+        /// <param name="indexNameBase"></param>
+        /// <param name="language"></param>
+        /// <returns></returns>
+        public static string GetRawIndexName(string indexNameBase, CultureInfo language)
+        {
+            if (language == null)
+                throw new ArgumentNullException(nameof(language));
+
+            var suffix = "_";
+
+            if (language.Equals(CultureInfo.InvariantCulture))
+            {
+                suffix += "invariant";
+            }
+            else
+            {
+                suffix += language.Name.ToLowerInvariant(); // causing invalid index name w/o tolowerstring
+            }
+
+            return indexNameBase + "_" + DateTime.UtcNow.ToString("yyyyMMddhhmmss") + suffix;
+        }
+
+        /// <summary>
+        /// Guards for null alias
+        /// </summary>
+        /// <param name="alias"></param>
+        public static void GuardForNullAlias(ref string alias)
+        {
+            if (string.IsNullOrWhiteSpace(alias)) alias = MasterAlias;
+        }
         internal static void AddSynonym(string language, string term, string[] synonyms, bool biDirectional)
         {
-            if (string.IsNullOrWhiteSpace(term))
+            if (String.IsNullOrWhiteSpace(term))
             {
                 throw new Exception("Cannot add a blank synonym term");
             }
@@ -186,7 +204,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         internal static void DeleteSynonym(string language, string term)
         {
-            if (string.IsNullOrWhiteSpace(term))
+            if (String.IsNullOrWhiteSpace(term))
             {
                 throw new Exception("Cannot delete a blank synonym term");
             }
