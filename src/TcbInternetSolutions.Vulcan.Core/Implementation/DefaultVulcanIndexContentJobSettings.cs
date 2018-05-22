@@ -9,6 +9,9 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     public class DefaultVulcanIndexContentJobSettings : IVulcanIndexContentJobSettings
     {
         bool IVulcanIndexContentJobSettings.EnableParallelIndexers => false;
+
         bool IVulcanIndexContentJobSettings.EnableParallelContent => false;
+
+        bool IVulcanIndexContentJobSettings.EnableAlwaysUp => false;
     }
 }

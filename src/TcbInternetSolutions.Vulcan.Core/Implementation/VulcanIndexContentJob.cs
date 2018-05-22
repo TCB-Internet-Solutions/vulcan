@@ -14,7 +14,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     /// <summary>
     /// Default index job
     /// </summary>
-    [ScheduledPlugIn(DisplayName = "Vulcan Index Content")]
+    [ScheduledPlugIn(DisplayName = "Vulcan Index Content", SortIndex = 1100)]
     public class VulcanIndexContentJob : ScheduledJobBase
     {
         private static readonly ILogger Logger = LogManager.GetLogger();
@@ -61,7 +61,14 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         public override string Execute()
         {
             OnStatusChanged($"Starting execution of {GetType()}");
-            _vulcanHandler.DeleteIndex(); // delete all language indexes
+            if (_vulcanIndexContentJobSettings.EnableAlwaysUp)
+            {
+                _vulcanHandler.DeleteIndex("temp"); // make sure any temp index is cleared
+            }
+            else
+            {
+                _vulcanHandler.DeleteIndex(); // delete all language indexes
+            }
             var totalIndexedCount = 0;
             var isCacheScopeFeature = _vulcanFeatures?.LastOrDefault(x => x is IVulcanFeatureCacheScope) as IVulcanFeatureCacheScope;
 
@@ -79,6 +86,16 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 }
             }
 
+            if (_vulcanIndexContentJobSettings.EnableAlwaysUp)
+            {
+                Logger.Warning("Always up enabled... swapping indices...");
+
+                _vulcanHandler.SwitchAliasAllCultures("temp", "master");
+                _vulcanHandler.DeleteIndex("temp");
+
+                Logger.Warning("Index swap completed.");
+            }
+
             return $"Vulcan successfully indexed {totalIndexedCount} item(s) across {_vulcanIndexers.Count()} indexers!";
         }
 
@@ -89,7 +106,14 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             if (pocoIndexer?.IncludeInDefaultIndexJob == true)
             {
-                _vulcanPocoIndexHandler.Index(pocoIndexer, OnStatusChanged, ref totalIndexedCount, ref _stopSignaled);
+                if (_vulcanIndexContentJobSettings.EnableAlwaysUp)
+                {
+                    _vulcanPocoIndexHandler.Index(pocoIndexer, OnStatusChanged, ref totalIndexedCount, ref _stopSignaled, "temp");
+                }
+                else
+                {
+                    _vulcanPocoIndexHandler.Index(pocoIndexer, OnStatusChanged, ref totalIndexedCount, ref _stopSignaled);
+                }
             }
             else if (cmsIndexer != null) // default episerver content
             {
@@ -188,7 +212,14 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             else
             {
                 Logger.Information($"Vulcan indexed content with reference: {contentReference} and name: {content.Name}");
-                _vulcanHandler.IndexContentEveryLanguage(content);
+                if (_vulcanIndexContentJobSettings.EnableAlwaysUp)
+                {
+                    _vulcanHandler.IndexContentEveryLanguage(content, "temp");
+                }
+                else
+                {
+                    _vulcanHandler.IndexContentEveryLanguage(content);
+                }
 
                 return true;
             }

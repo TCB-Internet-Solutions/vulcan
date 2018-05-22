@@ -33,6 +33,7 @@
         public VulcanClient
         (
             string index,
+            string alias,
             IConnectionSettingsValues settings,
             CultureInfo language,
             IContentLoader contentLoader,
@@ -40,11 +41,14 @@
             IVulcanPipelineSelector vulcanPipelineSelector) : base(settings)
         {
             Language = language ?? throw new Exception("Vulcan client requires a language (you may use CultureInfo.InvariantCulture if needed for non-language specific data)");
-            IndexName = VulcanHelper.GetIndexName(index, language);
+            IndexName = VulcanHelper.GetAliasName(index, language, alias);
+            Alias = alias;
             ContentLoader = contentLoader;
             VulcanHandler = vulcanHandler;
             _vulcanPipelineSelector = vulcanPipelineSelector;
         }
+
+        public virtual string Alias { get; }
 
         /// <summary>
         /// Vulcan index name
@@ -218,7 +222,7 @@
 
             if (!Language.Equals(CultureInfo.InvariantCulture) && includeNeutralLanguage)
             {
-                indexName += "," + VulcanHelper.GetIndexName(VulcanHandler.Index, CultureInfo.InvariantCulture);
+                indexName += "," + VulcanHelper.GetAliasName(VulcanHandler.Index, CultureInfo.InvariantCulture, Alias);
             }
 
             resolvedDescriptor = resolvedDescriptor.Index(indexName);

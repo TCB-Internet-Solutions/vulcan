@@ -18,7 +18,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <param name="indexNameBase"></param>
         /// <param name="language"></param>
         /// <returns></returns>
-        public static string GetIndexName(string indexNameBase, CultureInfo language)
+        public static string GetRawIndexName(string indexNameBase, CultureInfo language)
         {
             if (language == null)
                 throw new ArgumentNullException(nameof(language));
@@ -34,7 +34,33 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 suffix += language.Name.ToLowerInvariant(); // causing invalid index name w/o tolowerstring
             }
 
-            return indexNameBase + suffix;
+            return indexNameBase + "_" + DateTime.UtcNow.ToString("yyyyMMddhhmmss") + suffix;
+        }
+
+        /// <summary>
+        ///  Get alias-based name for index
+        /// </summary>
+        /// <param name="indexNameBase"></param>
+        /// <param name="language"></param>
+        /// <param name="alias"></param>
+        /// <returns></returns>
+        public static string GetAliasName(string indexNameBase, CultureInfo language, string alias)
+        {
+            if (language == null)
+                throw new ArgumentNullException(nameof(language));
+
+            var suffix = "_";
+
+            if (language.Equals(CultureInfo.InvariantCulture))
+            {
+                suffix += "invariant";
+            }
+            else
+            {
+                suffix += language.Name.ToLowerInvariant(); // causing invalid index name w/o tolowerstring
+            }
+
+            return indexNameBase + "-" + (string.IsNullOrWhiteSpace(alias) ? "master" : alias) + suffix;
         }
 
         /// <summary>

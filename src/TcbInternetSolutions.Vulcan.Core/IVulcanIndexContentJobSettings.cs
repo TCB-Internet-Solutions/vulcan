@@ -14,5 +14,10 @@
         /// Parallel looping on content
         /// </summary>
         bool EnableParallelContent { get; }
+
+        /// <summary>
+        /// Always up on indexing
+        /// </summary>
+        bool EnableAlwaysUp { get; }
     }
 }

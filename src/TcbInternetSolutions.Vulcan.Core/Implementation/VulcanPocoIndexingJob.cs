@@ -20,7 +20,12 @@
         /// <summary>
         /// invariant client
         /// </summary>
-        protected IVulcanClient InvariantClient => VulcanHander.GetClient(CultureInfo.InvariantCulture);
+        protected IVulcanClient GetInvariantClient(string alias = null)
+        {
+            if (string.IsNullOrWhiteSpace(alias)) alias = "master";
+
+            return VulcanHander.GetClient(CultureInfo.InvariantCulture, alias);
+        }
 
         /// <summary>
         /// Vulcan handler
@@ -41,14 +46,18 @@
         /// </summary>
         /// <param name="pocoIndexer"></param>
         /// <param name="item"></param>
-        public virtual void DeleteItem(IVulcanPocoIndexer pocoIndexer, object item)
+        public virtual void DeleteItem(IVulcanPocoIndexer pocoIndexer, object item, string alias = null)
         {
+            if (string.IsNullOrWhiteSpace(alias)) alias = "master";
+ 
             var id = pocoIndexer.GetItemIdentifier(item);
             var type = GetTypeName(item);
 
             try
             {
-                var response = InvariantClient.Delete(new DeleteRequest(InvariantClient.IndexName, type, id));
+                var invariantClient = GetInvariantClient(alias);
+
+                var response = invariantClient.Delete(new DeleteRequest(invariantClient.IndexName, type, id));
                 Logger.Debug("Vulcan deleted " + id + " for type " + type + ": " + response.DebugInformation);
             }
             catch (Exception e)
@@ -65,16 +74,20 @@
         /// <param name="count"></param>
         /// <param name="stopSignaled"></param>
         /// <returns></returns>
-        public virtual string Index(IVulcanPocoIndexer pocoIndexer, Action<string> updateStatus, ref int count, ref bool stopSignaled)
+        public virtual string Index(IVulcanPocoIndexer pocoIndexer, Action<string> updateStatus, ref int count, ref bool stopSignaled, string alias = null)
         {
             if (pocoIndexer == null)
                 throw new ArgumentNullException($"{nameof(pocoIndexer)} cannot be null!");
+
+            if (string.IsNullOrWhiteSpace(alias)) alias = "master";
 
             var total = pocoIndexer.TotalItems;
             var pageSize = pocoIndexer.PageSize;
             pageSize = pageSize < 1 ? 1 : pageSize; // don't allow 0 or negative
             var totalPages = (total + pageSize - 1) / pageSize;
             var internalCount = 0;
+
+            var invariantClient = GetInvariantClient(alias);
             
             for (var page = 1; page <= totalPages; page++)
             {
@@ -120,7 +133,7 @@
                     Operations = operations
                 };
 
-                InvariantClient.Bulk(request);
+                invariantClient.Bulk(request);
             }
 
             return $"Indexed {internalCount} of {total} items of {pocoIndexer.IndexerName} content!";
@@ -131,14 +144,18 @@
         /// </summary>
         /// <param name="pocoIndexer"></param>
         /// <param name="item"></param>
-        public virtual void IndexItem(IVulcanPocoIndexer pocoIndexer, object item)
+        public virtual void IndexItem(IVulcanPocoIndexer pocoIndexer, object item, string alias = null)
         {
             var id = pocoIndexer.GetItemIdentifier(item);
             var type = GetTypeName(item);
 
+            if (string.IsNullOrWhiteSpace(alias)) alias = "master";
+
             try
             {
-                var response = InvariantClient.Index(item, z => z.Id(id).Type(type));
+                var invariantClient = GetInvariantClient(alias);
+
+                var response = invariantClient.Index(item, z => z.Id(id).Type(type));
                 Logger.Debug($"Vulcan indexed {id} for type {type}: {response.DebugInformation}");
             }
             catch (Exception e)
