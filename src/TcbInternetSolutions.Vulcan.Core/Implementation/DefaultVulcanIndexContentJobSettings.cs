@@ -13,5 +13,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         bool IVulcanIndexContentJobSettings.EnableParallelContent => false;
 
         bool IVulcanIndexContentJobSettings.EnableAlwaysUp => false;
+
+        int IVulcanIndexContentJobSettings.ParallelDegree => 4;
     }
 }
