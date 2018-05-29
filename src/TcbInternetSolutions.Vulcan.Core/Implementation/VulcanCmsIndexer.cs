@@ -1,6 +1,7 @@
 ﻿using EPiServer.Framework.Cache;
 using EPiServer.Web;
 using System.Collections.Generic;
+using System.Linq;
 using TcbInternetSolutions.Vulcan.Core.Internal;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
