@@ -63,7 +63,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             OnStatusChanged($"Starting execution of {GetType()}");
             if (_vulcanIndexContentJobSettings.EnableAlwaysUp)
             {
-                _vulcanHandler.DeleteIndex("temp"); // make sure any temp index is cleared
+                _vulcanHandler.DeleteIndex(VulcanHelper.TempAlias); // make sure any temp index is cleared
             }
             else
             {
@@ -75,14 +75,14 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             if (_vulcanIndexContentJobSettings.EnableParallelIndexers)
             {
-                Parallel.ForEach(EnumerateIndexers(), new ParallelOptions() { MaxDegreeOfParallelism = _vulcanIndexContentJobSettings.ParallelDegree }, indexer =>
+                Parallel.ForEach(_vulcanIndexers.AsParallel(), new ParallelOptions() { MaxDegreeOfParallelism = _vulcanIndexContentJobSettings.ParallelDegree }, indexer =>
                 {
                     ExecuteIndexer(indexer, isCacheScopeFeature, ref totalIndexedCount);
                 });
             }
             else
             {
-                foreach (var indexer in EnumerateIndexers())
+                foreach (var indexer in _vulcanIndexers)
                 {
                     ExecuteIndexer(indexer, isCacheScopeFeature, ref totalIndexedCount);
                 }
@@ -92,10 +92,8 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             if (_vulcanIndexContentJobSettings.EnableAlwaysUp)
             {
                 Logger.Warning("Always up enabled... swapping indices...");
-
                 _vulcanHandler.SwitchAliasAllCultures(VulcanHelper.TempAlias, VulcanHelper.MasterAlias);
                 _vulcanHandler.DeleteIndex(VulcanHelper.TempAlias);
-
                 Logger.Warning("Index swap completed.");
             }
 
@@ -109,14 +107,8 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             if (pocoIndexer?.IncludeInDefaultIndexJob == true)
             {
-                if (_vulcanIndexContentJobSettings.EnableAlwaysUp)
-                {
-                    _vulcanPocoIndexHandler.Index(pocoIndexer, OnStatusChanged, ref totalIndexedCount, ref _stopSignaled, VulcanHelper.TempAlias);
-                }
-                else
-                {
-                    _vulcanPocoIndexHandler.Index(pocoIndexer, OnStatusChanged, ref totalIndexedCount, ref _stopSignaled);
-                }
+                var alias = _vulcanIndexContentJobSettings.EnableAlwaysUp ? VulcanHelper.TempAlias : null;
+                _vulcanPocoIndexHandler.Index(pocoIndexer, OnStatusChanged, ref totalIndexedCount, ref _stopSignaled, alias);
             }
             else if (cmsIndexer != null) // default episerver content
             {
@@ -130,22 +122,20 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
                     Parallel.ForEach(contentReferences, new ParallelOptions() { MaxDegreeOfParallelism = _vulcanIndexContentJobSettings.ParallelDegree }, contentReference =>
                     {
-                        if (!_stopSignaled)
+                        if (_stopSignaled) return;
+                        if (IndexContent(contentReference, contentRecord, cmsIndexer, isCacheScopeFeature, totalCount))
                         {
-                            if (IndexContent(contentReference, contentRecord, cmsIndexer, isCacheScopeFeature, totalCount))
-                            {
-                                Interlocked.Increment(ref thisIndexerCount);
-                            }
-
-                            Interlocked.Increment(ref contentRecord);
+                            Interlocked.Increment(ref thisIndexerCount);
                         }
+
+                        Interlocked.Increment(ref contentRecord);
                     });
 
                     Interlocked.Exchange(ref totalIndexedCount, totalIndexedCount + thisIndexerCount);
                 }
                 else
                 {
-                    foreach (var contentReference in EnumerateContent(contentReferences))
+                    foreach (var contentReference in contentReferences)
                     {
 
                         if (IndexContent(contentReference, contentRecord, cmsIndexer, isCacheScopeFeature, totalCount))
@@ -161,8 +151,12 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         private bool IndexContent(ContentReference contentReference, int contentRecord, IVulcanContentIndexer cmsIndexer, IVulcanFeatureCacheScope isCacheScopeFeature, int totalCount)
         {
-            if (isCacheScopeFeature?.Enabled != true &&
-                                                cmsIndexer is IVulcanContentIndexerWithCacheClearing cacheClearingIndexer && cacheClearingIndexer.ClearCacheItemInterval >= 0)
+            if 
+            (
+                isCacheScopeFeature?.Enabled != true &&
+                cmsIndexer is IVulcanContentIndexerWithCacheClearing cacheClearingIndexer &&
+                cacheClearingIndexer.ClearCacheItemInterval >= 0
+            )
             {
                 if (contentRecord % cacheClearingIndexer.ClearCacheItemInterval == 0)
                 {
@@ -189,6 +183,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 // try once more
                 try
                 {
+                    // ReSharper disable once RedundantAssignment
                     content = LoadWithCacheScope(contentReference, isCacheScopeFeature);
                 }
                 catch (Exception eNested)
@@ -226,12 +221,6 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         {
             _stopSignaled = true;
         }
-
-        private IEnumerable<ContentReference> EnumerateContent(IEnumerable<ContentReference> contentReferences) =>
-            _vulcanIndexContentJobSettings.EnableParallelContent ? contentReferences.AsParallel() : contentReferences;
-
-        private IEnumerable<IVulcanIndexer> EnumerateIndexers() =>
-            _vulcanIndexContentJobSettings.EnableParallelIndexers ? _vulcanIndexers.AsParallel() : _vulcanIndexers;
 
         private IContent LoadWithCacheScope(ContentReference c, IVulcanFeatureCacheScope vulcanFeatureCache)
         {

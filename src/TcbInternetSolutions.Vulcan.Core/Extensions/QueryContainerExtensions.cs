@@ -1,9 +1,9 @@
-﻿namespace TcbInternetSolutions.Vulcan.Core.Extensions
-{
-    using EPiServer.Core;
-    using Nest;
-    using System;
+﻿using EPiServer.Core;
+using Nest;
+using System;
 
+namespace TcbInternetSolutions.Vulcan.Core.Extensions
+{
     /// <summary>
     /// Query extensions
     /// </summary>
@@ -21,13 +21,14 @@
             var notDeleted = new QueryContainerDescriptor<T>().Term(t => t.Field(xf => xf.IsDeleted).Value(false));
             var published = new QueryContainerDescriptor<IVersionable>().DateRange(dr => dr.LessThanOrEquals(DateTime.Now).Field(xf => xf.StartPublish));
             var notExpired = new QueryContainerDescriptor<IVersionable>().DateRange(dr => dr.GreaterThanOrEquals(DateTime.Now).Field(xf => xf.StopPublish));
-            var searchable = new QueryContainerDescriptor<IVulcanSearchable>().Term(t => t.Field(xf => xf.IsSearchable).Value(true));            
-            //var expiredMissing = new QueryContainerDescriptor<IVersionable>().Missing(dr => dr.Field(xf => xf.StopPublish).NullValue().Existence());
+            var searchable = new QueryContainerDescriptor<IVulcanSearchable>().Term(t => t.Field(xf => xf.IsSearchable).Value(true));
             var expiredExists = new QueryContainerDescriptor<IVersionable>().Exists(dr => dr.Field(xf => xf.StopPublish));
+            var filtered = notDeleted && published && (notExpired && expiredExists || !expiredExists);
 
-            return !requireIsSearchable ?
-                new QueryContainerDescriptor<T>().Bool(b => b.Must(query).MustNot(notExpired || expiredExists).Filter(notDeleted && published)) :
-                new QueryContainerDescriptor<T>().Bool(b => b.Must(query).MustNot(notExpired || expiredExists).Filter(searchable && notDeleted && published));
+            if (requireIsSearchable)
+                filtered = filtered && searchable;
+
+            return new QueryContainerDescriptor<T>().Bool(b => b.Must(query).Filter(filtered));
         }
     }
 }

@@ -6,6 +6,7 @@ using Nest;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using TcbInternetSolutions.Vulcan.Core.Implementation;
 
 namespace TcbInternetSolutions.Vulcan.Core.Extensions
 {
@@ -16,7 +17,10 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
     {
         private static readonly ILogger Logger = LogManager.GetLogger();
 
-        private static IContentLoader GetContentLoader() => ServiceLocator.Current.GetInstance<IContentLoader>();
+        /// <summary>
+        /// Injected IContent Loader
+        /// </summary>
+        public static Injected<IContentLoader> ContentLoader { get; set; }
 
         /// <summary>
         /// Injected VulcanHanlder
@@ -30,7 +34,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
         /// <param name="hit"></param>
         /// <returns></returns>
         public static T GetContent<T>(this IHit<IContent> hit) where T : IContent =>
-            GetContentLoader().Get<T>(new ContentReference(hit.Id));
+            ContentLoader.Service.Get<T>(new ContentReference(hit.Id));
 
         /// <summary>
         /// Gets fully populated content from given content
@@ -39,23 +43,25 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
         /// <param name="content"></param>
         /// <returns></returns>
         public static T GetContent<T>(this IContent content) where T : IContent =>
-            GetContentLoader().Get<T>(content.ContentLink);
+            ContentLoader.Service.Get<T>(content.ContentLink);
 
         /// <summary>
         /// Converts search response to list of content
         /// </summary>
         /// <param name="searchResponse"></param>
+        /// <param name="contentLoader"></param>
         /// <returns></returns>
-        public static IEnumerable<IContent> GetContents(this ISearchResponse<IContent> searchResponse) => GetContentsWorker<IContent>(searchResponse);
+        public static IEnumerable<IContent> GetContents(this ISearchResponse<IContent> searchResponse, IContentLoader contentLoader = null) => GetContentsWorker<IContent>(searchResponse, contentLoader);
 
         /// <summary>
         /// Converts search response to list of T
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="searchResponse"></param>
+        /// <param name="contentLoader"></param>
         /// <returns></returns>
-        public static IEnumerable<T> GetContents<T>(this ISearchResponse<IContent> searchResponse) where T : class, IContent =>
-            GetContentsWorker<T>(searchResponse);
+        public static IEnumerable<T> GetContents<T>(this ISearchResponse<IContent> searchResponse, IContentLoader contentLoader = null) where T : class, IContent =>
+            GetContentsWorker<T>(searchResponse, contentLoader);
 
         /// <summary>
         /// 
@@ -72,7 +78,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
             // ReSharper disable once InvertIf
             if (searchResponse?.Hits != null)
             {
-                var contentLoader = GetContentLoader();
+                var contentLoader = ContentLoader.Service;
 
                 foreach (var hit in searchResponse.Hits)
                 {
@@ -129,12 +135,12 @@ namespace TcbInternetSolutions.Vulcan.Core.Extensions
             return contentType.Name.EndsWith("Proxy") && contentType.BaseType != null ? contentType.BaseType.FullName : contentType.FullName;
         }
 
-        private static IEnumerable<T> GetContentsWorker<T>(ISearchResponse<IContent> searchResponse) where T : class, IContent
+        private static IEnumerable<T> GetContentsWorker<T>(ISearchResponse<IContent> searchResponse, IContentLoader contentLoaderRef) where T : class, IContent
         {
             var list = new List<T>();
             if (searchResponse?.Documents == null) return list;
 
-            var contentLoader = ServiceLocator.Current.GetInstance<IContentLoader>();
+            var contentLoader = contentLoaderRef ?? VulcanHelper.GetService<IContentLoader>();
 
             foreach (var document in searchResponse.Documents)
             {

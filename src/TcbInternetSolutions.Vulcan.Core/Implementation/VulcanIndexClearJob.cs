@@ -17,10 +17,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// DI Constructor
         /// </summary>
         /// <param name="vulcanHandler"></param>
-        public VulcanIndexClearJob
-        (
-            IVulcanHandler vulcanHandler
-        )
+        public VulcanIndexClearJob(IVulcanHandler vulcanHandler)
         {
             _vulcanHandler = vulcanHandler;
             IsStoppable = true;
@@ -33,14 +30,10 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         public override string Execute()
         {
             OnStatusChanged($"Starting execution of {GetType()}");
-
             Logger.Warning("Clearing all indexes...");
-
             _vulcanHandler.DeleteIndex();
-
             Logger.Warning("All indexes cleared.");
-
-            return $"Vulcan successfully cleared all indexes!";
+            return "Vulcan successfully cleared all indexes!";
         }
     }
 }

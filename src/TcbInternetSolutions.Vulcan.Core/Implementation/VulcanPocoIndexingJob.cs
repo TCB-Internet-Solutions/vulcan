@@ -77,9 +77,7 @@
         /// <returns></returns>
         public virtual string Index(IVulcanPocoIndexer pocoIndexer, Action<string> updateStatus, ref int count, ref bool stopSignaled, string alias = null)
         {
-            if (pocoIndexer == null)
-                throw new ArgumentNullException($"{nameof(pocoIndexer)} cannot be null!");
-
+            if (pocoIndexer == null) throw new ArgumentNullException($"{nameof(pocoIndexer)} cannot be null!");
             VulcanHelper.GuardForNullAlias(ref alias);
 
             var total = pocoIndexer.TotalItems;

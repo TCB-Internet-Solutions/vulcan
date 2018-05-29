@@ -1,5 +1,5 @@
-﻿using EPiServer.ServiceLocation;
-using Mediachase.Commerce;
+﻿using Mediachase.Commerce;
+using TcbInternetSolutions.Vulcan.Core.Implementation;
 
 namespace TcbInternetSolutions.Vulcan.Commerce
 {
@@ -11,10 +11,11 @@ namespace TcbInternetSolutions.Vulcan.Commerce
 
         public static string GetPriceHighField(string marketId = null, string currencyCode = null) => GetPriceField("pricesHigh", marketId, currencyCode);
 
-        private static string GetPriceField(string propertyName, string marketId, string currencyCode)
+        private static string GetPriceField(string propertyName, string marketId, string currencyCode, ICurrentMarket currentMarket = null)
         {
-            if (marketId == null) marketId = ServiceLocator.Current.GetInstance<ICurrentMarket>().GetCurrentMarket().MarketId.Value;
-            if (currencyCode == null) currencyCode = ServiceLocator.Current.GetInstance<ICurrentMarket>().GetCurrentMarket().DefaultCurrency.CurrencyCode;
+            currentMarket = currentMarket ?? VulcanHelper.GetService<ICurrentMarket>();
+            if (marketId == null) marketId = currentMarket.GetCurrentMarket().MarketId.Value;
+            if (currencyCode == null) currencyCode = currentMarket.GetCurrentMarket().DefaultCurrency.CurrencyCode;
 
             return "__" + propertyName + "." + marketId + "_" + currencyCode;
         }

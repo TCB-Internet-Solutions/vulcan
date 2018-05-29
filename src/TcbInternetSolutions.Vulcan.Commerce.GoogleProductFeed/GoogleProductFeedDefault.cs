@@ -1,7 +1,6 @@
 ﻿using EPiServer.Commerce.Catalog.ContentTypes;
 using EPiServer.Framework;
 using EPiServer.Framework.Initialization;
-using EPiServer.ServiceLocation;
 
 namespace TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed
 {
@@ -11,7 +10,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce.GoogleProductFeed
     {
         public void Initialize(InitializationEngine context)
         {
-            ServiceLocator.Current.GetInstance<IGoogleProductFeedService>().CreateFeed<VariationContent>("Default");
+            context.Locate.Advanced.GetInstance<IGoogleProductFeedService>().CreateFeed<VariationContent>("Default");
         }
 
         public void Uninitialize(InitializationEngine context)

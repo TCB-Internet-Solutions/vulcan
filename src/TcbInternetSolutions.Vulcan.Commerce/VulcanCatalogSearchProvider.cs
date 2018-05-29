@@ -1,29 +1,29 @@
-﻿namespace TcbInternetSolutions.Vulcan.Commerce
-{
-    using Core;
-    using Core.SearchProviders;
-    using Core.SearchProviders.Extensions;
-    using EPiServer;
-    using EPiServer.Commerce.Catalog.ContentTypes;
-    using EPiServer.Core;
-    using EPiServer.DataAbstraction;
-    using EPiServer.Framework.Localization;
-    using EPiServer.ServiceLocation;
-    using EPiServer.Shell;
-    using EPiServer.Shell.Search;
-    using EPiServer.Web;
+﻿using EPiServer;
+using EPiServer.Commerce.Catalog.ContentTypes;
+using EPiServer.Core;
+using EPiServer.DataAbstraction;
+using EPiServer.Framework.Localization;
+using EPiServer.Shell;
+using EPiServer.Shell.Search;
+using EPiServer.Web;
+using TcbInternetSolutions.Vulcan.Core;
+using TcbInternetSolutions.Vulcan.Core.Implementation;
+using TcbInternetSolutions.Vulcan.Core.SearchProviders;
+using TcbInternetSolutions.Vulcan.Core.SearchProviders.Extensions;
 
+namespace TcbInternetSolutions.Vulcan.Commerce
+{
     [SearchProvider]
     public class VulcanCatalogSearchProvider : VulcanSearchProviderBase<EntryContentBase>
     {
         public VulcanCatalogSearchProvider()
               : this(
-                    ServiceLocator.Current.GetInstance<IVulcanHandler>(),
-                    ServiceLocator.Current.GetInstance<LocalizationService>(),
-                    ServiceLocator.Current.GetInstance<ISiteDefinitionResolver>(),
-                    ServiceLocator.Current.GetInstance<IContentRepository>(),
-                    ServiceLocator.Current.GetInstance<IContentTypeRepository>(),
-                    ServiceLocator.Current.GetInstance<UIDescriptorRegistry>()
+                    VulcanHelper.GetService<IVulcanHandler>(),
+                    VulcanHelper.GetService<LocalizationService>(),
+                    VulcanHelper.GetService<ISiteDefinitionResolver>(),
+                    VulcanHelper.GetService<IContentRepository>(),
+                    VulcanHelper.GetService<IContentTypeRepository>(),
+                    VulcanHelper.GetService<UIDescriptorRegistry>()
                 )
         { }
 

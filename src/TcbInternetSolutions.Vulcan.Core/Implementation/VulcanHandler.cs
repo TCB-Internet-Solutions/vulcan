@@ -1,19 +1,18 @@
-﻿using System.Collections.Concurrent;
+﻿using EPiServer;
+using EPiServer.Core;
+using EPiServer.DataAbstraction.RuntimeModel.Internal;
+using EPiServer.Logging;
+using EPiServer.ServiceLocation;
+using Nest;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using TcbInternetSolutions.Vulcan.Core.Extensions;
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
-    using EPiServer;
-    using EPiServer.Core;
-    using EPiServer.DataAbstraction.RuntimeModel.Internal;
-    using EPiServer.Logging;
-    using EPiServer.ServiceLocation;
-    using Extensions;
-    using Nest;
-    using System;
-    using System.Collections.Generic;
-    using System.Globalization;
-    using System.Linq;
-
     /// <summary>
     /// Default Vulcan handler
     /// </summary>
@@ -183,60 +182,28 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             lock (_lockObject)
             {
                 var client = CreateElasticClient(CommonConnectionSettings.ConnectionSettings); // use a raw elasticclient because we just need this to be quick
+                var indexPrefix = alias == null ? $"{Index}_" : $"{Index}-" + alias; // determine if we are deleting only aliases of all index prefixes
+                var indices = client.CatIndices();
 
-                if (alias == null)
+                if (indices?.Records?.Any() == true)
                 {
-                    // everything!
+                    var indicesToDelete = new List<string>();
 
-                    var indices = client.CatIndices();
-
-                    if (indices?.Records?.Any() == true)
+                    foreach (var index in indices.Records.Where(i => i.Index.StartsWith(indexPrefix)).Select(i => i.Index))
                     {
-                        var indicesToDelete = new List<string>();
+                        var response = client.DeleteIndex(index);
 
-                        foreach (var index in indices.Records.Where(i => i.Index.StartsWith($"{Index}_")).Select(i => i.Index))
+                        if (!response.IsValid)
                         {
-                            var response = client.DeleteIndex(index);
-
-                            if (!response.IsValid)
-                            {
-                                Logger.Error($"Could not run a delete index: {response.DebugInformation}");
-                            }
-                            else
-                            {
-                                indicesToDelete.Add(index);
-                            }
+                            Logger.Error($"Could not run a delete index: {response.DebugInformation}");
                         }
-
-                        DeletedIndices?.Invoke(indicesToDelete);
-                    }
-                }
-                else
-                {
-                    // only indexes for a specific indexAlias
-
-                    var aliases = client.CatAliases();
-
-                    if (aliases?.Records?.Any() == true)
-                    {
-                        var indicesToDelete = new List<string>();
-
-                        foreach (var index in aliases.Records.Where(i => i.Alias.StartsWith($"{Index}-" + alias)).Select(i => i.Index))
+                        else
                         {
-                            var response = client.DeleteIndex(index);
-
-                            if (!response.IsValid)
-                            {
-                                Logger.Error($"Could not run a delete index: {response.DebugInformation}");
-                            }
-                            else
-                            {
-                                indicesToDelete.Add(index);
-                            }
+                            indicesToDelete.Add(index);
                         }
-
-                        DeletedIndices?.Invoke(indicesToDelete);
                     }
+
+                    DeletedIndices?.Invoke(indicesToDelete);
                 }
 
                 Clients?.Clear(); // need to force a re-creation                
@@ -253,28 +220,21 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         {
             var cultureInfo = language ?? CultureInfo.CurrentUICulture;
             var aliasSafe = string.IsNullOrWhiteSpace(alias) ? VulcanHelper.MasterAlias : alias;
-
             IVulcanClient storedClient;
 
             lock (_lockObject)
             {
                 if (!Clients.ContainsKey(aliasSafe)) Clients[aliasSafe] = new ConcurrentDictionary<CultureInfo, IVulcanClient>();
-
-                if (Clients[aliasSafe].TryGetValue(cultureInfo, out storedClient))
-                    return storedClient;
+                if (Clients[aliasSafe].TryGetValue(cultureInfo, out storedClient)) return storedClient;
 
                 // todo: need some sort of check here to make sure we still need to create a client
-
                 var aliasName = VulcanHelper.GetAliasName(Index, cultureInfo, alias);
-
                 var settings = CommonConnectionSettings.ConnectionSettings;
                 settings.InferMappingFor<ContentMixin>(pd => pd.Ignore(p => p.MixinInstance));
                 settings.DefaultIndex(aliasName);
 
                 var client = CreateVulcanClient(Index, alias, settings, cultureInfo);
-
-                // first let's check our version
-                var nodesInfo = client.NodesInfo();
+                var nodesInfo = client.NodesInfo(); // first let's check our version
 
                 if (nodesInfo?.Nodes?.Any() != true)
                 {
@@ -338,12 +298,6 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                                 )
                             )))));
 #endif
-                //if (!client.AliasExists(a => a.Name(aliasName)).Exists)
-                //{
-                //    client.IndexAlias(d => d.Remove(r => r.IndexAlias(aliasName).Index("*")));
-                //}
-
-
                 string actualIndexName = null;
 
                 if (client.AliasExists(a => a.Name(aliasName)).Exists)
@@ -359,7 +313,6 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 if (actualIndexName == null)
                 {
                     actualIndexName = VulcanHelper.GetRawIndexName(Index, cultureInfo);
-
                     var response = client.CreateIndex(actualIndexName, CreateIndexCustomizer.CustomizeIndex);
 
                     if (!response.IsValid)
@@ -369,7 +322,6 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                     else
                     {
                         // set up the indexAlias
-
                         client.PutAlias(actualIndexName, aliasName);
                     }
                 }
@@ -411,6 +363,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 storedClient = client;
             }
 
+            // ReSharper disable once InconsistentlySynchronizedField
             Clients[aliasSafe][cultureInfo] = storedClient;
 
             return storedClient;
@@ -425,16 +378,11 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             VulcanHelper.GuardForNullAlias(ref alias);
             var clientList = new List<IVulcanClient>();
             var client = CreateElasticClient(CommonConnectionSettings.ConnectionSettings);
-
             var aliasStart = Index + "-" + alias;
-
-            var aliases = client.CatAliases()?.Records.Where(a => a.Alias.StartsWith(aliasStart));
-
+            var aliases = client.CatAliases()?.Records.Where(a => a.Alias.StartsWith(aliasStart)).ToList();
             if (aliases?.Any() != true) return clientList.ToArray();
-
-            var indices = aliases.Select(a => a.Index);
-
-            if (indices?.Any() != true) return clientList.ToArray();
+            var indices = aliases.Select(a => a.Index).ToList();
+            if (indices.Any() != true) return clientList.ToArray();
 
             clientList.AddRange
             (
@@ -888,55 +836,52 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 var aliasOldStart = Index + "-" + oldAlias + "_";
                 var aliasNewStart = Index + "-" + newAlias + "_";
                 var client = CreateElasticClient(CommonConnectionSettings.ConnectionSettings); // use a raw elasticclient because we just need this to be quick
-                var aliases = client.CatAliases()?.Records.Where(a => a.Alias.StartsWith(Index + "-"));
+                var aliases = client.CatAliases()?.Records.Where(a => a.Alias.StartsWith(Index + "-")).ToList();
                 var handled = new List<string>();
 
                 if (aliases != null)
                 {
                     foreach (var alias in aliases)
                     {
-                        if (!handled.Contains(alias.Alias))
+                        if (handled.Contains(alias.Alias)) continue;
+
+                        // haven't handled this yet!
+                        string checkAlias = null;
+
+                        if (alias.Alias.StartsWith(aliasOldStart))
                         {
-                            // haven't handled this yet!
-                            string checkAlias = null;
+                            checkAlias = alias.Alias.Replace("-" + oldAlias + "_", "-" + newAlias + "_");
+                        }
+                        else if (alias.Alias.StartsWith(aliasNewStart))
+                        {
+                            checkAlias = alias.Alias.Replace("-" + newAlias + "_", "-" + oldAlias + "_");
+                        }
 
-                            if (alias.Alias.StartsWith(aliasOldStart))
-                            {
-                                checkAlias = alias.Alias.Replace("-" + oldAlias + "_", "-" + newAlias + "_");
-                            }
-                            else if (alias.Alias.StartsWith(aliasNewStart))
-                            {
-                                checkAlias = alias.Alias.Replace("-" + newAlias + "_", "-" + oldAlias + "_");
-                            }
+                        if (checkAlias == null) continue;
+                        var checkAliasRecord = aliases.FirstOrDefault(a => a.Alias == checkAlias);
 
-                            if (checkAlias != null)
-                            {
-                                var checkAliasRecord = aliases.FirstOrDefault(a => a.Alias == checkAlias);
+                        if (checkAliasRecord != null)
+                        {
+                            // swapping!
 
-                                if (checkAliasRecord != null)
-                                {
-                                    // swapping!
+                            client.Alias(bad => bad.Remove(a => a.Alias(alias.Alias).Index("*"))
+                                .Remove(a => a.Alias(checkAliasRecord.Alias).Index("*"))
+                                .Add(a => a.Alias(alias.Alias).Index(checkAliasRecord.Index))
+                                .Add(a => a.Alias(checkAliasRecord.Alias).Index(alias.Index)));
 
-                                    client.Alias(bad => bad.Remove(a => a.Alias(alias.Alias).Index("*"))
-                                                            .Remove(a => a.Alias(checkAliasRecord.Alias).Index("*"))
-                                                            .Add(a => a.Alias(alias.Alias).Index(checkAliasRecord.Index))
-                                                            .Add(a => a.Alias(checkAliasRecord.Alias).Index(alias.Index)));
+                            handled.Add(alias.Alias);
+                            handled.Add(checkAliasRecord.Alias);
 
-                                    handled.Add(alias.Alias);
-                                    handled.Add(checkAliasRecord.Alias);
+                            Logger.Warning("Vulcan swapped indexes for aliases: " + alias.Alias + " and " + checkAliasRecord.Alias);
+                        }
+                        else
+                        {
+                            // no swap, simply switching this
 
-                                    Logger.Warning("Vulcan swapped indexes for aliases: " + alias.Alias + " and " + checkAliasRecord.Alias);
-                                }
-                                else
-                                {
-                                    // no swap, simply switching this
+                            client.Alias(bad => bad.Remove(a => a.Alias(alias.Alias).Index("*"))
+                                .Add(a => a.Alias(checkAlias).Index(alias.Index)));
 
-                                    client.Alias(bad => bad.Remove(a => a.Alias(alias.Alias).Index("*"))
-                                                        .Add(a => a.Alias(checkAlias).Index(alias.Index)));
-
-                                    Logger.Warning("Vulcan switched index to new indexAlias: " + alias.Alias + " to " + checkAlias);
-                                }
-                            }
+                            Logger.Warning("Vulcan switched index to new indexAlias: " + alias.Alias + " to " + checkAlias);
                         }
                     }
                 }

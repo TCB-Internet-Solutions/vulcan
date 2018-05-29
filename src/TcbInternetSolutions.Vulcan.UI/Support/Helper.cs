@@ -1,16 +1,16 @@
 ﻿using System;
 using System.Linq;
-using EPiServer.ServiceLocation;
 using EPiServer.Web.Hosting;
+using TcbInternetSolutions.Vulcan.Core.Implementation;
 
 namespace TcbInternetSolutions.Vulcan.UI.Support
 {
     public static class Helper
     {
-        public static string ResolveView(string view)
+        public static string ResolveView(string view, VirtualPathRegistrationHandler vppHandler = null)
         {
-            var protectedModulesVpp = ServiceLocator.Current.
-                GetInstance<VirtualPathRegistrationHandler>()
+            var resolvedVppHandler = vppHandler ?? VulcanHelper.GetService<VirtualPathRegistrationHandler>();
+            var protectedModulesVpp = resolvedVppHandler
                     .RegisteredVirtualPathProviders.Where(p => p.Key is VirtualPathNonUnifiedProvider && ((VirtualPathNonUnifiedProvider) p.Key).ProviderName == "ProtectedModules")
                     .ToList();
 

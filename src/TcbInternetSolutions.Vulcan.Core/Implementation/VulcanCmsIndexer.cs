@@ -55,9 +55,8 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         private static IEnumerable<string> GetCacheKeys()
         {
-            var cacheKeys = new List<string>();
-            //todo: figure out netstandard alternative
 #if NET461
+            var cacheKeys = new List<string>();
             var enumerator = System.Web.HttpRuntime.Cache.GetEnumerator();
 
             while (enumerator.MoveNext())
@@ -65,8 +64,12 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 var key = enumerator.Key?.ToString() ?? string.Empty;
                 cacheKeys.Add(key);
             }
-#endif
+
             return cacheKeys;
+#else
+            //todo: figure out netstandard alternative
+            return Enumerable.Empty<string>();
+#endif
         }
     }
 }

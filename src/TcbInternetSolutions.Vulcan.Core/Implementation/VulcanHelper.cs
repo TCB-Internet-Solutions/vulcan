@@ -3,7 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using EPiServer.ServiceLocation;
 // ReSharper disable InvertIf
+// ReSharper disable SwitchStatementMissingSomeCases
 
 namespace TcbInternetSolutions.Vulcan.Core.Implementation
 {
@@ -21,6 +23,8 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// Temp Alias
         /// </summary>
         public static readonly string TempAlias = "temp";
+
+        private static IServiceLocator _assignedServiceLocator;
 
         /// <summary>
         ///  Get indexAlias-based name for index
@@ -47,6 +51,13 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
             return indexNameBase + "-" + (string.IsNullOrWhiteSpace(alias) ? MasterAlias : alias) + suffix;
         }
+
+        /// <summary>
+        /// Wrapper for Service Locator GetAllInstances
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public static IEnumerable<T> GetAllServices<T>() => ResolveServiceLocator().GetAllInstances<T>();
 
         /// <summary>
         /// Get analyzer for cultureinfo
@@ -171,6 +182,13 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         }
 
         /// <summary>
+        /// Wrapper for Service Locator GetInstance
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public static T GetService<T>() => ResolveServiceLocator().GetInstance<T>();
+
+        /// <summary>
         /// Guards for null alias
         /// </summary>
         /// <param name="alias"></param>
@@ -178,9 +196,19 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         {
             if (string.IsNullOrWhiteSpace(alias)) alias = MasterAlias;
         }
+
+        /// <summary>
+        /// Allows for service locator to be swapped for things such as unit testing.
+        /// </summary>
+        /// <param name="serviceLocator"></param>
+        public static void SetServiceLocator(IServiceLocator serviceLocator)
+        {
+            _assignedServiceLocator = serviceLocator;
+        }
+
         internal static void AddSynonym(string language, string term, string[] synonyms, bool biDirectional)
         {
-            if (String.IsNullOrWhiteSpace(term))
+            if (string.IsNullOrWhiteSpace(term))
             {
                 throw new Exception("Cannot add a blank synonym term");
             }
@@ -204,7 +232,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
 
         internal static void DeleteSynonym(string language, string term)
         {
-            if (String.IsNullOrWhiteSpace(term))
+            if (string.IsNullOrWhiteSpace(term))
             {
                 throw new Exception("Cannot delete a blank synonym term");
             }
@@ -220,7 +248,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         }
 
         internal static Dictionary<string, KeyValuePair<string[], bool>> GetSynonyms(string language)
-        {            
+        {
             return CreateVulcanStore()
                 .LoadAll<VulcanSynonym>()
                 .Where(s => s.Language == language)
@@ -228,5 +256,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         }
 
         private static DynamicDataStore CreateVulcanStore() => DynamicDataStoreFactory.Instance.CreateStore(typeof(VulcanSynonym));
+
+        private static IServiceLocator ResolveServiceLocator() => _assignedServiceLocator ?? ServiceLocator.Current;
     }
 }

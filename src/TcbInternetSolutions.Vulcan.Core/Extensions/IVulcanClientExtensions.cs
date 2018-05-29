@@ -23,6 +23,11 @@
         /// <summary>
         /// IUrlResolver dependency
         /// </summary>
+        public static Injected<IContentLoader> ContentLoader { get; set; }
+
+        /// <summary>
+        /// IUrlResolver dependency
+        /// </summary>
         public static Injected<IUrlResolver> UrlResolver { get; set; }
 
         /// <summary>
@@ -33,7 +38,7 @@
         /// <summary>
         /// Gets a list of Vulcan customizers
         /// </summary>
-        public static IEnumerable<IVulcanCustomizer> Customizers => ServiceLocator.Current.GetAllInstances<IVulcanCustomizer>();
+        public static IEnumerable<IVulcanCustomizer> Customizers => VulcanHelper.GetAllServices<IVulcanCustomizer>();
 
         /// <summary>
         /// Allows for customizations on analyzers.
@@ -204,6 +209,7 @@
         /// <param name="includeTypes"></param>
         /// <param name="excludeTypes"></param>
         /// <param name="buildSearchHit">Can be used to customize how VulcanSearchHit is populated. Default is IVulcanClientExtensions.DefaultBuildSearchHit</param>
+        /// <param name="contentLoader"></param>
         /// <returns></returns>
         public static VulcanSearchHitList GetSearchHits(this IVulcanClient client,
                 QueryContainer query,
@@ -212,7 +218,8 @@
                 IEnumerable<ContentReference> searchRoots = null,
                 IEnumerable<Type> includeTypes = null,
                 IEnumerable<Type> excludeTypes = null,
-                Func<IHit<IContent>, IContentLoader, VulcanSearchHit> buildSearchHit = null
+                Func<IHit<IContent>, IContentLoader, VulcanSearchHit> buildSearchHit = null,
+                IContentLoader contentLoader = null
             )
         {
             if (includeTypes == null)
@@ -243,9 +250,8 @@
                     rootReferences: searchRoots,
                     includeNeutralLanguage: true
             );
-
-            var contentLoader = ServiceLocator.Current.GetInstance<IContentLoader>();
-            var searchHits = hits.Hits.Select(x => buildSearchHit(x, contentLoader));
+            
+            var searchHits = hits.Hits.Select(x => buildSearchHit(x, contentLoader ?? ContentLoader.Service));
             var results = new VulcanSearchHitList(searchHits) { TotalHits = hits.Total, ResponseContext = hits, Page = page, PageSize = pageSize };
 
             return results;
