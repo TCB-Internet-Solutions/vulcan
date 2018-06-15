@@ -387,7 +387,7 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             clientList.AddRange
             (
                 indices
-                    .Select(index => index.Substring(Index.Length + 1))
+                    .Select(index => index.Substring(Index.Length + 16))
                     .Select(cultureName =>
                         GetClient(cultureName.Equals("invariant", StringComparison.OrdinalIgnoreCase) ?
                             CultureInfo.InvariantCulture :
@@ -397,7 +397,6 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             );
 
             return clientList.ToArray();
-
         }
 
         /// <summary>
