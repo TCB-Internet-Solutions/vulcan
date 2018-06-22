@@ -1,13 +1,13 @@
-﻿namespace TcbInternetSolutions.Vulcan.Core.Extensions
-{
-    using EPiServer.Core;
-    using EPiServer.DataAbstraction;
-    using EPiServer.ServiceLocation;
-    using EPiServer.SpecializedProperties;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
+﻿using EPiServer.Core;
+using EPiServer.DataAbstraction;
+using EPiServer.SpecializedProperties;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using TcbInternetSolutions.Vulcan.Core.Implementation;
 
+namespace TcbInternetSolutions.Vulcan.Core.Extensions
+{
     /// <summary>
     /// ContentArea extensions
     /// </summary>
@@ -17,8 +17,9 @@
         /// Converts contentarea to string for indexing
         /// </summary>
         /// <param name="contentArea"></param>
+        /// <param name="contentTypeRepository"></param>
         /// <returns></returns>
-        public static string GetContentAreaContents(this ContentArea contentArea)
+        public static string GetContentAreaContents(this ContentArea contentArea, IContentTypeRepository contentTypeRepository = null)
         {
             if (contentArea == null) { return string.Empty; }
 
@@ -27,7 +28,7 @@
             foreach (var contentAreaItem in contentArea.Items)
             {
                 var blockData = contentAreaItem.GetContent();
-                var props = GetSearchablePropertyValues(blockData, blockData.ContentTypeID);
+                var props = GetSearchablePropertyValues(blockData, blockData.ContentTypeID, contentTypeRepository);
                 stringBuilder.AppendFormat(" {0}", string.Join(" ", props));
             }
 
@@ -39,8 +40,9 @@
         /// </summary>
         /// <param name="contentData"></param>
         /// <param name="contentType"></param>
+        /// <param name="contentTypeRepository"></param>
         /// <returns></returns>
-        public static IEnumerable<string> GetSearchablePropertyValues(IContentData contentData, ContentType contentType)
+        public static IEnumerable<string> GetSearchablePropertyValues(IContentData contentData, ContentType contentType, IContentTypeRepository contentTypeRepository)
         {
             if (contentType == null)
             {
@@ -55,7 +57,7 @@
 
                 if (propertyData is IPropertyBlock propertyBlock)
                 {
-                    foreach (var current2 in GetSearchablePropertyValues(propertyBlock.Block, propertyBlock.BlockPropertyDefinitionTypeID))
+                    foreach (var current2 in GetSearchablePropertyValues(propertyBlock.Block, propertyBlock.BlockPropertyDefinitionTypeID, contentTypeRepository))
                     {
                         yield return current2;
                     }
@@ -72,8 +74,14 @@
         /// </summary>
         /// <param name="contentData"></param>
         /// <param name="contentTypeId"></param>
+        /// <param name="contentTypeRepository"></param>
         /// <returns></returns>
-        public static IEnumerable<string> GetSearchablePropertyValues(IContentData contentData, int contentTypeId) =>
-            GetSearchablePropertyValues(contentData, ServiceLocator.Current.GetInstance<IContentTypeRepository>().Load(contentTypeId));
+        public static IEnumerable<string> GetSearchablePropertyValues(IContentData contentData, int contentTypeId, IContentTypeRepository contentTypeRepository) =>
+            GetSearchablePropertyValues(contentData, ResolveContentTypeRepository(contentTypeRepository).Load(contentTypeId), contentTypeRepository);
+
+        private static IContentTypeRepository ResolveContentTypeRepository(IContentTypeRepository contentTypeRepository)
+        {
+            return contentTypeRepository ?? VulcanHelper.GetService<IContentTypeRepository>();
+        }
     }
 }

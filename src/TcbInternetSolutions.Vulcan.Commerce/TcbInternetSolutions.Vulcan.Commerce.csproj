@@ -13,7 +13,7 @@
     <Copyright>Copyright $(CurrentYear)</Copyright>
     <Description>Commerce support for Vulcan, the lightweight Elasticsearch client for Episerver</Description>    
     <!--follow semantic versioning may include prelease information too-->
-    <PackageVersion>4.0.0</PackageVersion>
+    <PackageVersion>5.0.0</PackageVersion>
     <PackageVersion Condition="'$(VersionSuffix)' != ''">$(PackageVersion)-$(VersionSuffix)</PackageVersion>
     <!--leave releasenotes blank to read in from releasenotes.txt-->
     <PackageReleaseNotes></PackageReleaseNotes>
@@ -40,7 +40,7 @@
 
   <ItemGroup>
     <PackageReference Include="NEST" Version="[5.3.1,6)" />
-    <PackageReference Include="EPiServer.Commerce.Core" Version="[11.5.0,12)" />
+    <PackageReference Include="EPiServer.Commerce.Core" Version="[12.0.0,13)" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.1" />
   </ItemGroup>
 

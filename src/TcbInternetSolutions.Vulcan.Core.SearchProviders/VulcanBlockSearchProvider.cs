@@ -1,15 +1,14 @@
 ﻿namespace TcbInternetSolutions.Vulcan.Core.SearchProviders
 {
+    using Core;
     using EPiServer;
     using EPiServer.Core;
     using EPiServer.DataAbstraction;
     using EPiServer.Framework.Localization;
-    using EPiServer.ServiceLocation;
     using EPiServer.Shell;
     using EPiServer.Shell.Search;
     using EPiServer.Web;
     using Implementation;
-    using Core;
 
     /// <summary>
     /// UI Search provider for blocks
@@ -22,12 +21,12 @@
         /// </summary>
         public VulcanBlockSearchProvider()
               : this(
-                    ServiceLocator.Current.GetInstance<IVulcanHandler>(),
-                    ServiceLocator.Current.GetInstance<LocalizationService>(),
-                    ServiceLocator.Current.GetInstance<ISiteDefinitionResolver>(),
-                    ServiceLocator.Current.GetInstance<IContentRepository>(),
-                    ServiceLocator.Current.GetInstance<IContentTypeRepository>(),
-                    ServiceLocator.Current.GetInstance<UIDescriptorRegistry>()
+                    VulcanHelper.GetService<IVulcanHandler>(),
+                    VulcanHelper.GetService<LocalizationService>(),
+                    VulcanHelper.GetService<ISiteDefinitionResolver>(),
+                    VulcanHelper.GetService<IContentRepository>(),
+                    VulcanHelper.GetService<IContentTypeRepository>(),
+                    VulcanHelper.GetService<UIDescriptorRegistry>()
                 )
         { }
 

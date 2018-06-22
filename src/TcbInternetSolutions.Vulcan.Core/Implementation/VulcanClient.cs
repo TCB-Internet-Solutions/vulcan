@@ -25,6 +25,7 @@
         /// DI Constructor
         /// </summary>
         /// <param name="index"></param>
+        /// <param name="indexAlias"></param>
         /// <param name="settings"></param>
         /// <param name="language"></param>
         /// <param name="contentLoader"></param>
@@ -33,6 +34,7 @@
         public VulcanClient
         (
             string index,
+            string indexAlias,
             IConnectionSettingsValues settings,
             CultureInfo language,
             IContentLoader contentLoader,
@@ -40,11 +42,17 @@
             IVulcanPipelineSelector vulcanPipelineSelector) : base(settings)
         {
             Language = language ?? throw new Exception("Vulcan client requires a language (you may use CultureInfo.InvariantCulture if needed for non-language specific data)");
-            IndexName = VulcanHelper.GetIndexName(index, language);
+            IndexName = VulcanHelper.GetAliasName(index, language, indexAlias);
+            IndexAlias = indexAlias;
             ContentLoader = contentLoader;
             VulcanHandler = vulcanHandler;
             _vulcanPipelineSelector = vulcanPipelineSelector;
         }
+
+        /// <summary>
+        /// IndexAlias
+        /// </summary>
+        public virtual string IndexAlias { get; }
 
         /// <summary>
         /// Vulcan index name
@@ -218,7 +226,7 @@
 
             if (!Language.Equals(CultureInfo.InvariantCulture) && includeNeutralLanguage)
             {
-                indexName += "," + VulcanHelper.GetIndexName(VulcanHandler.Index, CultureInfo.InvariantCulture);
+                indexName += "," + VulcanHelper.GetAliasName(VulcanHandler.Index, CultureInfo.InvariantCulture, IndexAlias);
             }
 
             resolvedDescriptor = resolvedDescriptor.Index(indexName);

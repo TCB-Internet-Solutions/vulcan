@@ -23,6 +23,11 @@
         /// <summary>
         /// IUrlResolver dependency
         /// </summary>
+        public static Injected<IContentLoader> ContentLoader { get; set; }
+
+        /// <summary>
+        /// IUrlResolver dependency
+        /// </summary>
         public static Injected<IUrlResolver> UrlResolver { get; set; }
 
         /// <summary>
@@ -33,7 +38,7 @@
         /// <summary>
         /// Gets a list of Vulcan customizers
         /// </summary>
-        public static IEnumerable<IVulcanCustomizer> Customizers => ServiceLocator.Current.GetAllInstances<IVulcanCustomizer>();
+        public static IEnumerable<IVulcanCustomizer> Customizers => VulcanHelper.GetAllServices<IVulcanCustomizer>();
 
         /// <summary>
         /// Allows for customizations on analyzers.
@@ -111,10 +116,13 @@
         /// <typeparam name="T"></typeparam>
         /// <param name="client"></param>
         /// <param name="searchDescriptor"></param>
+        /// <param name="alias"></param>
         /// <returns></returns>
-        public static ISearchResponse<T> PocoSearch<T>(this IVulcanClient client, Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null) where T : class
+        public static ISearchResponse<T> PocoSearch<T>(this IVulcanClient client, Func<SearchDescriptor<T>, SearchDescriptor<T>> searchDescriptor = null, string alias = null) where T : class
         {
-            var tempClient = client.Language.Equals(CultureInfo.InvariantCulture) ? client : VulcanHandler.Service.GetClient(CultureInfo.InvariantCulture);
+            VulcanHelper.GuardForNullAlias(ref alias);
+
+            var tempClient = client.Language.Equals(CultureInfo.InvariantCulture) ? client : VulcanHandler.Service.GetClient(CultureInfo.InvariantCulture, alias);
             var resolvedDescriptor = searchDescriptor?.Invoke(new SearchDescriptor<T>()) ?? new SearchDescriptor<T>();
             resolvedDescriptor = resolvedDescriptor.Type(typeof(T).FullName);
 
@@ -201,6 +209,7 @@
         /// <param name="includeTypes"></param>
         /// <param name="excludeTypes"></param>
         /// <param name="buildSearchHit">Can be used to customize how VulcanSearchHit is populated. Default is IVulcanClientExtensions.DefaultBuildSearchHit</param>
+        /// <param name="contentLoader"></param>
         /// <returns></returns>
         public static VulcanSearchHitList GetSearchHits(this IVulcanClient client,
                 QueryContainer query,
@@ -209,7 +218,8 @@
                 IEnumerable<ContentReference> searchRoots = null,
                 IEnumerable<Type> includeTypes = null,
                 IEnumerable<Type> excludeTypes = null,
-                Func<IHit<IContent>, IContentLoader, VulcanSearchHit> buildSearchHit = null
+                Func<IHit<IContent>, IContentLoader, VulcanSearchHit> buildSearchHit = null,
+                IContentLoader contentLoader = null
             )
         {
             if (includeTypes == null)
@@ -240,9 +250,8 @@
                     rootReferences: searchRoots,
                     includeNeutralLanguage: true
             );
-
-            var contentLoader = ServiceLocator.Current.GetInstance<IContentLoader>();
-            var searchHits = hits.Hits.Select(x => buildSearchHit(x, contentLoader));
+            
+            var searchHits = hits.Hits.Select(x => buildSearchHit(x, contentLoader ?? ContentLoader.Service));
             var results = new VulcanSearchHitList(searchHits) { TotalHits = hits.Total, ResponseContext = hits, Page = page, PageSize = pageSize };
 
             return results;

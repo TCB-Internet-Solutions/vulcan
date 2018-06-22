@@ -1,1 +1,1 @@
-﻿Changed to new netstandard csproj.
+﻿Support for Epi Commerce 12.
