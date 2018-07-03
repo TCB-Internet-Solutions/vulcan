@@ -17,10 +17,6 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
     /// </summary>
     public class VulcanCustomJsonSerializer : JsonNetSerializer
     {
-        private readonly IEnumerable<IVulcanIndexingModifier> _vulcanModifiers;
-
-        private static readonly Type IgnoreType = typeof(VulcanIgnoreAttribute);
-
         /// <summary>
         /// Ignored property mapping types
         /// </summary>
@@ -33,6 +29,10 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             typeof(EPiServer.DataAbstraction.PageType),
             typeof(EPiServer.Framework.Blobs.Blob)
         };
+
+        private static readonly Type ContentRefType = typeof(ContentReference);
+        private static readonly Type IgnoreType = typeof(VulcanIgnoreAttribute);
+        private readonly IEnumerable<IVulcanIndexingModifier> _vulcanModifiers;
 
         /// <summary>
         /// DI Constructor
@@ -49,6 +49,14 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         {
             _vulcanModifiers = modifiers;
         }
+
+        /// <summary>
+        /// Sets custom converters for serialization, currently only supports ContentReference properties
+        /// </summary>
+        protected override IList<Func<Type, JsonConverter>> ContractConverters { get; } = new List<Func<Type, JsonConverter>>
+        {
+            checkType => ContentRefType.IsAssignableFrom(checkType) ? new Converters.ContentReferenceConverter() : null
+        };
 
         /// <summary>
         /// Creates property mapping
@@ -92,7 +100,6 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             {
                 // write all but ending }
                 CopyDataToStream(data, writableStream, formatting);
-
                 var content = ((IIndexRequest<IContent>)descriptedData).Document;
 
                 if (content != null && _vulcanModifiers != null)
