@@ -1,1 +1,1 @@
-﻿Support for Epi Commerce 12, always available indexing, fixed parrallel indexing.
+﻿Fixed content reference serialization including version/work ID.
