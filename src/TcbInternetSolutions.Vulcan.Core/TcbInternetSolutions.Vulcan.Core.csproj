@@ -13,7 +13,7 @@
     <Copyright>Copyright $(CurrentYear)</Copyright>
     <Description>Vulcan, the lightweight Elasticsearch client for Episerver</Description>
     <!--follow semantic versioning may include prelease information too-->
-    <PackageVersion>5.0.1</PackageVersion>
+    <PackageVersion>5.0.2</PackageVersion>
     <PackageVersion Condition="'$(VersionSuffix)' != ''">$(PackageVersion)-$(VersionSuffix)</PackageVersion>
     <!--leave releasenotes blank to read in from releasenotes.txt-->
     <PackageReleaseNotes></PackageReleaseNotes>
@@ -36,6 +36,11 @@
     <!--do not change unless you want to deal with assembly redirects-->
     <AssemblyVersion>4.0.0.0</AssemblyVersion>
     <FileVersion>4.0.0.0</FileVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net461|AnyCPU'">
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
 
   <ItemGroup>

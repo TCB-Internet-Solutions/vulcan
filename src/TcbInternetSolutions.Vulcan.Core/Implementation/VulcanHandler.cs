@@ -182,14 +182,42 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
             lock (_lockObject)
             {
                 var client = CreateElasticClient(CommonConnectionSettings.ConnectionSettings); // use a raw elasticclient because we just need this to be quick
-                var indexPrefix = alias == null ? $"{Index}_" : $"{Index}-" + alias; // determine if we are deleting only aliases of all index prefixes
-                var indices = client.CatIndices();
 
-                if (indices?.Records?.Any() == true)
+                var indicesToDelete = new List<string>();
+
+                if (alias == null) // determine if we are deleting only aliases of all index prefixes
                 {
-                    var indicesToDelete = new List<string>();
+                    var indexPrefix = $"{Index}_";
+                    var indices = client.CatIndices();
 
-                    foreach (var index in indices.Records.Where(i => i.Index.StartsWith(indexPrefix)).Select(i => i.Index))
+                    if (indices?.Records?.Any() == true)
+                    {
+                        foreach (var index in indices.Records.Where(i => i.Index.StartsWith(indexPrefix)).Select(i => i.Index))
+                        {
+                            indicesToDelete.Add(index);
+                        }
+                    }
+                }
+                else
+                {
+                    var aliasPrefix = $"{Index}-" + alias;
+
+                    var aliases = client.CatAliases();
+
+                    if(aliases?.Records?.Any() == true)
+                    {
+                        foreach(var index in aliases.Records.Where(a => a.Alias.StartsWith(aliasPrefix)).Select(i => i.Index))
+                        {
+                            indicesToDelete.Add(index);
+                        }
+                    }
+                }
+
+                var deleted = new List<string>();
+
+                if (indicesToDelete.Any())
+                {
+                    foreach (var index in indicesToDelete)
                     {
                         var response = client.DeleteIndex(index);
 
@@ -199,11 +227,11 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                         }
                         else
                         {
-                            indicesToDelete.Add(index);
+                            deleted.Add(index);
                         }
                     }
 
-                    DeletedIndices?.Invoke(indicesToDelete);
+                    DeletedIndices?.Invoke(deleted);
                 }
 
                 Clients?.Clear(); // need to force a re-creation                
