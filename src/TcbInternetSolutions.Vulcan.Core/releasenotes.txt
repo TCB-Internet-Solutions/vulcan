@@ -1,2 +1,1 @@
-﻿Fixed content reference serialization including version/work ID.
-Fixed temp alias deletion when EnableAlwaysUp feature used.
+﻿Fixed #15 content sync null reference.
