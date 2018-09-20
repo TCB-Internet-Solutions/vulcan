@@ -85,7 +85,15 @@ namespace TcbInternetSolutions.Vulcan.Core.Initialization
 
         private void Service_DeletedContent(object sender, DeleteContentEventArgs e)
         {
-            _vulcanHandler.DeleteContentEveryLanguage(e.ContentLink, e.Content.GetTypeName());
+            var deletedDescendents = e.DeletedDescendents.ToList();
+            if (e.ContentLink != null)
+            {
+                deletedDescendents.Add(e.ContentLink);
+            }
+            foreach (var contentRef in deletedDescendents)
+            {
+                _vulcanHandler.DeleteContentEveryLanguage(contentRef, string.Empty);
+            }           
         }
 
         private void Service_DeletedContentLanguage(object sender, ContentEventArgs e)

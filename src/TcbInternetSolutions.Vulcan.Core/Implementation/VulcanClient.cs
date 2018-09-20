@@ -73,6 +73,7 @@
         /// Injected Vulcan Handler
         /// </summary>
         protected IVulcanHandler VulcanHandler { get; set; }
+
         /// <summary>
         /// Adds a synonym
         /// </summary>
@@ -126,14 +127,20 @@
             {
                 var result = SearchContent<IContent>(s => s.Query(q => q.Term(c => c.ContentLink, contentLink.ToReferenceWithoutVersion())));
 
-                if (result != null && result.Hits.Count >= 0)
+                if (result != null && result.Hits.Count > 0)
                 {
                     typeName = result.Hits.FirstOrDefault()?.Type;
                 }
             }
 
-            try
+            if (string.IsNullOrWhiteSpace(typeName))
             {
+                Logger.Debug($"Unable to determine type name from content link {contentLink.ToString()}");
+
+                return;
+            }
+            try
+            {           
                 var response = Delete(new DeleteRequest(IndexName, typeName, contentLink.ToReferenceWithoutVersion().ToString()));
 
                 Logger.Debug($"Vulcan (using direct content link) deleted {contentLink.ToReferenceWithoutVersion()} for language {Language.GetCultureName()}: {response.DebugInformation}");
@@ -142,7 +149,6 @@
             {
                 Logger.Warning($"Vulcan could not delete (using direct content link) content with content link {contentLink.ToReferenceWithoutVersion()} for language {Language.GetCultureName()}:", e);
             }
-
         }
 
         /// <summary>
