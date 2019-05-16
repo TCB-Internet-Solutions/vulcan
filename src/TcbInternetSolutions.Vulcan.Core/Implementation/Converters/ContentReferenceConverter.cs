@@ -46,6 +46,10 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation.Converters
                 case JsonToken.Null:
                     return null;
                 case JsonToken.String:
+	                if (reader.Value == null || string.IsNullOrEmpty(reader.Value.ToString()))
+	                {
+		                return null;
+	                }
                     return new ContentReference((string)reader.Value);
                 case JsonToken.Integer:
                     return new ContentReference((int)reader.Value);
