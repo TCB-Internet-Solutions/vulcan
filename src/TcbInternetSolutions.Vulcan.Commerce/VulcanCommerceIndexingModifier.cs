@@ -179,7 +179,7 @@ namespace TcbInternetSolutions.Vulcan.Commerce
                 {
                     if (price.MinQuantity != 0 || price.CustomerPricing != CustomerPricing.AllCustomers) continue;// this is a default price
 
-                    if (!prices.ContainsKey(price.UnitPrice.Currency.CurrencyCode))
+                    if (!prices[market.MarketId.Value].ContainsKey(price.UnitPrice.Currency.CurrencyCode))
                     {
                         prices[market.MarketId.Value].Add(price.UnitPrice.Currency.CurrencyCode, 0);
                     }
