@@ -1,1 +1,1 @@
-﻿Support for Epi Commerce 12.
+﻿Support for Epi Commerce 13.
