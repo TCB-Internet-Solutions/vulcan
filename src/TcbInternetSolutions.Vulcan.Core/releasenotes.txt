@@ -1,1 +1,1 @@
-﻿Fixed #15 content sync null reference.
+﻿Support for Epi Commerce 13.

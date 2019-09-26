@@ -13,7 +13,7 @@
     <Copyright>Copyright $(CurrentYear)</Copyright>
     <Description>Support for indexing attachments</Description>    
     <!--follow semantic versioning may include prelease information too-->
-    <PackageVersion>5.0.0</PackageVersion>
+    <PackageVersion>6.0.0</PackageVersion>
     <PackageVersion Condition="'$(VersionSuffix)' != ''">$(PackageVersion)-$(VersionSuffix)</PackageVersion>
     <!--leave releasenotes blank to read in from releasenotes.txt-->
     <PackageReleaseNotes></PackageReleaseNotes>
