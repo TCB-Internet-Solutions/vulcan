@@ -465,8 +465,11 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
                 {
                     var client = GetClient(language, alias);
 
-                    client.IndexContent(ContentLoader.Get<IContent>(content.ContentLink.ToReferenceWithoutVersion(), language));
-                }
+					if (ContentLoader.TryGet<IContent>(content.ContentLink.ToReferenceWithoutVersion(), language, out var content2))
+					{
+						client.IndexContent(content2);
+					}
+				}
             }
             else
             {
@@ -483,11 +486,12 @@ namespace TcbInternetSolutions.Vulcan.Core.Implementation
         /// <param name="alias"></param>
         public virtual void IndexContentEveryLanguage(ContentReference contentLink, string alias = null)
         {
-            if (ContentReference.IsNullOrEmpty(contentLink)) return;
+	        if (ContentReference.IsNullOrEmpty(contentLink)) return;
 
-            var content = ContentLoader.Get<IContent>(contentLink);
-
-            if (content != null) IndexContentEveryLanguage(content, alias);
+	        if (ContentLoader.TryGet<IContent>(contentLink, out var content))
+	        {
+		        IndexContentEveryLanguage(content, alias);
+	        }
         }
 
         /// <summary>
